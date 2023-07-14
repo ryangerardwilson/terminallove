@@ -90,39 +90,48 @@ List all helpers
 ```
 
 Update the bot by pulling the latest version from this git repo
-    ```
+
+```
     rgw --update
-    ```
+```
+
 Reset the conversation history of the bot
-    ```
+
+```
     rgw --reset
-    ```
+```
+
 Display your passwords, and add, update, delete passwords
-    ```
+
+```
     rgw --p
     rgw --p:create
     rgw --p:update
     rgw --p:delete
-    ```
+```
+
 Display your databases + add, update, delete databases credentials, get the schema of your databases, and tunnel into your databases
-    ```
+
+```
     rgw --db
     rgw --db:create
     rgw --db:update
     rgw --db:delete
     rgw --db:schema --id n
     rgw --db --id n
-    ```
+```
+
 Display your virtual machines, add, update, delete virtual machine login credentials, and tunnel into your virtual machines (note: in case you use SSH keys to tunnel in, see step 7 of the installation process below)   
-    ```
+
+```
     rgw --vm
     rgw --vm:create
     rgw --vm:update
     rgw --vm:delete
     rgw --vm --id n
-    ```
-# INSTALLATION
+```
 
+# INSTALLATION
 
 ***
 STEP I - SET UP THE .ENV
@@ -142,13 +151,15 @@ Homebrew is a package manager that simplifies the installation of software on ma
 1. Create a new user (for example) named 'smoochiekisses' and give them sudo access.
 2. Verify that the user 'smoochiekisses' exists in the system user list.
 3. Login as 'smoochiekisses' and install Homebrew using the command provided.
-   ```
+
+```
     sudo adduser smoochiekisses 
     usermod -aG sudo smoochiekisses 
     cut -d: -f1 /etc/passwd
     su - smoochiekisses
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    ```
+```
+
 ***
 STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS ACCESSIBLE SYSTEM WIDE
 ***
@@ -157,7 +168,8 @@ STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS A
 2. Export the path to the Homebrew binaries to make these packages accessible system-wide.
 3. Make the Homebrew installed Python and Pip your main Python interpreter.
 4. Reboot the system and check if the Homebrew installed version of Python is your default Python interpreter.
-    ```
+
+```
     brew install python3
     brew install mysql
     export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
@@ -167,9 +179,11 @@ STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS A
     sudo ln -sf /home/linuxbrew/.linuxbrew/bin/python3/bin/pip3 /usr/local/bin/pip3
     sudo reboot
     which python3
-    ```
+```
+
 5. Use MySQL command-line to create your bot's database and tables using the provided commands. The below set up works well with the default functions of in services/modules. Feel free to make it your own.
-    ```
+
+```
     mysql -h YOUR_DB_HOST_IP -u YOUR_DB_USERNAME -p    
     CREATE DATABASE your_database_name;
     USE your_database_name;
@@ -288,13 +302,16 @@ STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS A
         command VARCHAR(255),
         password VARCHAR(255)
     );
-    ```
+```
+
 ***
 STEP IV - INSTALL PYTHON PACKAGES VIA PIP
 ***
-    ```
+
+```
     pip3 install termcolor tabulate pandas aiohttp mysql-connector-python python-dotenv plotext
-    ```
+```
+
 ***
 STEP V - NAME YOUR BOT AND MAKE THE BOT EXECUTABLE SYSTEM WIDE
 ***
@@ -303,15 +320,16 @@ STEP V - NAME YOUR BOT AND MAKE THE BOT EXECUTABLE SYSTEM WIDE
 2. Make the main.py file executable.
 3. Create a symbolic link for main.py and name your bot.
     
-    ```
+```
     pwd    
     chmod +x main.py
     sudo ln -s /path/to/your/script/main.py /usr/local/bin/rgw 
-    ```
+```
 
 ***
 STEP VI (OPTIONAL) - STORE SSH KEYS IN FILES/SSH, AND SET PERMISSIONS FOR SSH KEYS
 ***
-    ```
+
+```
     chmod 600 path_to_the_directory/files/ssh/* 
-    ```
+```
