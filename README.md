@@ -14,12 +14,15 @@ Homebrew should be installed as a user with sudo access, not as the root user. A
     sudo adduser smoochiekisses 
 
 Gives smoochiekisses sudo access
+
     usermod -aG sudo smoochiekisses 
 
 If the user has been created, it should appear in this list
+
     cut -d: -f1 /etc/passwd
 
 Login as the user to install homebrew
+
     su - smoochiekisses
 
 ***
