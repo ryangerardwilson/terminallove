@@ -162,82 +162,51 @@ Display your virtual machines, add, update, delete virtual machine login credent
 STEP I - SET UP THE .ENV
 ***
 
-1. Rename .env.example to .env
-2. Set up your open AI API key, MYSQL db connection, and primary credit card coefficient. This coefficient is meant to assume an interest penalty on any purchase made on your credit card, so as to keep a track of your total due and outstanding amount against your credit card - even if you don't have access to a realtime statement. For instance, you are only able to pay 60% of your total due each month, you may intuitively set up a higher interest coefficient of 1.5. Which means that 100 bucks spent on your credit card would be estimated as 150 bucks incurred, as you are spending despite your inability to fully pay off your credit card. On the other hand, if you are able to pay off your credit card bill each month, you can set up an interest coefficient of 1.1. This is meant to be an "intuitive" estimate.
-3. You may leave the DEFAULT_DEBT_ID_FOR_PRIMARY_CREDIT_CARD empty for now, and set it after the rest of the installation process.
-4. If you use Google Cloud MYSQL, add your server's/ machine's IP address to Google CLoud SQL's permitted addresses.
-5. Dont worry about creating your db and schema yet. We will do it in Step III.
+1. Rename .env.example to .env.
+2. In the .env file, add your OpenAI API key, MySQL database (DB) connection details, and credit card coefficient. This coefficient helps estimate a penalty on any purchase made on your credit card to keep track of your total due and outstanding amount.
+3. You may leave the DEFAULT_DEBT_ID_FOR_PRIMARY_CREDIT_CARD field empty for now, and set it later. This field is required by the default finance module, and helps keep track of how much debt piles up in the main credit card you use.
+4. If you're using Google Cloud MySQL, add your server's/machine's IP address to Google Cloud SQL's allowed addresses.
 
 ***
 STEP II - INSTALL HOMEBREW
 ***
 
-Homebrew should be installed as a user with sudo access, not as the root user. Add smoochiekisses as the User (or something/someone more aesthetic-sounding), and Enter 100SmoochieKisses (or something/someone more aesthetic-sounding) as the full name. Keep the same password as the vm password.
+Homebrew is a package manager that simplifies the installation of software on macOS and Linux. Follow the steps below to install it:
+
+1. Create a new user (for example) named 'smoochiekisses' and give them sudo access.
+2. Verify that the user 'smoochiekisses' exists in the system user list.
+3. Login as 'smoochiekisses' and install Homebrew using the command provided.
 
     sudo adduser smoochiekisses 
-
-Gives smoochiekisses sudo access
-
     usermod -aG sudo smoochiekisses 
-
-If the user has been created, it should appear in this list
-
     cut -d: -f1 /etc/passwd
-
-Login as the user to install homebrew
-
     su - smoochiekisses
-
-Install Homebrew
-
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 ***
 STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS ACCESSIBLE SYSTEM WIDE
 ***
 
-Install the python3 via homebrew. We will be hooking the bot onto the interpreter of this installation of python.
+1. Install Python3 and MySQL using Homebrew.
+2. Export the path to the Homebrew binaries to make these packages accessible system-wide.
+3. Make the Homebrew installed Python and Pip your main Python interpreter.
+4. Reboot the system and check if the Homebrew installed version of Python is your default Python interpreter.
 
     brew install python3
-
-Install mysql
-
     brew install mysql
-
-Copy the below path
-
     export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
-
-Paste it into the .zshrc file. This will ensure that brew installed packages global.
-
     nano ~/.zshrc
-
-Invoke the zshrc file
-
     source ~/.zshrc   
-
-Make the brew installed python and pip packages your main python interpreter
-
     sudo ln -sf /home/linuxbrew/.linuxbrew/bin/python3 /usr/local/bin/python3
-    
     sudo ln -sf /home/linuxbrew/.linuxbrew/bin/python3/bin/pip3 /usr/local/bin/pip3
-
-Reboot the system
-
     sudo reboot
-
-Confirm if the homebrew installed version of python is your default python interpreter
-
     which python3
 
-Open the MYSQL command line to your database and create the database of the bot using the below commands:
+5. Use MySQL command-line to create your bot's database and tables using the provided commands. The below set up works well with the default functions of in services/modules. Feel free to make it your own.
 
-    mysql -h YOUR_DB_HOST_IP -u YOUR_DB_USERNAME -p
-    
+    mysql -h YOUR_DB_HOST_IP -u YOUR_DB_USERNAME -p    
     CREATE DATABASE your_database_name;
-
     USE your_database_name;
-
     CREATE TABLE actions (
         id INT AUTO_INCREMENT PRIMARY KEY,
         goal_id INT,
@@ -364,24 +333,17 @@ STEP IV - INSTALL PYTHON PACKAGES VIA PIP
 STEP V - NAME YOUR BOT AND MAKE THE BOT EXECUTABLE SYSTEM WIDE
 ***
 
-Get the path to the directory in which you cloned this git repo
+1. Get the path to the directory where you cloned this git repo.
+2. Make the main.py file executable.
+3. Create a symbolic link for main.py and name your bot.
 
     pwd
-
-Inside the directory, make the main.py file executable
-
     chmod +x main.py
-
-Create a symbolic link, and name your bot. Feel free to replace rgw (my initials) with anything you fancy
-
     sudo ln -s /path/to/your/script/main.py /usr/local/bin/rgw 
 
 ***
 STEP VI (OPTIONAL) - STORE SSH KEYS IN FILES/SSH, AND SET PERMISSIONS FOR SSH KEYS
 ***
 
-The bot is designed to ssh you into any virtual machine of your choice, with the --vm flag.
-
-    chmod 600 path_to_the_directory/files/ssh/*] Dont forget to specify the correct path to your ssh folder
-
+    chmod 600 path_to_the_directory/files/ssh/* 
 
