@@ -55,6 +55,10 @@ def fn_display_passwords():
 def fn_display_functionalities():
     utilities = [
         {
+            "command": "--update",
+            "description": "pulls the lastest version of the bot from the git repo",
+        },
+        {
             "command": "--p",
             "description": "displays passwords",
         },
