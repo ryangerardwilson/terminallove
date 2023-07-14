@@ -44,7 +44,7 @@ def update_bot() -> None:
     subprocess.run(['git', 'commit', '-m', 'sync minor update'], check=True)
     subprocess.run(['git', 'pull', '--rebase'], check=True)
 
-def process_hard_coded_flags(update, reset, p_action, p, l, m, id, service, username, password, comments, vm, db, vm_action, db_action, command, description):
+def process_hard_coded_flags(update, reset, p_action, p, l, id, service, username, password, comments, vm, db, vm_action, db_action, command, description):
 
     function_invoked = False
 

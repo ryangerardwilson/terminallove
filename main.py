@@ -22,7 +22,6 @@ async def main(
         p_action = None,
         p: bool = False,
         l: bool = False,
-        m: bool = False,
         id: int = 0,
         service: str = '',
         username: str = '',
@@ -58,7 +57,7 @@ async def main(
     # Load the interaction history
     interaction_history = load_history()
 
-    function_invoked = process_hard_coded_flags(update, reset, p_action, p, l, m, id, service, username, password, comments, vm, db, vm_action, db_action, command, description)
+    function_invoked = process_hard_coded_flags(update, reset, p_action, p, l, id, service, username, password, comments, vm, db, vm_action, db_action, command, description)
 
     if function_invoked:
         return
@@ -252,7 +251,6 @@ if __name__ == "__main__":
 
     # parser.add_argument('--d', action='store_true', help='List out schema of rgw database')
     parser.add_argument('--l', action='store_true', help='List out all functionalities')
-    parser.add_argument('--m', action='store_true', help='Display all metric charts')
 
     # Modified argument for password actions
     parser.add_argument('--p', action='store_true', help='Password actions: create, read, update, or delete in --p:action format')
@@ -309,7 +307,6 @@ if __name__ == "__main__":
             p_action,
             args.p,
             args.l,
-            args.m,
             args.id,
             args.service,
             args.username,

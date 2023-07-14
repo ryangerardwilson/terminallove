@@ -79,14 +79,9 @@ def fn_display_functionalities():
             "description": "lists all functionalities",
         },
         {
-            "command": "--m",
-            "description": "displays all metrics charts",
-        },
-        {
             "command": "--reset",
             "description": "clears history of AI chat",
         },
-
         {
             "command": "--db",
             "description": "displays credentials from the mysql_databases table",

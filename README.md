@@ -1,4 +1,164 @@
-# STEP I - SET UP THE .ENV
+# EXAMPLE USAGE
+
+The bot is designed with an MVC framework, that leverages OpenAI function calling as the controller, to make it more responsive to user inputs. For instance, the rgw commnad (these are my initials, you can name it whatever you want. see installation section), followed by an organic user input can perform CRUD operations on the database:
+
+***
+FINANCE MODULE EXAMPLES
+***
+
+    rgw "add expense - spent INR 500 on coffee"
+    
+    rgw "add expense - spent INR 700 on Dining yesterday"
+    
+    rgw "update expense - update expense id 5 - the cost was INR 450"
+
+    rgw "delete expense id 5"
+
+    rgw "show me my expenses"
+
+    rgw "show me my expenses in the last 46 to 78 days"
+
+    rgw "show me my expenses in the last 46 to 78 days cumulatively"
+
+    rgw "show me my expenses in the last 46 to 78 days cumulatively and exlcude debt"
+
+    rgw "show me my expenses line chart in the last 46 to 78 days"
+
+    rgw "show me my expenses line chart in the last 46 to 78 days cumulatively"
+
+    rgw "show me my expenses line chart in the last 46 to 78 days cumulatively and exclude debt"
+
+***
+RUNS MODULE EXAMPLES
+***
+
+    rgw "log run - pre run weight is 205.7 lbs, post run weight is 202.3 lbs, temperature is 88 F, distance is 2.67, fat burn zone is 22 mins, cardio zone is 1 min"
+
+    rgw "update run id 14 - distance is 3.6"
+
+    rgw "delete run id 14"
+
+    rgw "show me my runs"
+
+    rgw "show me my running weight line chart"
+
+    rgw "show me my running fat burn zone line chart"
+
+    rgw "show me my running fat burn zone line chart for the last 14 to 37 days"
+
+    rgw "show me my running fat burn zone line chart for the last 14 to 37 days cumulatively"    
+
+    rgw "show me my running distance line chart"
+
+    rgw "show me my running distance line chart for the last 14 to 37 days"
+
+    rgw "show me my running distance line chart for the last 14 to 37 days cumulatively"
+
+
+***
+GOALS MODULE
+***
+
+    rgw "add goal - run a half-marathon by December"
+
+    rgw "add action against goal id 2 - persist with low heart rate training for 3 months"
+
+    rgw "show me my goals"
+
+    rgw "show me my actions"
+
+    rgw "show me my timesheet"
+
+    rgw "show me my timesheet of yesterday"
+
+    rgw "mark action ids 2, 3, 7 done"
+
+    rgw "mark action ids 7, 8, 9 done yesterday"
+
+    rgw "show me my actions against goal id 3"
+
+    rgw "delete goal id 2"
+
+    rgw "delete action id 5"
+
+    rgw "update goal id 2 - run a marathon"
+
+    rgw "show me my timesheet line chart"
+
+    rgw "show me my timesheet line chart for the last 37 to 45 days"
+    
+
+***
+TIME MODULE
+***
+
+    rgw "show me my events"
+
+    rgw "add event - Lunch with Elon Musk on January 1, 2030"
+
+    rgw "update event id 34 - Breakfast with Elon Musk on January 1, 2025"
+
+    rgw "delete event id 30"
+
+***
+NON AI HARDCODED HELPERS
+***
+
+List all helpers
+
+    rgw --l
+
+Update the bot by pulling the latest version from this git repo
+
+    rgw --update
+
+Reset the conversation history of the bot
+
+    rgw --reset
+
+Display your passwords, and add, update, delete passwords
+
+    rgw --p
+    
+    rgw --p:create
+
+    rgw --p:update
+
+    rgw --p:delete
+
+Display your databases + add, update, delete databases credentials, get the schema of your databases, and tunnel into your databases
+
+    rgw --db
+
+    rgw --db:create
+
+    rgw --db:update
+
+    rgw --db:delete
+
+    rgw --db:schema --id n
+
+    rgw --db --id n
+
+Display your virtual machines, add, update, delete virtual machine login credentials, and tunnel into your virtual machines (note: in case you use SSH keys to tunnel in, see step 7 of the installation process below)   
+
+    rgw --vm
+
+    rgw --vm:create
+
+    rgw --vm:update
+
+    rgw --vm:delete
+
+    rgw --vm --id n
+
+
+# INSTALLATION
+
+
+***
+STEP I - SET UP THE .ENV
+***
 
 1. Rename .env.example to .env
 2. Set up your open AI API key, MYSQL db connection, and primary credit card coefficient. This coefficient is meant to assume an interest penalty on any purchase made on your credit card, so as to keep a track of your total due and outstanding amount against your credit card - even if you don't have access to a realtime statement. For instance, you are only able to pay 60% of your total due each month, you may intuitively set up a higher interest coefficient of 1.5. Which means that 100 bucks spent on your credit card would be estimated as 150 bucks incurred, as you are spending despite your inability to fully pay off your credit card. On the other hand, if you are able to pay off your credit card bill each month, you can set up an interest coefficient of 1.1. This is meant to be an "intuitive" estimate.
@@ -6,8 +166,9 @@
 4. If you use Google Cloud MYSQL, add your server's/ machine's IP address to Google CLoud SQL's permitted addresses.
 5. Dont worry about creating your db and schema yet. We will do it in Step III.
 
-
-# STEP II - INSTALL HOMEBREW
+***
+STEP II - INSTALL HOMEBREW
+***
 
 Homebrew should be installed as a user with sudo access, not as the root user. Add smoochiekisses as the User (or something/someone more aesthetic-sounding), and Enter 100SmoochieKisses (or something/someone more aesthetic-sounding) as the full name. Keep the same password as the vm password.
 
@@ -189,13 +350,15 @@ Open the MYSQL command line to your database and create the database of the bot 
         password VARCHAR(255)
     );
 
-
-# STEP IV - INSTALL PYTHON PACKAGES VIA PIP
-
+***
+STEP IV - INSTALL PYTHON PACKAGES VIA PIP
+***
 
     pip3 install termcolor tabulate pandas aiohttp mysql-connector-python python-dotenv plotext
 
-# STEP V - NAME YOUR BOT AND MAKE THE BOT EXECUTABLE SYSTEM WIDE
+***
+STEP V - NAME YOUR BOT AND MAKE THE BOT EXECUTABLE SYSTEM WIDE
+***
 
 Get the path to the directory in which you cloned this git repo
 
@@ -209,7 +372,9 @@ Create a symbolic link, and name your bot. Feel free to replace rgw (my initials
 
     sudo ln -s /path/to/your/script/main.py /usr/local/bin/rgw 
 
-# STEP VI (OPTIONAL) - STORE SSH KEYS IN FILES/SSH, AND SET PERMISSIONS FOR SSH KEYS
+***
+STEP VI (OPTIONAL) - STORE SSH KEYS IN FILES/SSH, AND SET PERMISSIONS FOR SSH KEYS
+***
 
 The bot is designed to ssh you into any virtual machine of your choice, with the --vm flag.
 
