@@ -1,6 +1,4 @@
-***
-STEP I - SET UP THE .ENV
-***
+# STEP I - SET UP THE .ENV
 
 1. Rename .env.example to .env
 2. Set up your open AI API key, MYSQL db connection, and primary credit card coefficient. This coefficient is meant to assume an interest penalty on any purchase made on your credit card, so as to keep a track of your total due and outstanding amount against your credit card - even if you don't have access to a realtime statement. For instance, you are only able to pay 60% of your total due each month, you may intuitively set up a higher interest coefficient of 1.5. Which means that 100 bucks spent on your credit card would be estimated as 150 bucks incurred, as you are spending despite your inability to fully pay off your credit card. On the other hand, if you are able to pay off your credit card bill each month, you can set up an interest coefficient of 1.1. This is meant to be an "intuitive" estimate.
@@ -8,22 +6,21 @@ STEP I - SET UP THE .ENV
 4. If you use Google Cloud MYSQL, add your server's/ machine's IP address to Google CLoud SQL's permitted addresses.
 5. Dont worry about creating your db and schema yet. We will do it in Step III.
 
-***
-STEP II - INSTALL HOMEBREW
-***
 
-# Homebrew should be installed as a user with sudo access, not as the root user. Add smoochiekisses as the User (or something/someone more aesthetic-sounding), and Enter 100SmoochieKisses (or something/someone more aesthetic-sounding) as the full name. Keep the same password as the vm password.
+# STEP II - INSTALL HOMEBREW
 
-sudo adduser smoochiekisses 
+Homebrew should be installed as a user with sudo access, not as the root user. Add smoochiekisses as the User (or something/someone more aesthetic-sounding), and Enter 100SmoochieKisses (or something/someone more aesthetic-sounding) as the full name. Keep the same password as the vm password.
 
-# Gives smoochiekisses sudo access
-usermod -aG sudo smoochiekisses 
+    sudo adduser smoochiekisses 
 
-# If the user has been created, it should appear in this list
-cut -d: -f1 /etc/passwd
+Gives smoochiekisses sudo access
+    usermod -aG sudo smoochiekisses 
 
-# Login as the user to install homebrew
-su - smoochiekisses
+If the user has been created, it should appear in this list
+    cut -d: -f1 /etc/passwd
+
+Login as the user to install homebrew
+    su - smoochiekisses
 
 ***
 STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS ACCESSIBLE SYSTEM WIDE
