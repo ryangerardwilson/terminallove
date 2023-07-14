@@ -44,7 +44,7 @@ RUNS MODULE
 ***
 GOALS
 ***
-   ```
+    ```
     rgw "add goal - run a half-marathon by December"
     rgw "add action against goal id 2 - persist with low heart rate training for 3 months"
     rgw "show me my goals"
