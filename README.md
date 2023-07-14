@@ -3,7 +3,7 @@
 The bot is designed with an MVC framework, that leverages OpenAI function calling as the controller, to make it more responsive to user inputs. For instance, the rgw commnad (these are my initials, you can name it whatever you want. see installation section), followed by an organic user input can perform CRUD operations on the database:
 
 ***
-FINANCE MODULE EXAMPLES
+FINANCE MODULE
 ***
 
     rgw "add expense - spent INR 500 on coffee"
@@ -29,7 +29,7 @@ FINANCE MODULE EXAMPLES
     rgw "show me my expenses line chart in the last 46 to 78 days cumulatively and exclude debt"
 
 ***
-RUNS MODULE EXAMPLES
+RUNS MODULE
 ***
 
     rgw "log run - pre run weight is 205.7 lbs, post run weight is 202.3 lbs, temperature is 88 F, distance is 2.67, fat burn zone is 22 mins, cardio zone is 1 min"
@@ -56,7 +56,7 @@ RUNS MODULE EXAMPLES
 
 
 ***
-GOALS MODULE
+GOALS
 ***
 
     rgw "add goal - run a half-marathon by December"
@@ -89,7 +89,7 @@ GOALS MODULE
     
 
 ***
-TIME MODULE
+TIME
 ***
 
     rgw "show me my events"
@@ -101,8 +101,10 @@ TIME MODULE
     rgw "delete event id 30"
 
 ***
-NON AI HARDCODED HELPERS
+HARDCODED HELPERS
 ***
+
+These helpers have been hardcoded (instead of being routed via the OpenAI controller for security purposes, as they interact with senstive data).
 
 List all helpers
 
