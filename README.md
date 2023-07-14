@@ -1,3 +1,10 @@
+# INTRODUCTION
+
+An 'almost non-opiniated' open and free MVC architecture to create your own AI bot:
+1. MODEL your data any way you like. Default set up includes finance, goal, time and run management CRUD modules.
+2. VIEW is the GNU-LINUX Ubuntu terminal
+3. CONTROLLER is a Function Calling AI Vendor. Default set up includes OpenAI integration 
+
 # EXAMPLE USAGE
 
 The bot is designed with an MVC framework, that leverages OpenAI function calling as the controller, to make it more responsive to user inputs. For instance, the rgw commnad (these are my initials, you can name it whatever you want. see installation section), followed by an organic user input can perform CRUD operations on the database:
@@ -5,101 +12,63 @@ The bot is designed with an MVC framework, that leverages OpenAI function callin
 ***
 FINANCE MODULE
 ***
-
+    ```
     rgw "add expense - spent INR 500 on coffee"
-    
     rgw "add expense - spent INR 700 on Dining yesterday"
-    
     rgw "update expense - update expense id 5 - the cost was INR 450"
-
     rgw "delete expense id 5"
-
     rgw "show me my expenses"
-
     rgw "show me my expenses in the last 46 to 78 days"
-
     rgw "show me my expenses in the last 46 to 78 days cumulatively"
-
     rgw "show me my expenses in the last 46 to 78 days cumulatively and exlcude debt"
-
     rgw "show me my expenses line chart in the last 46 to 78 days"
-
     rgw "show me my expenses line chart in the last 46 to 78 days cumulatively"
-
     rgw "show me my expenses line chart in the last 46 to 78 days cumulatively and exclude debt"
-
+    ```
 ***
 RUNS MODULE
 ***
-
+    ```
     rgw "log run - pre run weight is 205.7 lbs, post run weight is 202.3 lbs, temperature is 88 F, distance is 2.67, fat burn zone is 22 mins, cardio zone is 1 min"
-
     rgw "update run id 14 - distance is 3.6"
-
     rgw "delete run id 14"
-
     rgw "show me my runs"
-
     rgw "show me my running weight line chart"
-
     rgw "show me my running fat burn zone line chart"
-
     rgw "show me my running fat burn zone line chart for the last 14 to 37 days"
-
     rgw "show me my running fat burn zone line chart for the last 14 to 37 days cumulatively"    
-
     rgw "show me my running distance line chart"
-
     rgw "show me my running distance line chart for the last 14 to 37 days"
-
     rgw "show me my running distance line chart for the last 14 to 37 days cumulatively"
-
-
+    ```
 ***
 GOALS
 ***
-
+   ```
     rgw "add goal - run a half-marathon by December"
-
     rgw "add action against goal id 2 - persist with low heart rate training for 3 months"
-
     rgw "show me my goals"
-
     rgw "show me my actions"
-
     rgw "show me my timesheet"
-
     rgw "show me my timesheet of yesterday"
-
     rgw "mark action ids 2, 3, 7 done"
-
     rgw "mark action ids 7, 8, 9 done yesterday"
-
     rgw "show me my actions against goal id 3"
-
     rgw "delete goal id 2"
-
     rgw "delete action id 5"
-
     rgw "update goal id 2 - run a marathon"
-
     rgw "show me my timesheet line chart"
-
     rgw "show me my timesheet line chart for the last 37 to 45 days"
-    
-
+    ```
 ***
 TIME
 ***
-
+    ```
     rgw "show me my events"
-
     rgw "add event - Lunch with Elon Musk on January 1, 2030"
-
     rgw "update event id 34 - Breakfast with Elon Musk on January 1, 2025"
-
     rgw "delete event id 30"
-
+    ```
 ***
 HARDCODED HELPERS
 ***
@@ -107,54 +76,41 @@ HARDCODED HELPERS
 These helpers have been hardcoded (instead of being routed via the OpenAI controller for security purposes, as they interact with senstive data).
 
 List all helpers
-
+    ```
     rgw --l
-
+    ```
 Update the bot by pulling the latest version from this git repo
-
+    ```
     rgw --update
-
+    ```
 Reset the conversation history of the bot
-
+    ```
     rgw --reset
-
+    ```
 Display your passwords, and add, update, delete passwords
-
+    ```
     rgw --p
-    
     rgw --p:create
-
     rgw --p:update
-
     rgw --p:delete
-
+    ```
 Display your databases + add, update, delete databases credentials, get the schema of your databases, and tunnel into your databases
-
+    ```
     rgw --db
-
     rgw --db:create
-
     rgw --db:update
-
     rgw --db:delete
-
     rgw --db:schema --id n
-
     rgw --db --id n
-
+    ```
 Display your virtual machines, add, update, delete virtual machine login credentials, and tunnel into your virtual machines (note: in case you use SSH keys to tunnel in, see step 7 of the installation process below)   
-
+    ```
     rgw --vm
-
     rgw --vm:create
-
     rgw --vm:update
-
     rgw --vm:delete
-
     rgw --vm --id n
-
-
+    ```
 # INSTALLATION
 
 
@@ -176,13 +132,13 @@ Homebrew is a package manager that simplifies the installation of software on ma
 1. Create a new user (for example) named 'smoochiekisses' and give them sudo access.
 2. Verify that the user 'smoochiekisses' exists in the system user list.
 3. Login as 'smoochiekisses' and install Homebrew using the command provided.
-
+   ```
     sudo adduser smoochiekisses 
     usermod -aG sudo smoochiekisses 
     cut -d: -f1 /etc/passwd
     su - smoochiekisses
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
+    ```
 ***
 STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS ACCESSIBLE SYSTEM WIDE
 ***
@@ -191,7 +147,7 @@ STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS A
 2. Export the path to the Homebrew binaries to make these packages accessible system-wide.
 3. Make the Homebrew installed Python and Pip your main Python interpreter.
 4. Reboot the system and check if the Homebrew installed version of Python is your default Python interpreter.
-
+    ```
     brew install python3
     brew install mysql
     export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
@@ -201,9 +157,9 @@ STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS A
     sudo ln -sf /home/linuxbrew/.linuxbrew/bin/python3/bin/pip3 /usr/local/bin/pip3
     sudo reboot
     which python3
-
+    ```
 5. Use MySQL command-line to create your bot's database and tables using the provided commands. The below set up works well with the default functions of in services/modules. Feel free to make it your own.
-
+    ```
     mysql -h YOUR_DB_HOST_IP -u YOUR_DB_USERNAME -p    
     CREATE DATABASE your_database_name;
     USE your_database_name;
@@ -322,13 +278,13 @@ STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS A
         command VARCHAR(255),
         password VARCHAR(255)
     );
-
+    ```
 ***
 STEP IV - INSTALL PYTHON PACKAGES VIA PIP
 ***
-
+    ```
     pip3 install termcolor tabulate pandas aiohttp mysql-connector-python python-dotenv plotext
-
+    ```
 ***
 STEP V - NAME YOUR BOT AND MAKE THE BOT EXECUTABLE SYSTEM WIDE
 ***
@@ -346,6 +302,6 @@ STEP V - NAME YOUR BOT AND MAKE THE BOT EXECUTABLE SYSTEM WIDE
 ***
 STEP VI (OPTIONAL) - STORE SSH KEYS IN FILES/SSH, AND SET PERMISSIONS FOR SSH KEYS
 ***
-
+    ```
     chmod 600 path_to_the_directory/files/ssh/* 
-
+    ```
