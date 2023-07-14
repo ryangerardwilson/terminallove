@@ -25,22 +25,53 @@ Login as the user to install homebrew
 
     su - smoochiekisses
 
-***
-STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS ACCESSIBLE SYSTEM WIDE
-***
-PYTHON PACKAGES NEEDED
-[/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"] Intalls homebrew
-[brew install python3] installs python3
-[brew install mysql] installs mysql
-[nano ~/.zshrc] copy-paste this into the file - [export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"]. This will ensure that brew installed packages are your global packages
-[source ~/.zshrc]
-[sudo ln -sf /home/linuxbrew/.linuxbrew/bin/python3 /usr/local/bin/python3]
-[sudo ln -sf /home/linuxbrew/.linuxbrew/bin/python3/bin/pip3 /usr/local/bin/pip3]
-[sudo reboot]
-[which python3] Confirm if the homebrew installed version of python is your default python interpreter
-[mysql -h YOUR_DB_HOST_IP -u YOUR_DB_USERNAME -p] Open the MYSQL command line to the terminal
-[CREATE DATABASE your_database_name;] create the database of the bot
-[USE your_database_name;] Select that database, and then use the below commands to create the necessary tables
+Install Homebrew
+
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS ACCESSIBLE SYSTEM WIDE
+
+Install the python3 via homebrew. We will be hooking the bot onto the interpreter of this installation of python.
+
+    brew install python3
+
+Install mysql
+
+    brew install mysql
+
+Copy the below path
+
+    export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
+
+Paste it into the .zshrc file. This will ensure that brew installed packages global.
+
+    nano ~/.zshrc
+
+Invoke the zshrc file
+
+    source ~/.zshrc   
+
+Make the brew installed python and pip packages your main python interpreter
+
+    sudo ln -sf /home/linuxbrew/.linuxbrew/bin/python3 /usr/local/bin/python3
+    
+    sudo ln -sf /home/linuxbrew/.linuxbrew/bin/python3/bin/pip3 /usr/local/bin/pip3
+
+Reboot the system
+
+    sudo reboot
+
+Confirm if the homebrew installed version of python is your default python interpreter
+
+    which python3
+
+Open the MYSQL command line to your database and create the database of the bot using the below commands:
+
+    mysql -h YOUR_DB_HOST_IP -u YOUR_DB_USERNAME -p
+    
+    CREATE DATABASE your_database_name;
+
+    USE your_database_name;
 
     CREATE TABLE actions (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -158,36 +189,30 @@ PYTHON PACKAGES NEEDED
         password VARCHAR(255)
     );
 
-***
-STEP IV - INSTALL PYTHON PACKAGES VIA PIP
-***
-[
-pip3 install termcolor
-pip3 install tabulate
-pip3 install pandas
-pip3 install aiohttp
-pip3 install mysql-connector-python
-pip3 install python-dotenv
-pip3 install plotext
-]
+
+# STEP IV - INSTALL PYTHON PACKAGES VIA PIP
 
 
-***
-STEP V - NAME YOUR BOT AND MAKE THE BOT EXECUTABLE SYSTEM WIDE
-***
-INITIATION:
-[pwd] get the path to directory and copy it
-[chmod +x main.py] make main.py executable
-[sudo ln -s /path/to/your/script/main.py /usr/local/bin/rgw] create a symbolic link to the path of main.py. For instance - [sudo ln -s /Users/ryangerardwilson/Apps/ubuntubot/main.py /usr/local/bin/rgw]. YOu can replace rgw with the name of your bot. For instance [sudo ln -s /Users/elonmusk/Apps/ubuntubot/main.py /usr/local/bin/twit]
+    pip3 install termcolor tabulate pandas aiohttp mysql-connector-python python-dotenv plotext
 
+# STEP V - NAME YOUR BOT AND MAKE THE BOT EXECUTABLE SYSTEM WIDE
 
-***
-STEP VI - STORE SSH KEYS IN FILES/SSH, AND SET PERMISSIONS FOR SSH KEYS
-***
+Get the path to the directory in which you cloned this git repo
+
+    pwd
+
+Inside the directory, make the main.py file executable
+
+    chmod +x main.py
+
+Create a symbolic link, and name your bot. Feel free to replace rgw (my initials) with anything you fancy
+
+    sudo ln -s /path/to/your/script/main.py /usr/local/bin/rgw 
+
+# STEP VI (OPTIONAL) - STORE SSH KEYS IN FILES/SSH, AND SET PERMISSIONS FOR SSH KEYS
+
 The bot is designed to ssh you into any virtual machine of your choice, with the --vm flag.
-[chmod 600 /home/smoochiekisses/Desktop/apps/ubuntubot/files/ssh/*] Dont forget to specify the correct path to your ssh folder
 
-
-
+    chmod 600 path_to_the_directory/files/ssh/*] Dont forget to specify the correct path to your ssh folder
 
 
