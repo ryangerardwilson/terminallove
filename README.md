@@ -12,7 +12,8 @@ The bot is designed with an MVC framework, that leverages OpenAI function callin
 ***
 FINANCE MODULE
 ***
-    ```
+    
+```
     rgw "add expense - spent INR 500 on coffee"
     rgw "add expense - spent INR 700 on Dining yesterday"
     rgw "update expense - update expense id 5 - the cost was INR 450"
@@ -24,11 +25,13 @@ FINANCE MODULE
     rgw "show me my expenses line chart in the last 46 to 78 days"
     rgw "show me my expenses line chart in the last 46 to 78 days cumulatively"
     rgw "show me my expenses line chart in the last 46 to 78 days cumulatively and exclude debt"
-    ```
+```
+
 ***
 RUNS MODULE
 ***
-    ```
+
+```
     rgw "log run - pre run weight is 205.7 lbs, post run weight is 202.3 lbs, temperature is 88 F, distance is 2.67, fat burn zone is 22 mins, cardio zone is 1 min"
     rgw "update run id 14 - distance is 3.6"
     rgw "delete run id 14"
@@ -40,11 +43,13 @@ RUNS MODULE
     rgw "show me my running distance line chart"
     rgw "show me my running distance line chart for the last 14 to 37 days"
     rgw "show me my running distance line chart for the last 14 to 37 days cumulatively"
-    ```
+```
+
 ***
 GOALS
 ***
-    ```
+
+```
     rgw "add goal - run a half-marathon by December"
     rgw "add action against goal id 2 - persist with low heart rate training for 3 months"
     rgw "show me my goals"
@@ -59,16 +64,19 @@ GOALS
     rgw "update goal id 2 - run a marathon"
     rgw "show me my timesheet line chart"
     rgw "show me my timesheet line chart for the last 37 to 45 days"
-    ```
+```
+
 ***
 TIME
 ***
-    ```
+
+```
     rgw "show me my events"
     rgw "add event - Lunch with Elon Musk on January 1, 2030"
     rgw "update event id 34 - Breakfast with Elon Musk on January 1, 2025"
     rgw "delete event id 30"
-    ```
+```
+
 ***
 HARDCODED HELPERS
 ***
@@ -76,9 +84,11 @@ HARDCODED HELPERS
 These helpers have been hardcoded (instead of being routed via the OpenAI controller for security purposes, as they interact with senstive data).
 
 List all helpers
-    ```
+
+```
     rgw --l
-    ```
+```
+
 Update the bot by pulling the latest version from this git repo
     ```
     rgw --update
