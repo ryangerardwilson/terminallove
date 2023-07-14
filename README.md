@@ -337,11 +337,9 @@ STEP V - NAME YOUR BOT AND MAKE THE BOT EXECUTABLE SYSTEM WIDE
 2. Make the main.py file executable.
 3. Create a symbolic link for main.py and name your bot.
 
-    pwd
-
-    chmod +x main.py
-
-    sudo ln -s /path/to/your/script/main.py /usr/local/bin/rgw 
+	pwd
+	chmod +x main.py
+	sudo ln -s /path/to/your/script/main.py /usr/local/bin/rgw 
 
 ***
 STEP VI (OPTIONAL) - STORE SSH KEYS IN FILES/SSH, AND SET PERMISSIONS FOR SSH KEYS
