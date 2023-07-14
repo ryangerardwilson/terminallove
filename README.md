@@ -11,12 +11,19 @@ STEP I - SET UP THE .ENV
 ***
 STEP II - INSTALL HOMEBREW
 ***
-HOMEBREW MUST BE INSTALLED AS A USER WITH SUDO ACCESS, NOT ROOT USER
-[sudo adduser smoochiekisses] Add smoochiekisses as the User (or something/someone more aesthetic-sounding), and Enter 100SmoochieKisses (or something/someone more aesthetic-sounding) as the full name. Keep the same password as the vm password.
-[usermod -aG sudo smoochiekisses] Gives smoochiekisses sudo access
-[cut -d: -f1 /etc/passwd] If the user has been created, it should appear in this list
-[su - smoochiekisses] Login as the user to install homebrew
 
+# Homebrew should be installed as a user with sudo access, not as the root user. Add smoochiekisses as the User (or something/someone more aesthetic-sounding), and Enter 100SmoochieKisses (or something/someone more aesthetic-sounding) as the full name. Keep the same password as the vm password.
+
+sudo adduser smoochiekisses 
+
+# Gives smoochiekisses sudo access
+usermod -aG sudo smoochiekisses 
+
+# If the user has been created, it should appear in this list
+cut -d: -f1 /etc/passwd
+
+# Login as the user to install homebrew
+su - smoochiekisses
 
 ***
 STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS ACCESSIBLE SYSTEM WIDE
