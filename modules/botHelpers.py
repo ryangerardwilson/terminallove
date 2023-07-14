@@ -6,6 +6,7 @@ import json
 import aiohttp
 import asyncio
 import argparse
+import subprocess
 from modules.services.nonAiHelpers.utilities.functions import *
 
 # Interaction history file
@@ -36,19 +37,26 @@ def clear_history() -> None:
     if os.path.exists(history_file):
         os.remove(history_file)
 
-def process_hard_coded_flags(reset, p_action, p, l, m, id, service, username, password, comments, vm, db, vm_action, db_action, command, description):
+def update_bot() -> None:
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.chdir(parent_dir)
+    subprocess.run(['git', 'add', '.'], check=True)
+    subprocess.run(['git', 'commit', '-m', 'sync minor update'], check=True)
+    subprocess.run(['git', 'pull', '--rebase'], check=True)
+
+def process_hard_coded_flags(update, reset, p_action, p, l, m, id, service, username, password, comments, vm, db, vm_action, db_action, command, description):
 
     function_invoked = False
 
+    if update:
+        update_bot()
+        print("Bot updated!")
+        function_invoked = True
 
     if reset:
         clear_history()
         print("Interaction history cleared.")
         function_invoked = True
-
-    # if d:
-    #     fn_display_rgw_database_schema()
-    #     function_invoked = True
 
     if p_action != None:
         # Check if action is 'create'

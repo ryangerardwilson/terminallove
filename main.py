@@ -16,6 +16,7 @@ from modules.services.nonAiHelpers.utilities.functions import *
 
 async def main(
         user_message: str,
+        update: bool = False,
         reset: bool = False,
         mod: str = '',
         p_action = None,
@@ -57,7 +58,7 @@ async def main(
     # Load the interaction history
     interaction_history = load_history()
 
-    function_invoked = process_hard_coded_flags(reset, p_action, p, l, m, id, service, username, password, comments, vm, db, vm_action, db_action, command, description)
+    function_invoked = process_hard_coded_flags(update, reset, p_action, p, l, m, id, service, username, password, comments, vm, db, vm_action, db_action, command, description)
 
     if function_invoked:
         return
@@ -265,6 +266,9 @@ if __name__ == "__main__":
     parser.add_argument('--db', action='store_true', help='DB actions: create, read, update, delete, or get schema in --db:action format')
     parser.add_argument('--command', type=str, help='SSH command name')
     parser.add_argument('--description', type=str, help='SSH command description')
+    
+    # Modified argument for password actions
+    parser.add_argument('--update', action='store_true', help='Updates the bot from the latest version in the git repository')
 
     # Parse known and unknown args
     args, unknown = parser.parse_known_args()
@@ -299,6 +303,7 @@ if __name__ == "__main__":
     asyncio.run(
         main(
             args.user_message,
+            args.update,
             args.reset,
             args.mod,
             p_action,
