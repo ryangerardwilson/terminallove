@@ -132,7 +132,7 @@ update_run_by_id = {
                 "type": "integer",
                 "description": "The distance covered during the run"
             },
-            "temperature": {
+            "temperature_in_f": {
                 "type": "integer",
                 "description": "The average temperature during the run in Fahrenheit"
             },

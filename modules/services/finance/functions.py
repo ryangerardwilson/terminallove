@@ -338,7 +338,8 @@ def fn_list_expenses(called_function_arguments_dict):
     # Convert the result to DataFrame
     pd.options.display.float_format = lambda x: '{:.2f}'.format(x) if abs(x) < 1000000 else '{:.0f}'.format(x)
     df = pd.DataFrame(result)
-    df['value'] = df['value'].astype(int)
+    if 'value' in df.columns:
+        df['value'] = df['value'].astype(int)
 
 
     # Close the cursor and connection
