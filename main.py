@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-import json
-import aiohttp
+import os
 import asyncio
 import argparse
 from modules.botHelpers import *
@@ -243,6 +242,7 @@ async def main(
     print()
 
 if __name__ == "__main__":
+
     # Parse arguments
     parser = argparse.ArgumentParser(description='Interact with OpenAI GPT-3.')
     parser.add_argument('user_message', type=str, nargs='?', default='', help='User message to send to GPT-3')

@@ -143,45 +143,18 @@ STEP I - SET UP THE .ENV
 4. If you're using Google Cloud MySQL, add your server's/machine's IP address to Google Cloud SQL's allowed addresses.
 
 ***
-STEP II - INSTALL HOMEBREW
+STEP III - INSTALL PYTHON AND MYSQL
 ***
 
-Homebrew is a package manager that simplifies the installation of software on macOS and Linux. Follow the steps below to install it:
-
-1. Create a new user (for example) named 'smoochiekisses' and give them sudo access.
-2. Verify that the user 'smoochiekisses' exists in the system user list.
-3. Login as 'smoochiekisses' and install Homebrew using the command provided.
+1. Install mysql and python
 
 ```
-    sudo adduser smoochiekisses 
-    usermod -aG sudo smoochiekisses 
-    cut -d: -f1 /etc/passwd
-    su - smoochiekisses
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    sudo apt-get update
+    sudo apt-get install python3
+    sudo apt-get install mysql-server
 ```
 
-***
-STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS ACCESSIBLE SYSTEM WIDE
-***
-
-1. Install Python3 and MySQL using Homebrew.
-2. Export the path to the Homebrew binaries to make these packages accessible system-wide.
-3. Make the Homebrew installed Python and Pip your main Python interpreter.
-4. Reboot the system and check if the Homebrew installed version of Python is your default Python interpreter.
-
-```
-    brew install python3
-    brew install mysql
-    export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
-    nano ~/.zshrc
-    source ~/.zshrc   
-    sudo ln -sf /home/linuxbrew/.linuxbrew/bin/python3 /usr/local/bin/python3
-    sudo ln -sf /home/linuxbrew/.linuxbrew/bin/python3/bin/pip3 /usr/local/bin/pip3
-    sudo reboot
-    which python3
-```
-
-5. Use MySQL command-line to create your bot's database and tables using the provided commands. The below set up works well with the default functions of in services/modules. Feel free to make it your own.
+2. Use MySQL command-line to create your bot's database and tables using the provided commands. The below set up works well with the default functions of in services/modules. Feel free to make it your own.
 
 ```
     mysql -h YOUR_DB_HOST_IP -u YOUR_DB_USERNAME -p    
@@ -305,25 +278,28 @@ STEP III - INSTALL PYTHON AND MYSQL VIA HOMWBREW, AND MAKE THESE INSTALLATIONS A
 ```
 
 ***
-STEP IV - INSTALL PYTHON PACKAGES VIA PIP
+STEP IV - CREATE A VIRTUAL ENVIRONMENT AND INSTALL PYTHON PACKAGES VIA PIP
 ***
 
 ```
+    python3 -m venv botvenv
+    source botvenv/bin/activate
     pip3 install termcolor tabulate pandas aiohttp mysql-connector-python python-dotenv plotext
+    deactivate
 ```
 
 ***
 STEP V - NAME YOUR BOT AND MAKE THE BOT EXECUTABLE SYSTEM WIDE
 ***
 
-1. Get the path to the directory where you cloned this git repo.
-2. Make the main.py file executable.
-3. Create a symbolic link for main.py and name your bot.
+1. Make the init.sh and main.py files executable.
+3. Create a symbolic link for init.sh and name your bot.
     
 ```
     pwd    
+    chmod +x init.sh
     chmod +x main.py
-    sudo ln -s /path/to/your/script/main.py /usr/local/bin/rgw 
+    sudo ln -s /path/to/your/script/init.sh /usr/local/bin/rgw 
 ```
 
 ***
