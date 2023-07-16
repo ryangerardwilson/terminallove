@@ -5,4 +5,5 @@ history.csv
 .env
 files
 botvenv
+*.swp
 
