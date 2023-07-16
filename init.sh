@@ -1,4 +1,4 @@
 #!/bin/bash
-source $(pwd)/botvenv/bin/activate
-python3 main.py "$@"
+source /home/rgw/Desktop/rgwbot/botvenv/bin/activate
+python3 /home/rgw/Desktop/rgwbot/main.py "$@"
 

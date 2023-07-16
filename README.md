@@ -292,7 +292,8 @@ STEP IV - CREATE A VIRTUAL ENVIRONMENT AND INSTALL PYTHON PACKAGES VIA PIP
 STEP V - NAME YOUR BOT AND MAKE THE BOT EXECUTABLE SYSTEM WIDE
 ***
 
-1. Make the init.sh and main.py files executable.
+1. Update the init.sh files to contain the absolute paths to the init.sh and main.py files.
+2. Make the init.sh and main.py files executable.
 3. Create a symbolic link for init.sh and name your bot.
     
 ```
