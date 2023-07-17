@@ -4,9 +4,9 @@ now = datetime.datetime.now()
 today = now.strftime('%Y-%m-%d %H:%M:%S')
 
 
-open_tweet_note = {
-  "name": "open_tweet_note",
-  "description": "Opens the user's tweet note in vim",
+open_tweetpad = {
+  "name": "open_tweetpad",
+  "description": "Opens the user's tweet note in vim, also known as a tweetpad",
   "parameters": {
     "type": "object",
     "properties": {
