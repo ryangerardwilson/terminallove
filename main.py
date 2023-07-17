@@ -162,7 +162,10 @@ async def main(
         if preliminary_classification_function_info['function_name'] == 'invoke_twitter_module':
             functions = [
                 open_tweetpad,
-                save_tweetpads,
+                open_most_recent_tweetpad,
+                open_most_recently_edited_tweetpad,
+                save_and_close_tweetpads,
+                delete_local_tweetpad_cache,
                 list_tweets,
                 list_scheduled_tweets,
                 tweet,
@@ -243,7 +246,10 @@ async def main(
                 'list_run_logging_params': fn_list_run_logging_params,
                 'list_run_logs': fn_list_run_logs,
                 'list_available_running_charts': fn_list_available_running_charts,
-                'save_tweetpads': fn_save_tweetpads,
+                'open_most_recent_tweetpad': fn_open_most_recent_tweetpad,
+                'open_most_recently_edited_tweetpad': fn_open_most_recently_edited_tweetpad,
+                'save_and_close_tweetpads': fn_save_and_close_tweetpads,
+                'delete_local_tweetpad_cache': fn_delete_local_tweetpad_cache,
                 'list_tweets': fn_list_tweets,
                 'list_scheduled_tweets': fn_list_scheduled_tweets,
             }

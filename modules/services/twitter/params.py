@@ -16,22 +16,69 @@ open_tweetpad = {
        },
       "connection": {
         "type": "string",
-        "enum": ["Opening tweetpad.txt"]
+        "enum": ["Opening tweetpad"]
        },
      },
     "required": []
   }
 }
 
-save_tweetpads = {
-  "name": "save_tweetpads",
+open_most_recent_tweetpad = {
+  "name": "open_most_recent_tweetpad",
+  "description": "Opens the user's most recent tweet note in vim",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "connection": {
+        "type": "string",
+        "enum": ["Opening most recent tweetpad"]
+       },
+     },
+    "required": []
+  }
+}
+
+
+open_most_recently_edited_tweetpad = {
+  "name": "open_most_recently_edited_tweetpad",
+  "description": "Opens the user's most recently edited tweet note in vim",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "connection": {
+        "type": "string",
+        "enum": ["Opening most recently edited tweetpad"]
+       },
+     },
+    "required": []
+  }
+}
+
+
+save_and_close_tweetpads = {
+  "name": "save_and_close_tweetpads",
   "description": "Saves all user's tweet notes in vim, also known as tweetpads",
   "parameters": {
     "type": "object",
     "properties": {
       "connection": {
         "type": "string",
-        "enum": ["Saving tweetpad.txt"]
+        "enum": ["Saving tweetpad"]
+       },
+     },
+    "required": []
+  }
+}
+
+delete_local_tweetpad_cache = {
+  "name": "delete_local_tweetpad_cache",
+  "description": "Deletes local tweet notes, also known as tweetpads",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "connection": {
+        "type": "string",
+        "enum": ["Deleting local tweetpad cache"]
        },
      },
     "required": []
