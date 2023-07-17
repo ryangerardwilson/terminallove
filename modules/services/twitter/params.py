@@ -10,9 +10,28 @@ open_tweetpad = {
   "parameters": {
     "type": "object",
     "properties": {
+      "tweetpad_id":{
+        "type": "integer",
+        "description": "the id of the user's tweet note",
+       },
       "connection": {
         "type": "string",
-        "enum": ["Opening tweetnote.txt"]
+        "enum": ["Opening tweetpad.txt"]
+       },
+     },
+    "required": []
+  }
+}
+
+save_tweetpads = {
+  "name": "save_tweetpads",
+  "description": "Saves all user's tweet notes in vim, also known as tweetpads",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "connection": {
+        "type": "string",
+        "enum": ["Saving tweetpad.txt"]
        },
      },
     "required": []

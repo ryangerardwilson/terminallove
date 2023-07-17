@@ -162,6 +162,7 @@ async def main(
         if preliminary_classification_function_info['function_name'] == 'invoke_twitter_module':
             functions = [
                 open_tweetpad,
+                save_tweetpads,
                 list_tweets,
                 list_scheduled_tweets,
                 tweet,
@@ -224,6 +225,7 @@ async def main(
                 'display_running_weight_line_chart': fn_display_running_weight_line_chart,
                 'display_runs_fat_burn_line_chart': fn_display_runs_fat_burn_line_chart,
                 'display_runs_distance_line_chart': fn_display_runs_distance_line_chart,
+                'open_tweetpad': fn_open_tweetpad,
                 'tweet': fn_tweet,
                 'schedule_tweet': fn_schedule_tweet,
                 'edit_tweet': fn_edit_tweet,
@@ -241,7 +243,7 @@ async def main(
                 'list_run_logging_params': fn_list_run_logging_params,
                 'list_run_logs': fn_list_run_logs,
                 'list_available_running_charts': fn_list_available_running_charts,
-                'open_tweetpad': fn_open_tweetpad,
+                'save_tweetpads': fn_save_tweetpads,
                 'list_tweets': fn_list_tweets,
                 'list_scheduled_tweets': fn_list_scheduled_tweets,
             }
