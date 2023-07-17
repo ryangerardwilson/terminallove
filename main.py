@@ -241,7 +241,7 @@ async def main(
                 'display_runs_distance_line_chart': fn_display_runs_distance_line_chart,
                 'open_note': fn_open_note,
                 'delete_notes_by_ids': fn_delete_notes_by_ids,
-                'list_tweetpads': fn_list_notes,
+                'list_notes': fn_list_notes,
                 'tweet': fn_tweet,
                 'schedule_tweet': fn_schedule_tweet,
                 'edit_tweet': fn_edit_tweet,

@@ -212,6 +212,10 @@ def fn_list_notes(called_function_arguments_dict):
     # Fetch all rows
     result = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
+    if not result:
+        print("No result found")
+        return
+
     # Convert the result to DataFrame
     pd.options.display.float_format = lambda x: '{:.2f}'.format(x) if abs(x) < 1000000 else '{:.0f}'.format(x)
     df = pd.DataFrame(result)
@@ -227,10 +231,11 @@ def fn_list_notes(called_function_arguments_dict):
     cursor.close()
 
     # Construct and print the heading
-    heading = f"NOTES (Most Recent {limit} records)"
+    heading = f"NOTES (Most recent {limit} records)"
     print()
     print(colored(heading, 'cyan'))
     print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
+
 
 def fn_delete_notes_by_ids(called_function_arguments_dict):
     cursor = conn.cursor()
