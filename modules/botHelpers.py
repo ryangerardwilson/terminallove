@@ -339,7 +339,7 @@ invoke_finance_module = {
         "properties": {
             "connection": {
                 "type": "string",
-                "enum": ["Module invoked"]
+                "enum": ["Finance module invoked"]
             },
         },
         "required": []
@@ -354,7 +354,7 @@ invoke_goals_module = {
         "properties": {
             "connection": {
                 "type": "string",
-                "enum": ["Module invoked"]
+                "enum": ["Goals module invoked"]
             },
         },
         "required": []
@@ -369,7 +369,7 @@ invoke_runs_module = {
         "properties": {
             "connection": {
                 "type": "string",
-                "enum": ["Module invoked"]
+                "enum": ["Runs module invoked"]
             },
         },
         "required": []
@@ -384,7 +384,22 @@ invoke_time_module = {
         "properties": {
             "connection": {
                 "type": "string",
-                "enum": ["Module invoked"]
+                "enum": ["Time module invoked"]
+            },
+        },
+        "required": []
+    }
+}
+
+invoke_twitter_module = {
+    "name": "invoke_twitter_module",
+    "description": "Invokes a library of functions that manage the user's twitter activity and twitter profile",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "connection": {
+                "type": "string",
+                "enum": ["Twitter module invoked"]
             },
         },
         "required": []

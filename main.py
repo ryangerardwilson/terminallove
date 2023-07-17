@@ -7,10 +7,12 @@ from modules.services.finance.functions import *
 from modules.services.time.functions import *
 from modules.services.goals.functions import *
 from modules.services.runs.functions import *
+from modules.services.twitter.functions import *
 from modules.services.finance.params import *
 from modules.services.time.params import *
 from modules.services.goals.params import *
 from modules.services.runs.params import *
+from modules.services.twitter.params import *
 from modules.services.nonAiHelpers.utilities.functions import *
 
 async def main(
@@ -41,7 +43,8 @@ async def main(
         invoke_finance_module,
         invoke_goals_module,
         invoke_runs_module,
-        invoke_time_module
+        invoke_time_module,
+        invoke_twitter_module,
     ]
 
     # Define the URL
@@ -156,6 +159,14 @@ async def main(
                 tell_me_the_date,
             ]
 
+        if preliminary_classification_function_info['function_name'] == 'invoke_twitter_module':
+            functions = [
+                tweet,
+                list_tweets,
+                edit_tweets,
+                delete_tweets_by_ids,
+            ]
+
         classification_data = {
             "model": gpt_model,
             "messages": interaction_history,
@@ -209,7 +220,11 @@ async def main(
                 'delete_runs_by_ids': fn_delete_runs_by_ids,
                 'display_running_weight_line_chart': fn_display_running_weight_line_chart,
                 'display_runs_fat_burn_line_chart': fn_display_runs_fat_burn_line_chart,
-                'display_runs_distance_line_chart': fn_display_runs_distance_line_chart
+                'display_runs_distance_line_chart': fn_display_runs_distance_line_chart,
+                'tweet': fn_tweet,
+                'schedule_tweet': fn_schedule_tweet,
+                'edit tweets': fn_edit_tweets,
+                'delete_tweets_by_ids': fn_delete_tweets_by_ids,
             }
 
             # Mapping functions that do not require arguments
@@ -222,7 +237,10 @@ async def main(
                 'list_actions': fn_list_actions,
                 'list_run_logging_params': fn_list_run_logging_params,
                 'list_run_logs': fn_list_run_logs,
-                'list_available_running_charts': fn_list_available_running_charts
+                'list_available_running_charts': fn_list_available_running_charts,
+                'open_tweet_note': fn_open_tweet_note,
+                'list_tweets': fn_list_tweets,
+                'list_scheduled_tweets': fn_list_scheduled_tweets,
             }
 
             # Get function name and arguments
