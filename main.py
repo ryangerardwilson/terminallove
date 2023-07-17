@@ -2,17 +2,22 @@
 import os
 import asyncio
 import argparse
+
 from modules.botHelpers import *
+
 from modules.services.finance.functions import *
 from modules.services.time.functions import *
 from modules.services.goals.functions import *
 from modules.services.runs.functions import *
 from modules.services.twitter.functions import *
+from modules.services.notes.functions import *
+
 from modules.services.finance.params import *
 from modules.services.time.params import *
 from modules.services.goals.params import *
 from modules.services.runs.params import *
 from modules.services.twitter.params import *
+from modules.services.notes.params import *
 from modules.services.nonAiHelpers.utilities.functions import *
 
 async def main(
@@ -159,15 +164,19 @@ async def main(
                 tell_me_the_date,
             ]
 
+        if preliminary_classification_function_info['function_name'] == 'invoke_notes_module':
+            functions = [
+                open_note,
+                open_most_recent_note,
+                open_most_recently_edited_note,
+                save_and_close_notes,
+                delete_local_note_cache,
+                list_notes,
+                delete_notes_by_ids,
+            ]
+
         if preliminary_classification_function_info['function_name'] == 'invoke_twitter_module':
             functions = [
-                open_tweetpad,
-                open_most_recent_tweetpad,
-                open_most_recently_edited_tweetpad,
-                save_and_close_tweetpads,
-                delete_local_tweetpad_cache,
-                list_tweetpads,
-                delete_tweetpads_by_ids,
                 list_tweets,
                 list_scheduled_tweets,
                 tweet,
@@ -230,9 +239,9 @@ async def main(
                 'display_running_weight_line_chart': fn_display_running_weight_line_chart,
                 'display_runs_fat_burn_line_chart': fn_display_runs_fat_burn_line_chart,
                 'display_runs_distance_line_chart': fn_display_runs_distance_line_chart,
-                'open_tweetpad': fn_open_tweetpad,
-                'delete_tweetpads_by_ids': fn_delete_tweetpads_by_ids,
-                'list_tweetpads': fn_list_tweetpads,
+                'open_note': fn_open_note,
+                'delete_notes_by_ids': fn_delete_notes_by_ids,
+                'list_tweetpads': fn_list_notes,
                 'tweet': fn_tweet,
                 'schedule_tweet': fn_schedule_tweet,
                 'edit_tweet': fn_edit_tweet,
@@ -250,10 +259,10 @@ async def main(
                 'list_run_logging_params': fn_list_run_logging_params,
                 'list_run_logs': fn_list_run_logs,
                 'list_available_running_charts': fn_list_available_running_charts,
-                'open_most_recent_tweetpad': fn_open_most_recent_tweetpad,
-                'open_most_recently_edited_tweetpad': fn_open_most_recently_edited_tweetpad,
-                'save_and_close_tweetpads': fn_save_and_close_tweetpads,
-                'delete_local_tweetpad_cache': fn_delete_local_tweetpad_cache,
+                'open_most_recent_note': fn_open_most_recent_note,
+                'open_most_recently_edited_note': fn_open_most_recently_edited_note,
+                'save_and_close_notes': fn_save_and_close_notes,
+                'delete_local_note_cache': fn_delete_local_note_cache,
                 'list_tweets': fn_list_tweets,
                 'list_scheduled_tweets': fn_list_scheduled_tweets,
             }
