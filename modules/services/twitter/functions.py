@@ -195,6 +195,50 @@ def fn_delete_local_tweetpad_cache():
     else:
         print(colored('No tweetpads to delete','cyan'))
 
+def fn_list_tweetpads(called_function_arguments_dict):
+
+    cursor = conn.cursor()
+    limit = int(called_function_arguments_dict.get('limit', 10))
+
+    query = "SELECT * FROM tweetpads ORDER BY created_at DESC LIMIT %s"
+    cursor.execute(query, (limit,))
+
+    # Fetch all columns
+    columns = [col[0] for col in cursor.description]
+
+    # Fetch all rows
+    result = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    # Convert the result to DataFrame
+    pd.options.display.float_format = lambda x: '{:.2f}'.format(x) if abs(x) < 1000000 else '{:.0f}'.format(x)
+    df = pd.DataFrame(result)
+
+    if 'value' in df.columns:
+        df['value'] = df['value'].astype(int)
+
+    # Truncate note column to 30 characters and add "...." if it exceeds that limit
+    if 'note' in df.columns:
+        df['note'] = df['note'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
+
+    # Close the cursor but keep the connection open if it's needed elsewhere
+    cursor.close()
+
+    # Construct and print the heading
+    heading = f"TWEETPADS (Most Recent {limit} records)"
+    print()
+    print(colored(heading, 'cyan'))
+    print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
+
+def fn_delete_tweetpads_by_ids(called_function_arguments_dict):
+    cursor = conn.cursor()
+    ids_to_delete = called_function_arguments_dict.get('ids').split('_')
+    for id in ids_to_delete:
+        sql = "DELETE FROM tweetpads WHERE id = %s"
+        cursor.execute(sql, (id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print(colored(f"TWEETPADS WITH IDS {ids_to_delete} DELETED", 'cyan'))
 
 def fn_list_tweets():
 

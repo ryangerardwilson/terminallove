@@ -85,6 +85,36 @@ delete_local_tweetpad_cache = {
   }
 }
 
+delete_tweetpads_by_ids = {
+    "name": "delete_tweetpads_by_ids",
+    "description": "Delete tweetpads by their ids",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "ids": {
+                "type": "string",
+                "description": "The ids to be deleted separated by camel case. For instance ids 4 and 5 would be 4_5"
+            },
+        },
+        "required": ["ids"]
+    }
+}
+
+list_tweetpads = {
+    "name": "list_tweetpads",
+    "description": "Lists the user's tweetpads",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "limit": {
+                "type": "integer",
+                "description": "The number of tweetpads to be listed"
+            },
+        },
+        "required": []
+    }
+}
+
 list_tweets = {
   "name": "list_tweets",
   "description": "Lists the user's tweets",
