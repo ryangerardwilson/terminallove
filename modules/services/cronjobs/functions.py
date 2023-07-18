@@ -17,7 +17,7 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__f
 load_dotenv(os.path.join(parent_dir, '.env'))
 
 CRONJOBS = {
-        "publishQueuedTweets": os.path.join(script_dir, "publishQueuedTweets.py")
+        "publishQueuedTweets": os.path.join(script_dir, "commands", "publishQueuedTweets.py")
         }
 
 conn = mysql.connector.connect(
@@ -27,21 +27,75 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
-def fn_list_cronjob_logs(called_function_arguments_dict):
-    print('Listing cronjob logs')
+def fn_list_cronjobs():
+    print(colored('Listing cronjobs', 'cyan'))
     with CronTab(user=getpass.getuser()) as cron:
         jobs = list(cron)
         if not jobs:
-            print("No cron jobs found.")
+            print(colored("No cron jobs found", 'cyan'))
             return
         for job in jobs:
             print(job)
 
+def fn_list_cronjob_logs(called_function_arguments_dict):
+    cursor = conn.cursor()
+    limit = int(called_function_arguments_dict.get('limit', 10))
+
+    query = "SELECT * FROM cronjob_logs ORDER BY executed_at DESC LIMIT %s"
+    cursor.execute(query, (limit,))
+
+    # Fetch all columns
+    columns = [col[0] for col in cursor.description]
+
+    # Fetch all rows
+    result = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    if not result:
+        print(colored("No result found", 'cyan'))
+        return
+
+    # Convert the result to DataFrame
+    pd.options.display.float_format = lambda x: '{:.2f}'.format(x) if abs(x) < 1000000 else '{:.0f}'.format(x)
+    df = pd.DataFrame(result)
+
+    if 'value' in df.columns:
+        df['value'] = df['value'].astype(int)
+
+    # Truncate tweet column to 30 characters and add "...." if it exceeds that limit
+    if 'tweet' in df.columns:
+        df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
+
+    # Truncate error_logs column to 30 characters and add "...." if it exceeds that limit
+    if 'error_logs' in df.columns:
+        df['error_logs'] = df['error_logs'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
+
+    # Close the cursor but keep the connection open if it's needed elsewhere
+    cursor.close()
+
+    # Construct and print the heading
+    heading = f"CRONJOB LOGS (Most recent {limit} records)"
+    print()
+    print(colored(heading, 'cyan'))
+    print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
+
+def fn_clear_cronjob_logs():
+    cursor = conn.cursor()
+    try:
+        cursor.execute("TRUNCATE TABLE cronjob_logs")
+        conn.commit()
+        print(colored("Successfully cleared cronjob_logs", 'cyan'))
+    except mysql.connector.Error as err:
+        print(f"Error occurred: {err}")
+    finally:
+        cursor.close()
+
 def fn_activate_cronjobs():
     print('Activating cronjobs')
     with CronTab(user=getpass.getuser()) as cron:
+        # /home/rgw/Desktop/rgwbot/modules/services/cronjobs
         for job_name, script_path in CRONJOBS.items():
-            job = cron.new(command=f'python3 {script_path}', comment=job_name)
+            print(script_path)
+            job = cron.new(command=f'{parent_dir}/botvenv/bin/python {script_path}', comment=job_name)
             job.hour.every(1) # this is just an example, you can set your own time
             cron.write()
 

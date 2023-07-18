@@ -33,8 +33,8 @@ def publish_queued_tweets():
 
     # Log the start of the job
     cursor.execute(
-        "INSERT INTO cronjob_logs (job_description, executed_at, error_logs) VALUES (%s, NOW(), %s)",
-        ("Publishing queued tweets", json.dumps([]))
+        "INSERT INTO cronjob_logs (job_description, executed_at, error_logs) VALUES (%s, %s, %s)",
+        ("Executing publishedQueuedTweets.py", datetime.datetime.now(), json.dumps([]))
     )
 
     # Remember the ID of the log entry
@@ -52,7 +52,9 @@ def publish_queued_tweets():
     rate_limit_hit = False
     error_logs = []
 
+    i = 0
     for tweet in queued_tweets:
+        i += 1
         tweet_id, tweet_text, note_id = tweet
 
         payload = {"text": tweet_text}
@@ -73,8 +75,8 @@ def publish_queued_tweets():
 
         response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
 
-        if response.status_code == 429:  # Rate limit exceeded
-            error_message = f"Rate limit exceeded. Tweet with id {tweet_id} has not been posted."
+        if response.status_code == 429 and i == 1:  # Rate limit exceeded
+            error_message = f"Rate limit exceeded. Queued tweets for {note_id} have not been posted"
             print(error_message)
             rate_limit_hit = True
             error_logs.append(error_message)
@@ -105,12 +107,12 @@ def publish_queued_tweets():
     if rate_limit_hit:
         cursor.execute(
             "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
-            ("Job finished with some tweets not posted due to rate limit.", json.dumps(error_logs), log_id)
+            ("publishQueuedTweets.py", json.dumps(error_logs), log_id)
         )
     else:
         cursor.execute(
             "UPDATE cronjob_logs SET job_description = %s WHERE id = %s",
-            ("Job finished successfully with all tweets posted.", log_id)
+            ("publishQueuedTweets.py", log_id)
         )
     conn.commit()
 

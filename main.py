@@ -106,7 +106,9 @@ async def main(
         
         if preliminary_classification_function_info['function_name'] == 'invoke_cronjobs_module':
             functions =[
+                list_cronjobs,
                 list_cronjob_logs,
+                clear_cronjob_logs,
                 activate_cronjobs,
                 deactivate_cronjobs,
             ]
@@ -213,7 +215,7 @@ async def main(
         }
 
         classification_function_info = await make_functions_call_to_open_ai(url, headers, classification_data)
-
+        print(classification_function_info)
         if classification_function_info:
             print(colored('Function Invoked: ' + classification_function_info["function_name"] + json.dumps(classification_function_info["arguments"]),
                           'yellow'))
@@ -291,6 +293,8 @@ async def main(
                 'list_scheduled_tweets': fn_list_scheduled_tweets,
                 'activate_cronjobs': fn_activate_cronjobs,
                 'deactivate_cronjobs': fn_deactivate_cronjobs,
+                'list_cronjobs': fn_list_cronjobs,
+                'clear_cronjob_logs': fn_clear_cronjob_logs,
             }
 
             # Get function name and arguments
