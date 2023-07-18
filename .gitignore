@@ -9,5 +9,5 @@ files/*
 !files/ssh/
 botvenv
 *.swp
-
+init.sh
 
