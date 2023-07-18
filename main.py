@@ -11,6 +11,7 @@ from modules.services.goals.functions import *
 from modules.services.runs.functions import *
 from modules.services.twitter.functions import *
 from modules.services.notes.functions import *
+from modules.services.cronjobs.functions import *
 
 from modules.services.finance.params import *
 from modules.services.time.params import *
@@ -18,7 +19,11 @@ from modules.services.goals.params import *
 from modules.services.runs.params import *
 from modules.services.twitter.params import *
 from modules.services.notes.params import *
+from modules.services.cronjobs.params import *
+
 from modules.services.nonAiHelpers.utilities.functions import *
+
+
 
 async def main(
         user_message: str,
@@ -51,6 +56,7 @@ async def main(
         invoke_time_module,
         invoke_notes_module,
         invoke_twitter_module,
+        invoke_cronjobs_module,
     ]
 
     # Define the URL
@@ -97,6 +103,14 @@ async def main(
 
     else:
         functions = []
+        
+        if preliminary_classification_function_info['function_name'] == 'invoke_cronjobs_module':
+            functions =[
+                list_cronjob_logs,
+                activate_cronjobs,
+                deactivate_cronjobs,
+            ]
+
         if preliminary_classification_function_info['function_name'] == 'invoke_finance_module':
             functions =[
                 list_expense_logging_params,
@@ -255,7 +269,8 @@ async def main(
                 'delete_tweets_by_ids': fn_delete_tweets_by_ids,
                 'delete_tweets_by_note_ids': fn_delete_tweets_by_note_ids,
                 'delete_queued_tweets_by_ids': fn_delete_queued_tweets_by_ids,
-                'delete_queued_tweets_by_note_ids': fn_delete_queued_tweets_by_note_ids, 
+                'delete_queued_tweets_by_note_ids': fn_delete_queued_tweets_by_note_ids,
+                'list_cronjob_logs': fn_list_cronjob_logs,
             }
 
             # Mapping functions that do not require arguments
@@ -274,6 +289,8 @@ async def main(
                 'save_and_close_notes': fn_save_and_close_notes,
                 'delete_local_note_cache': fn_delete_local_note_cache,
                 'list_scheduled_tweets': fn_list_scheduled_tweets,
+                'activate_cronjobs': fn_activate_cronjobs,
+                'deactivate_cronjobs': fn_deactivate_cronjobs,
             }
 
             # Get function name and arguments

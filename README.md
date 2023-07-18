@@ -284,7 +284,7 @@ STEP IV - CREATE A VIRTUAL ENVIRONMENT AND INSTALL PYTHON PACKAGES VIA PIP
 ```
     python3 -m venv botvenv
     source botvenv/bin/activate
-    pip3 install termcolor tabulate pandas aiohttp mysql-connector-python python-dotenv plotext requests_oauthlib
+    pip3 install termcolor tabulate pandas aiohttp mysql-connector-python python-dotenv plotext requests_oauthlib python-crontab
     deactivate
 ```
 

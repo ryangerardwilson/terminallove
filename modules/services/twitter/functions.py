@@ -112,12 +112,11 @@ def fn_list_scheduled_tweets():
 def fn_tweet_out_note(called_function_arguments_dict):
     cursor = conn.cursor()
 
-    # Set default values
     default_date = datetime.datetime.now().strftime('%Y-%m-%d')
     date = called_function_arguments_dict.get('date', default_date)
     note_id = int(called_function_arguments_dict.get('id', 0))
 
-    inserted_tweets = []  # A list to hold all inserted tweet data
+    inserted_tweets = []
 
     if note_id != 0:
         select_cmd = ("SELECT note FROM notes WHERE id = %s")
@@ -130,139 +129,91 @@ def fn_tweet_out_note(called_function_arguments_dict):
             print(colored("You can't tweet an empty note", 'red'))
             return
 
-        # break the note into paragraphs
         paragraphs = note_text.split("\n\n")
 
-        # Get all previously tweeted paragraphs
         cursor.execute("SELECT tweet FROM tweets")
-        previous_tweets = {row[0] for row in cursor.fetchall()}  # create a set for O(1) lookup
+        previous_tweets = {row[0] for row in cursor.fetchall()}
 
-        # Get all tweets in queue
         cursor.execute("SELECT tweet FROM queued_tweets")
-        queued_tweets = {row[0] for row in cursor.fetchall()}  # create a set for O(1) lookup
+        queued_tweets = {row[0] for row in cursor.fetchall()}
 
-        # initialize previous_tweet_id to None
         previous_tweet_id = None
 
         rate_limit_hit = False
 
-        for i, paragraph in enumerate(paragraphs, 1):  # start counting from 1
+        for i, paragraph in enumerate(paragraphs, 1):
 
-            # skip if paragraph is empty
             if not paragraph.strip():
                 print(colored(f"Skipping empty paragraph {i}", 'red'))
                 continue
 
-            # When rate limit error handling is required
-            if rate_limit_hit:
-                # if paragraph already exists in queued_tweets, return
-                if paragraph in queued_tweets:
-                    print(colored(f"Paragraph {i} has already been queued. Not tweeting anything", 'red'))
-                    return
-
-                # Prepare insert command for queued_tweets
-                tweet_failed_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
-
-                # Insert the tweet into the queued_tweets table
-                cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
-                conn.commit()  # don't forget to commit the transaction
-                print(colored(f"Tweet has been added to the queue due to previous rate limit hit.", 'yellow'))
-                continue  # Skip to the next paragraph
-
-            # check if the paragraph is longer than 280 characters
             if len(paragraph) > 280:
                 print(colored(f"Paragraph {i} is longer than 280 characters by {len(paragraph) - 280} characters. Not tweeting anything", 'red'))
                 return
 
-            # Check if the paragraph already exists in the set of previously tweeted paragraphs
             if paragraph in previous_tweets:
                 print(colored(f"Paragraph {i} has already been posted. Not tweeting anything", 'red'))
-                return  # If found, return immediately
+                return
 
-            # Check if the tweet already exists in the tweets table
             check_cmd = ("SELECT tweet FROM tweets WHERE tweet = %s")
             cursor.execute(check_cmd, (paragraph,))
             if cursor.fetchone() is not None:
                 print(colored(f"Paragraph {i} has already been posted", 'red'))
-                continue  # Skip to the next paragraph
+                continue
+
+            if rate_limit_hit:
+                tweet_failed_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
+                cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
+                conn.commit()
+                print(colored(f"Paragraph {i} has been queued due to rate limit hit.", 'yellow'))
+                continue
 
             payload = {"text": paragraph}
 
-            # add the previous tweet id to the payload if it exists
             if previous_tweet_id is not None:
                 payload["reply"] = {"in_reply_to_tweet_id": previous_tweet_id}
 
             time.sleep(1)
             oauth = get_oauth_session()
 
-            # Create a variable to track retries
-            retries = 0
-            max_retries = 5
-            while retries < max_retries:
-                response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
+            response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
 
-                if response.status_code == 429:  # Rate limit exceeded
-
-                    print(colored(f"Rate limit exceeded. Waiting for 3 seconds before retrying.", 'yellow'))
-                    time.sleep(3)  # Wait for 3 seconds before trying again
-                    retries += 1
-                    continue
-
-                if response.status_code != 201:
-                    raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
-
-                break  # Exit the loop if the request was successful or an unexpected error occurred
-
-            # Raise an exception if the request failed after max_retries
-            if retries == max_retries:
-                # Prepare insert command for queued_tweets
+            if response.status_code == 429:  # Rate limit exceeded
+                print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow'))
                 tweet_failed_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
-                
-                # Insert the tweet into the queued_tweets table
                 cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
-                conn.commit()  # don't forget to commit the transaction
-                print(colored(f"Rate limit exceeded. The tweet has been added to the queue.", 'yellow'))
-                
-                # Set rate_limit_hit to True so all subsequent tweets are queued
+                conn.commit()
                 rate_limit_hit = True
-                continue  # Skip to the next paragraph
+                continue
+
+            if response.status_code != 201:
+                raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
 
             json_response = response.json()
 
             if 'data' in json_response:
-                # get the id of the tweet
                 tweet_id = json_response['data']['id']
-
-                # update previous_tweet_id
                 previous_tweet_id = tweet_id
-
-                # get current time
                 posted_at = datetime.datetime.now()
-
-                # prepare insert command
                 insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id) VALUES (%s, %s, %s, %s)")
-
-                # insert the tweet into the database
                 cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id))
-                conn.commit()  # don't forget to commit the transaction
+                conn.commit()
 
-                # Add the inserted tweet data to the list
                 inserted_tweets.append({
-                    'Tweet': paragraph,
-                    'Tweet ID': tweet_id,
-                    'Posted At': posted_at,
-                    'Note ID': note_id,
+                    'tweet': paragraph,
+                    'tweet_id': tweet_id,
+                    'posted_at': posted_at,
+                    'note_id': note_id,
                 })
 
-
-    # Create a DataFrame of all the inserted tweets and print with tabulate
     if inserted_tweets:
         df = pd.DataFrame(inserted_tweets)
         print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
     cursor.close()
+
 
 
 def fn_schedule_tweet(called_function_arguments_dict):

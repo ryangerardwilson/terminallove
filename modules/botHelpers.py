@@ -422,5 +422,20 @@ invoke_twitter_module = {
     }
 }
 
+invoke_cronjobs_module = {
+    "name": "invoke_cronjobs_module",
+    "description": "Invokes a library of functions that manage the user's cronjobs",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "connection": {
+                "type": "string",
+                "enum": ["Cronjob module invoked"]
+            },
+        },
+        "required": []
+    }
+}
+
 
 
