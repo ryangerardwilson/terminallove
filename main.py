@@ -49,6 +49,7 @@ async def main(
         invoke_goals_module,
         invoke_runs_module,
         invoke_time_module,
+        invoke_notes_module,
         invoke_twitter_module,
     ]
 

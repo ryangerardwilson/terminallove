@@ -39,7 +39,8 @@ def fn_open_note(called_function_arguments_dict):
             cursor.execute(insert_cmd, ( '', is_published, created_at, updated_at))
             conn.commit()
             new_id = cursor.lastrowid
-            created_at_filename = updated_at_filename = datetime.datetime.now().strftime('[C:%Y%m%d(%H%M%S)]')
+            updated_at_filename = datetime.datetime.now().strftime('[U:%Y%m%d(%H%M%S)]')
+            created_at_filename = datetime.datetime.now().strftime('[C:%Y%m%d(%H%M%S)]')
             file_path = os.path.join(dir_path, f"note_{new_id}_{created_at_filename}_{updated_at_filename}.txt")
             with open(file_path, 'w') as fp:
                 pass
@@ -168,16 +169,16 @@ def fn_save_and_close_notes():
                 cursor.execute(update_cmd, (note_content, updated_at, note_id))
 
             os.remove(file_path)
-            print(colored(f"Saved and closed note at: {file_path}",'cyan'))
+            print(colored(f"Synced and closed note at: {file_path}",'cyan'))
             is_any_file_saved = True
 
     conn.commit()
     cursor.close()
 
     if is_any_file_saved:
-        print(colored('Notes saved to database', 'cyan'))
+        print(colored('Notes synced to database', 'cyan'))
     else:
-        print(colored('No notes to save', 'cyan'))
+        print(colored('No notes to sync', 'cyan'))
 
 def fn_delete_local_note_cache():
    

@@ -391,6 +391,22 @@ invoke_time_module = {
     }
 }
 
+invoke_notes_module = {
+    "name": "invoke_notes_module",
+    "description": "Invokes a library of functions that manage the user's notes",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "connection": {
+                "type": "string",
+                "enum": ["Notes module invoked"]
+            },
+        },
+        "required": []
+    }
+}
+
+
 invoke_twitter_module = {
     "name": "invoke_twitter_module",
     "description": "Invokes a library of functions that manage the user's twitter activity and twitter profile",

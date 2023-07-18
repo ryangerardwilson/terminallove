@@ -6,7 +6,7 @@ today = now.strftime('%Y-%m-%d %H:%M:%S')
 
 open_note = {
   "name": "open_note",
-  "description": "Creates a new note and opens it in vim, or opens an existing on if an id is specified",
+  "description": "Opens/creates a new note in vim, or opens/gets an existing note if an id is specified",
   "parameters": {
     "type": "object",
     "properties": {
@@ -53,13 +53,13 @@ open_most_recently_edited_note = {
 
 save_and_close_notes = {
   "name": "save_and_close_notes",
-  "description": "Saves all user's notes in vim",
+  "description": "Saves the user's notes",
   "parameters": {
     "type": "object",
     "properties": {
       "connection": {
         "type": "string",
-        "enum": ["Saving notes"]
+        "enum": ["Syncing notes"]
        },
      },
     "required": []
