@@ -72,6 +72,10 @@ def fn_list_scheduled_tweets():
      cursor = conn.cursor()
      print('List scheduled tweets')
 
+from termcolor import colored
+from tabulate import tabulate
+
+# Your other functions...
 
 def fn_tweet_out_note(called_function_arguments_dict):
     cursor = conn.cursor()
@@ -80,6 +84,8 @@ def fn_tweet_out_note(called_function_arguments_dict):
     default_date = datetime.datetime.now().strftime('%Y-%m-%d')
     date = called_function_arguments_dict.get('date', default_date)
     note_id = int(called_function_arguments_dict.get('id', 0))
+
+    inserted_tweets = []  # A list to hold all inserted tweet data
 
     if note_id != 0:
         select_cmd = ("SELECT note FROM notes WHERE id = %s")
@@ -102,7 +108,6 @@ def fn_tweet_out_note(called_function_arguments_dict):
         # initialize previous_tweet_id to None
         previous_tweet_id = None
 
-        # loop through paragraphs and tweet each one individually
         for i, paragraph in enumerate(paragraphs, 1):  # start counting from 1
             # check if the paragraph is longer than 280 characters
             if len(paragraph) > 280:
@@ -127,13 +132,29 @@ def fn_tweet_out_note(called_function_arguments_dict):
             if previous_tweet_id is not None:
                 payload["reply"] = {"in_reply_to_tweet_id": previous_tweet_id}
 
+            time.sleep(1)
             oauth = get_oauth_session()
-            response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
 
-            if response.status_code != 201:
-                raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
+            # Create a variable to track retries
+            retries = 0
+            max_retries = 5
+            while retries < max_retries:
+                response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
 
-            print("Response code: {}".format(response.status_code))
+                if response.status_code == 429:  # Rate limit exceeded
+                    print(colored(f"Rate limit exceeded. Waiting for 3 seconds before retrying.", 'yellow'))
+                    time.sleep(3)  # Wait for 3 seconds before trying again
+                    retries += 1
+                    continue
+
+                if response.status_code != 201:
+                    raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
+
+                break  # Exit the loop if the request was successful or an unexpected error occurred
+
+            # Raise an exception if the request failed after max_retries
+            if retries == max_retries:
+                raise Exception("Request failed after {} retries".format(max_retries))
 
             json_response = response.json()
 
@@ -154,8 +175,21 @@ def fn_tweet_out_note(called_function_arguments_dict):
                 cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id))
                 conn.commit()  # don't forget to commit the transaction
 
-    cursor.close()
+                # Add the inserted tweet data to the list
+                inserted_tweets.append({
+                    'Tweet': paragraph,
+                    'Tweet ID': tweet_id,
+                    'Posted At': posted_at,
+                    'Note ID': note_id,
+                })
 
+
+    # Create a DataFrame of all the inserted tweets and print with tabulate
+    if inserted_tweets:
+        df = pd.DataFrame(inserted_tweets)
+        print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
+
+    cursor.close()
 
 
 def fn_schedule_tweet(called_function_arguments_dict):
@@ -199,7 +233,7 @@ def fn_delete_tweets_by_ids(called_function_arguments_dict):
 
         # Delete the tweet on Twitter
         url = f"https://api.twitter.com/2/tweets/:{tweet_id}"
-
+        time.sleep(1)
         response = oauth.delete("https://api.twitter.com/2/tweets/{}".format(tweet_id))
 
         # Check for a successful response
@@ -236,7 +270,7 @@ def fn_delete_tweets_by_note_ids(called_function_arguments_dict):
 
         for result in results:
             table_id, tweet_id = result
-
+            time.sleep(1)
             # Delete the tweet on Twitter
             url = f"https://api.twitter.com/2/tweets/{tweet_id}"
             response = oauth.delete(url)
