@@ -5,8 +5,9 @@ history.csv
 .env
 files/*
 !files/.gitignore
-!files/tokens/.gitignore
-!files/ssh/.gitignore
+!files/tokens/
+!files/ssh/
 botvenv
 *.swp
+
 
