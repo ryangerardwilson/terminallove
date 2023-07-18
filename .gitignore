@@ -3,7 +3,7 @@ modules/__pycache__
 history.csv
 .idea
 .env
-files
+files/*
 botvenv
 *.swp
 
