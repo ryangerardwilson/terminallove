@@ -34,19 +34,15 @@ list_scheduled_tweets = {
   }
 }
 
-tweet = {
-  "name": "tweet",
-  "description": "Tweets the note prepared by the user",
+tweet_out_note = {
+  "name": "tweet_out_note",
+  "description": "Tweets the note prepared by the user by its id",
   "parameters": {
     "type": "object",
     "properties": {
-      "connection": {
-        "type": "string",
-        "enum": ["Tweeting"]
-       },
-       "today": {
-         "type": "string",
-         "enum": [today]
+      "id": {
+        "type": "integer",
+        "description": "The id of the note"
        },
      },
     "required": []

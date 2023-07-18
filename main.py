@@ -180,7 +180,7 @@ async def main(
             functions = [
                 list_tweets,
                 list_scheduled_tweets,
-                tweet,
+                tweet_out_note,
                 schedule_tweet,
                 edit_tweet,
                 delete_tweets_by_ids,
@@ -243,7 +243,7 @@ async def main(
                 'open_note': fn_open_note,
                 'delete_notes_by_ids': fn_delete_notes_by_ids,
                 'list_notes': fn_list_notes,
-                'tweet': fn_tweet,
+                'tweet_out_note': fn_tweet_out_note,
                 'schedule_tweet': fn_schedule_tweet,
                 'edit_tweet': fn_edit_tweet,
                 'delete_tweets_by_ids': fn_delete_tweets_by_ids,

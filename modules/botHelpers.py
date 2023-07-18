@@ -409,7 +409,7 @@ invoke_notes_module = {
 
 invoke_twitter_module = {
     "name": "invoke_twitter_module",
-    "description": "Invokes a library of functions that manage the user's twitter activity and twitter profile",
+    "description": "Invokes a library of functions that manage the user's twitter activity, including tweeting out notes",
     "parameters": {
         "type": "object",
         "properties": {
