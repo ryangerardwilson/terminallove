@@ -103,6 +103,22 @@ delete_tweets_by_ids = {
 }
 
 
+delete_tweets_by_note_ids = {
+  "name": "delete_tweets_by_note_ids",
+  "description": "Deletes tweets by their note ids",
+  "parameters": {
+    "type": "object",
+    "properties": {
+        "ids": {
+            "type": "string",
+            "description": "The ids to be deleted separated by camel case. For instance ids 4 and 5 would be 4_5"
+        },
+     },
+    "required": []
+  }
+}
+
+
 
 
 

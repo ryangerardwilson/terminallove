@@ -184,6 +184,7 @@ async def main(
                 schedule_tweet,
                 edit_tweet,
                 delete_tweets_by_ids,
+                delete_tweets_by_note_ids,
             ]
 
         classification_data = {
@@ -248,6 +249,7 @@ async def main(
                 'schedule_tweet': fn_schedule_tweet,
                 'edit_tweet': fn_edit_tweet,
                 'delete_tweets_by_ids': fn_delete_tweets_by_ids,
+                'delete_tweets_by_note_ids': fn_delete_tweets_by_note_ids,
             }
 
             # Mapping functions that do not require arguments

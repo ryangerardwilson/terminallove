@@ -409,7 +409,7 @@ invoke_notes_module = {
 
 invoke_twitter_module = {
     "name": "invoke_twitter_module",
-    "description": "Invokes a library of functions that manage the user's twitter activity, including tweeting out notes",
+    "description": "Invokes a library of functions that manage the user's twitter activity, including tweeting out notes, and deleting tweets by their note ids",
     "parameters": {
         "type": "object",
         "properties": {
