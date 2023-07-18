@@ -244,6 +244,7 @@ async def main(
                 'delete_notes_by_ids': fn_delete_notes_by_ids,
                 'list_notes': fn_list_notes,
                 'tweet_out_note': fn_tweet_out_note,
+                'list_tweets': fn_list_tweets,
                 'schedule_tweet': fn_schedule_tweet,
                 'edit_tweet': fn_edit_tweet,
                 'delete_tweets_by_ids': fn_delete_tweets_by_ids,
@@ -264,7 +265,6 @@ async def main(
                 'open_most_recently_edited_note': fn_open_most_recently_edited_note,
                 'save_and_close_notes': fn_save_and_close_notes,
                 'delete_local_note_cache': fn_delete_local_note_cache,
-                'list_tweets': fn_list_tweets,
                 'list_scheduled_tweets': fn_list_scheduled_tweets,
             }
 

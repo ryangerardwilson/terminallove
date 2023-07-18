@@ -10,9 +10,9 @@ list_tweets = {
   "parameters": {
     "type": "object",
     "properties": {
-      "connection": {
-        "type": "string",
-        "enum": ["Listing tweets"]
+      "limit": {
+        "type": "integer",
+        "description": "The number of tweets to list out"
        },
      },
     "required": []
@@ -93,14 +93,10 @@ delete_tweets_by_ids = {
   "parameters": {
     "type": "object",
     "properties": {
-      "connection": {
-        "type": "string",
-        "enum": ["Editing tweet"]
+        "ids": {
+            "type": "string",
+            "description": "The ids to be deleted separated by camel case. For instance ids 4 and 5 would be 4_5"
         },
-      "today": {
-         "type": "string",
-         "enum": [today]
-       },
      },
     "required": []
   }
