@@ -19,6 +19,21 @@ list_tweets = {
   }
 }
 
+list_queued_tweets = {
+  "name": "list_queued_tweets",
+  "description": "Lists the user's queued tweets",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "description": "The number of queued tweets to list out"
+       },
+     },
+    "required": []
+  }
+}
+
 list_scheduled_tweets = {
   "name": "list_scheduled_tweets",
   "description": "Lists the user's scheduled tweets",
@@ -106,6 +121,37 @@ delete_tweets_by_ids = {
 delete_tweets_by_note_ids = {
   "name": "delete_tweets_by_note_ids",
   "description": "Deletes tweets by their note ids",
+  "parameters": {
+    "type": "object",
+    "properties": {
+        "ids": {
+            "type": "string",
+            "description": "The ids to be deleted separated by camel case. For instance ids 4 and 5 would be 4_5"
+        },
+     },
+    "required": []
+  }
+}
+
+delete_queued_tweets_by_ids = {
+  "name": "delete_queued_tweets_by_ids",
+  "description": "Deletes queued tweets by their ids",
+  "parameters": {
+    "type": "object",
+    "properties": {
+        "ids": {
+            "type": "string",
+            "description": "The ids to be deleted separated by camel case. For instance ids 4 and 5 would be 4_5"
+        },
+     },
+    "required": []
+  }
+}
+
+
+delete_queued_tweets_by_note_ids = {
+  "name": "delete_queued_tweets_by_note_ids",
+  "description": "Deletes queued tweets by their note ids",
   "parameters": {
     "type": "object",
     "properties": {

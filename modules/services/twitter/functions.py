@@ -66,16 +66,48 @@ def fn_list_tweets(called_function_arguments_dict):
     print(colored(heading, 'cyan'))
     print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
+def fn_list_queued_tweets(called_function_arguments_dict):
+
+    cursor = conn.cursor()
+    limit = int(called_function_arguments_dict.get('limit', 10))
+
+    query = "SELECT * FROM queued_tweets ORDER BY id DESC LIMIT %s"
+    cursor.execute(query, (limit,))
+
+    # Fetch all columns
+    columns = [col[0] for col in cursor.description]
+
+    # Fetch all rows
+    result = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    if not result:
+        print("No result found")
+        return
+
+    # Convert the result to DataFrame
+    pd.options.display.float_format = lambda x: '{:.2f}'.format(x) if abs(x) < 1000000 else '{:.0f}'.format(x)
+    df = pd.DataFrame(result)
+
+    if 'value' in df.columns:
+        df['value'] = df['value'].astype(int)
+
+    # Truncate note column to 300 characters and add "...." if it exceeds that limit
+    if 'tweet' in df.columns:
+        df['tweet'] = df['tweet'].apply(lambda x: (x[:300] + '....') if len(x) > 300 else x)
+
+    # Close the cursor but keep the connection open if it's needed elsewhere
+    cursor.close()
+
+    # Construct and print the heading
+    heading = f"QUEUED TWEETS (Most recent {limit} records)"
+    print()
+    print(colored(heading, 'cyan'))
+    print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
 def fn_list_scheduled_tweets():
      
      cursor = conn.cursor()
      print('List scheduled tweets')
-
-from termcolor import colored
-from tabulate import tabulate
-
-# Your other functions...
 
 def fn_tweet_out_note(called_function_arguments_dict):
     cursor = conn.cursor()
@@ -105,10 +137,39 @@ def fn_tweet_out_note(called_function_arguments_dict):
         cursor.execute("SELECT tweet FROM tweets")
         previous_tweets = {row[0] for row in cursor.fetchall()}  # create a set for O(1) lookup
 
+        # Get all tweets in queue
+        cursor.execute("SELECT tweet FROM queued_tweets")
+        queued_tweets = {row[0] for row in cursor.fetchall()}  # create a set for O(1) lookup
+
         # initialize previous_tweet_id to None
         previous_tweet_id = None
 
+        rate_limit_hit = False
+
         for i, paragraph in enumerate(paragraphs, 1):  # start counting from 1
+
+            # skip if paragraph is empty
+            if not paragraph.strip():
+                print(colored(f"Skipping empty paragraph {i}", 'red'))
+                continue
+
+            # When rate limit error handling is required
+            if rate_limit_hit:
+                # if paragraph already exists in queued_tweets, return
+                if paragraph in queued_tweets:
+                    print(colored(f"Paragraph {i} has already been queued. Not tweeting anything", 'red'))
+                    return
+
+                # Prepare insert command for queued_tweets
+                tweet_failed_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
+
+                # Insert the tweet into the queued_tweets table
+                cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
+                conn.commit()  # don't forget to commit the transaction
+                print(colored(f"Tweet has been added to the queue due to previous rate limit hit.", 'yellow'))
+                continue  # Skip to the next paragraph
+
             # check if the paragraph is longer than 280 characters
             if len(paragraph) > 280:
                 print(colored(f"Paragraph {i} is longer than 280 characters by {len(paragraph) - 280} characters. Not tweeting anything", 'red'))
@@ -142,6 +203,7 @@ def fn_tweet_out_note(called_function_arguments_dict):
                 response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
 
                 if response.status_code == 429:  # Rate limit exceeded
+
                     print(colored(f"Rate limit exceeded. Waiting for 3 seconds before retrying.", 'yellow'))
                     time.sleep(3)  # Wait for 3 seconds before trying again
                     retries += 1
@@ -154,7 +216,18 @@ def fn_tweet_out_note(called_function_arguments_dict):
 
             # Raise an exception if the request failed after max_retries
             if retries == max_retries:
-                raise Exception("Request failed after {} retries".format(max_retries))
+                # Prepare insert command for queued_tweets
+                tweet_failed_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
+                
+                # Insert the tweet into the queued_tweets table
+                cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
+                conn.commit()  # don't forget to commit the transaction
+                print(colored(f"Rate limit exceeded. The tweet has been added to the queue.", 'yellow'))
+                
+                # Set rate_limit_hit to True so all subsequent tweets are queued
+                rate_limit_hit = True
+                continue  # Skip to the next paragraph
 
             json_response = response.json()
 
@@ -292,6 +365,63 @@ def fn_delete_tweets_by_note_ids(called_function_arguments_dict):
     conn.close()
 
     print(colored(f"TWEETS FOR NOTE IDS {deleted_note_ids} SUCCESSFULLY DELETED", 'cyan'))
+
+
+def fn_delete_queued_tweets_by_ids(called_function_arguments_dict):
+    cursor = conn.cursor()
+    ids_to_delete = called_function_arguments_dict.get('ids').split('_')
+    deleted_ids = []  # to store the successfully deleted tweet ids
+
+    oauth = get_oauth_session()
+
+    for table_id in ids_to_delete:
+        # Fetch the corresponding tweet_id from the database
+        select_cmd = "SELECT id FROM queued_tweets WHERE id = %s"
+        cursor.execute(select_cmd, (table_id,))
+        result = cursor.fetchone()
+
+        if result is None:
+            print(colored(f"No queued tweet found with ID {table_id}", 'red'))
+            continue
+
+        sql = "DELETE FROM queued_tweets WHERE id = %s"
+        cursor.execute(sql, (table_id,))
+        deleted_ids.append(table_id)  # adding the id to the deleted_ids list
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print(colored(f"QUEUED TWEETS WITH IDS {deleted_ids} SUCCESSFULLY DELETED", 'cyan'))
+
+def fn_delete_queued_tweets_by_note_ids(called_function_arguments_dict):
+    cursor = conn.cursor()
+    note_ids_to_delete = [int(id_str) for id_str in called_function_arguments_dict.get('ids').split('_')]
+    deleted_note_ids = []  # to store the note ids for which tweets have been successfully deleted
+
+    oauth = get_oauth_session()
+
+    for note_id in note_ids_to_delete:
+        # Fetch the corresponding tweet_id(s) from the database
+        select_cmd = "SELECT id FROM queued_tweets WHERE note_id = %s"
+        cursor.execute(select_cmd, (note_id,))
+        results = cursor.fetchall()
+
+        if not results:
+            print(colored(f"No tweets found for note ID {note_id}", 'red'))
+            continue
+
+        sql = "DELETE FROM queued_tweets WHERE note_id = %s"
+        cursor.execute(sql, (note_id,))
+        deleted_note_ids.append(note_id)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    print(colored(f"QUEUED TWEETS FOR NOTE IDS {deleted_note_ids} SUCCESSFULLY DELETED", 'cyan'))
+
+
+
 
 
 def get_oauth_session():

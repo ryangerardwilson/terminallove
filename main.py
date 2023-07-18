@@ -179,12 +179,15 @@ async def main(
         if preliminary_classification_function_info['function_name'] == 'invoke_twitter_module':
             functions = [
                 list_tweets,
+                list_queued_tweets,
                 list_scheduled_tweets,
                 tweet_out_note,
                 schedule_tweet,
                 edit_tweet,
                 delete_tweets_by_ids,
                 delete_tweets_by_note_ids,
+                delete_queued_tweets_by_ids,
+                delete_queued_tweets_by_note_ids,
             ]
 
         classification_data = {
@@ -246,10 +249,13 @@ async def main(
                 'list_notes': fn_list_notes,
                 'tweet_out_note': fn_tweet_out_note,
                 'list_tweets': fn_list_tweets,
+                'list_queued_tweets': fn_list_queued_tweets,
                 'schedule_tweet': fn_schedule_tweet,
                 'edit_tweet': fn_edit_tweet,
                 'delete_tweets_by_ids': fn_delete_tweets_by_ids,
                 'delete_tweets_by_note_ids': fn_delete_tweets_by_note_ids,
+                'delete_queued_tweets_by_ids': fn_delete_queued_tweets_by_ids,
+                'delete_queued_tweets_by_note_ids': fn_delete_queued_tweets_by_note_ids, 
             }
 
             # Mapping functions that do not require arguments
