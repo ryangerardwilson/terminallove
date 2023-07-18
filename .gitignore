@@ -4,6 +4,9 @@ history.csv
 .idea
 .env
 files/*
+!files/.gitignore
+!files/tokens/.gitignore
+!files/ssh/.gitignore
 botvenv
 *.swp
 
