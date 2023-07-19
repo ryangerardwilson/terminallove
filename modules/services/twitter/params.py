@@ -12,7 +12,7 @@ list_tweets = {
     "properties": {
       "limit": {
         "type": "integer",
-        "description": "The number of tweets to list out"
+        "description": "The number of tweets to list out. Default is 10"
        },
      },
     "required": []

@@ -33,6 +33,9 @@ def fn_list_tweets(called_function_arguments_dict):
     cursor = conn.cursor()
     limit = int(called_function_arguments_dict.get('limit', 10))
 
+    if limit < 10:
+        limit = 10
+
     query = "SELECT * FROM tweets ORDER BY posted_at DESC LIMIT %s"
     cursor.execute(query, (limit,))
 
@@ -55,7 +58,7 @@ def fn_list_tweets(called_function_arguments_dict):
 
     # Truncate note column to 300 characters and add "...." if it exceeds that limit
     if 'tweet' in df.columns:
-        df['tweet'] = df['tweet'].apply(lambda x: (x[:300] + '....') if len(x) > 300 else x)
+        df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
 
     # Close the cursor but keep the connection open if it's needed elsewhere
     cursor.close()
@@ -210,15 +213,15 @@ def fn_tweet_out_note(called_function_arguments_dict):
                     'note_id': note_id,
                 })
 
-    if inserted_tweets: 
-        # Mark the note as published after all its paragraphs have been successfully tweeted
-        update_cmd = ("UPDATE notes SET is_published = 1 WHERE id = %s")
-        cursor.execute(update_cmd, (note_id,))
+        if inserted_tweets: 
+            # Mark the note as published after all its paragraphs have been successfully tweeted
+            update_cmd = ("UPDATE notes SET is_published = 1 WHERE id = %s")
+            cursor.execute(update_cmd, (note_id,))
+            conn.commit() 
+            df = pd.DataFrame(inserted_tweets)
+            df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
  
-        df = pd.DataFrame(inserted_tweets)
-        df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
- 
-        print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
+            print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
     cursor.close()
 
