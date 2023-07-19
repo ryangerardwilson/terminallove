@@ -10,6 +10,7 @@ import plotext as plt
 import time
 from requests_oauthlib import OAuth1Session
 import json
+import pytz
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
@@ -31,11 +32,15 @@ def publish_queued_tweets():
     # Create a new Cursor
     cursor = conn.cursor()
 
+    # Get the current time in Indian Standard Time (IST)
+    ist = pytz.timezone('Asia/Kolkata')
+    ist_time = datetime.datetime.now(ist)
+
     # Log the start of the job
     cursor.execute(
         "INSERT INTO cronjob_logs (job_description, executed_at, error_logs) VALUES (%s, %s, %s)",
-        ("Executing publishedQueuedTweets.py", datetime.datetime.now(), json.dumps([]))
-    )
+        ("Executing publishedQueuedTweets.py", ist_time, json.dumps([]))
+    ) 
 
     # Remember the ID of the log entry
     log_id = cursor.lastrowid

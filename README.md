@@ -382,12 +382,15 @@ STEP VI (OPTIONAL FOR SSH KEY LOGINS TO VIRTUAL MACHINES) - PLACE YOUR SSH KEYS 
 ```
 
 ***
-STEP VII (OPTIONAL FOR TWITTER MODULE) - PLACE YOUR TWIITER TOKEN IN THE TOKENS DIRECTORY, AND SET PERMISSIONS FOR TOKENS
+STEP VII - (OPTIONAL FOR TWITTER MODULE) CONFIGURE THE TWITTER MODULE
 
 ***
+1. Place your twitter token in the tokens directory, and set permissions for the token
 ```
     chmod 600 path_to_the_directory/files/tokens/* 
 ```
+2. Since cronjobs are typically executed on servers with the default time in UTC, you can adjust your preferred executed_at timezone in fn_publish_queued_tweets method of  modules/services/cronjobs/functions.py
+ 
 
 
 
