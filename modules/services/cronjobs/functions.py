@@ -11,6 +11,7 @@ import time
 import json
 from crontab import CronTab
 import getpass
+import pytz
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -61,6 +62,11 @@ def fn_list_cronjob_logs(called_function_arguments_dict):
     if 'value' in df.columns:
         df['value'] = df['value'].astype(int)
 
+    # Convert executed_at to IST
+    if 'executed_at' in df.columns:
+        ist = pytz.timezone('Asia/Kolkata')
+        df['executed_at'] = df['executed_at'].apply(lambda x: x.replace(tzinfo=pytz.utc).astimezone(ist))
+
     # Truncate tweet column to 30 characters and add "...." if it exceeds that limit
     if 'tweet' in df.columns:
         df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
@@ -77,6 +83,7 @@ def fn_list_cronjob_logs(called_function_arguments_dict):
     print()
     print(colored(heading, 'cyan'))
     print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
+
 
 def fn_clear_cronjob_logs():
     cursor = conn.cursor()

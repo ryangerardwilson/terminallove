@@ -40,8 +40,6 @@ def clear_history() -> None:
 def update_bot() -> None:
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     os.chdir(parent_dir)
-    subprocess.run(['git', 'add', '.'], check=True)
-    subprocess.run(['git', 'commit', '-m', 'sync minor update'], check=True)
     subprocess.run(['git', 'pull', '--rebase'], check=True)
 
 def process_hard_coded_flags(update, reset, p_action, p, l, id, service, username, password, comments, vm, db, vm_action, db_action, command, description):
