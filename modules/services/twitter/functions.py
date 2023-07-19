@@ -180,6 +180,12 @@ def fn_tweet_out_note(called_function_arguments_dict):
         if result is not None and result[0] is not None:
             latest_tweet_time = result[0]
 
+        latest_different_note_scheduled_time = None
+        cursor.execute("SELECT MAX(scheduled_at) FROM spaced_tweets WHERE note_id != %s", (note_id,))
+        result = cursor.fetchone()
+        if result is not None and result[0] is not None:
+            latest_different_note_scheduled_time = result[0]
+
         rate_limit_hit = False
 
         for i, paragraph in enumerate(paragraphs, 1):
@@ -220,8 +226,10 @@ def fn_tweet_out_note(called_function_arguments_dict):
             time.sleep(1)
             oauth = get_oauth_session()
 
-            if latest_tweet_time is not None and datetime.datetime.now() - latest_tweet_time < datetime.timedelta(hours=72):
-                scheduled_at = latest_tweet_time + datetime.timedelta(hours=72)
+            latest_time = max(filter(None, [datetime.datetime.now(), latest_tweet_time, latest_different_note_scheduled_time]))
+            scheduled_at = latest_time + datetime.timedelta(hours=72)
+
+            if datetime.datetime.now() < scheduled_at:
                 cursor.execute("INSERT INTO spaced_tweets (note_id, tweet, scheduled_at) VALUES (%s, %s, %s)", (note_id, paragraph, scheduled_at))
                 conn.commit()
                 print(colored(f"Paragraph {i} has been scheduled for a future tweet.", 'yellow'))
