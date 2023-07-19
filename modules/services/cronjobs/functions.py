@@ -18,7 +18,7 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__f
 load_dotenv(os.path.join(parent_dir, '.env'))
 
 CRONJOBS = {
-        "publishQueuedTweets": os.path.join(script_dir, "commands", "publishQueuedTweets.py")
+        "publishQueuedTweets": os.path.join(script_dir, "commands", "publishQueuedTweets.py"),
         "publishSpacedTweets": os.path.join(script_dir, "commands", "publishSpacedTweets.py")
         }
 

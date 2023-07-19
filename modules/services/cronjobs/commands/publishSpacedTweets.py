@@ -1,5 +1,6 @@
 import mysql.connector
 import datetime
+from datetime import timedelta
 import pandas as pd
 from termcolor import colored
 import os
@@ -42,8 +43,8 @@ def publish_spaced_tweets():
     log_id = cursor.lastrowid
     conn.commit()
 
-    # Select all spaced tweets, ordered by note_id and id
-    cursor.execute("SELECT id, tweet, note_id FROM spaced_tweets ORDER BY note_id, id")
+    current_time = datetime.datetime.now() + timedelta(hours=5, minutes=30)
+    cursor.execute("SELECT id, tweet, note_id, scheduled_at FROM spaced_tweets WHERE scheduled_at <= %s ORDER BY note_id, id", (current_time,))
     spaced_tweets = cursor.fetchall()
 
     # initialize previous_tweet_id to None and previous_note_id to None
@@ -54,9 +55,10 @@ def publish_spaced_tweets():
     error_logs = []
 
     i = 0
+    note_id = 0
     for tweet in spaced_tweets:
         i += 1
-        tweet_id, tweet_text, note_id = tweet
+        tweet_id, tweet_text, note_id, scheduled_at = tweet
 
         payload = {"text": tweet_text}
 
@@ -178,5 +180,5 @@ def get_oauth_session():
 
 
 if __name__ == '__main__':
-    publish_queued_tweets()
+    publish_spaced_tweets()
 
