@@ -28,23 +28,23 @@ conn = mysql.connector.connect(
 )
 
 
-def publish_queued_tweets():
+def publish_spaced_tweets():
     # Create a new Cursor
     cursor = conn.cursor()
 
     # Log the start of the job
     cursor.execute(
         "INSERT INTO cronjob_logs (job_description, executed_at, error_logs) VALUES (%s, %s, %s)",
-        ("Executing publishedQueuedTweets.py", datetime.datetime.now(), json.dumps([]))
+        ("Executing publishSpacedTweets.py", datetime.datetime.now(), json.dumps([]))
     )
 
     # Remember the ID of the log entry
     log_id = cursor.lastrowid
     conn.commit()
 
-    # Select all queued tweets, ordered by note_id and id
-    cursor.execute("SELECT id, tweet, note_id FROM queued_tweets ORDER BY note_id, id")
-    queued_tweets = cursor.fetchall()
+    # Select all spaced tweets, ordered by note_id and id
+    cursor.execute("SELECT id, tweet, note_id FROM spaced_tweets ORDER BY note_id, id")
+    spaced_tweets = cursor.fetchall()
 
     # initialize previous_tweet_id to None and previous_note_id to None
     previous_tweet_id = None
@@ -54,44 +54,15 @@ def publish_queued_tweets():
     error_logs = []
 
     i = 0
-    for tweet in queued_tweets:
+    for tweet in spaced_tweets:
         i += 1
         tweet_id, tweet_text, note_id = tweet
 
         payload = {"text": tweet_text}
 
-        # check if any tweet has been posted in the last 72 hours for the same note_id
-        cursor.execute(
-            "SELECT posted_at FROM tweets WHERE note_id = %s AND posted_at > %s ORDER BY posted_at DESC LIMIT 1",
-            (note_id, datetime.datetime.now() - datetime.timedelta(hours=72))
-        )
-        last_tweet = cursor.fetchone()
-
-        if last_tweet is not None:  # If a tweet from the same note_id was posted in the last 72 hours
-            # Add the tweet to the 'spaced_tweets' table with a scheduled_at value 72 hours after the last tweet
-            cursor.execute(
-                "INSERT INTO spaced_tweets (tweet, scheduled_at, note_id) VALUES (%s, %s, %s)",
-                (tweet_text, last_tweet[0] + datetime.timedelta(hours=72), note_id)
-            )
-            conn.commit()
-
-            # Delete the tweet from the 'queued_tweets' table
-            cursor.execute("DELETE FROM queued_tweets WHERE id = %s", (tweet_id,))
-            conn.commit()
-
-            print(f"Tweet added to spaced queue: {tweet_text}")
-            continue  # Skip to the next tweet
-
         # add the previous tweet id to the payload if it's from the same note
         if previous_tweet_id is not None and note_id == previous_note_id:
             payload["reply"] = {"in_reply_to_tweet_id": previous_tweet_id}
-
-        # If it's a new note_id, look for a tweet in the 'tweets' table with the same note_id
-        elif note_id != previous_note_id:
-            cursor.execute("SELECT tweet_id FROM tweets WHERE note_id = %s ORDER BY posted_at DESC LIMIT 1", (note_id,))
-            result = cursor.fetchone()
-            if result is not None:  # If a tweet from the same note_id exists
-                payload["reply"] = {"in_reply_to_tweet_id": result[0]}  # reply to this tweet
 
         time.sleep(1)
         oauth = get_oauth_session()
@@ -99,7 +70,7 @@ def publish_queued_tweets():
         response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
 
         if response.status_code == 429 and i == 1:  # Rate limit exceeded
-            error_message = f"Rate limit exceeded. Queued tweets for {note_id} have not been posted"
+            error_message = f"Rate limit exceeded. Spaced tweets for {note_id} have not been posted"
             print(error_message)
             rate_limit_hit = True
             error_logs.append(error_message)
@@ -127,22 +98,22 @@ def publish_queued_tweets():
             # update previous_note_id
             previous_note_id = note_id
 
-            # If the tweet is successfully posted, delete it from the queue
-            cursor.execute("DELETE FROM queued_tweets WHERE id = %s", (tweet_id,))
+            # If the tweet is successfully posted, delete it from the spaced_tweets table
+            cursor.execute("DELETE FROM spaced_tweets WHERE id = %s", (tweet_id,))
             conn.commit()
 
-            print(f"Tweeted and removed from queue: {tweet_text}")
+            print(f"Tweeted and removed from spaced_tweets table: {tweet_text}")
 
     # Update the job log entry with the final status
     if rate_limit_hit:
         cursor.execute(
             "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
-            ("publishQueuedTweets.py", json.dumps(error_logs), log_id)
+            ("publishSpacedTweets.py", json.dumps(error_logs), log_id)
         )
     else:
         cursor.execute(
             "UPDATE cronjob_logs SET job_description = %s WHERE id = %s",
-            ("publishQueuedTweets.py", log_id)
+            ("publishSpacedTweets.py", log_id)
         )
         update_cmd = ("UPDATE notes SET is_published = 1 WHERE id = %s")
         cursor.execute(update_cmd, (note_id,))

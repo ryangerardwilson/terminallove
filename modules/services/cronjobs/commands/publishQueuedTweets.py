@@ -35,7 +35,7 @@ def publish_queued_tweets():
     # Log the start of the job
     cursor.execute(
         "INSERT INTO cronjob_logs (job_description, executed_at, error_logs) VALUES (%s, %s, %s)",
-        ("Executing publishedQueuedTweets.py", datetime.datetime.now(), json.dumps([]))
+        ("Executing publishQueuedTweets.py", datetime.datetime.now(), json.dumps([]))
     )
 
     # Remember the ID of the log entry

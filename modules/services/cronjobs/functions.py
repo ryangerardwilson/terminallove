@@ -19,6 +19,7 @@ load_dotenv(os.path.join(parent_dir, '.env'))
 
 CRONJOBS = {
         "publishQueuedTweets": os.path.join(script_dir, "commands", "publishQueuedTweets.py")
+        "publishSpacedTweets": os.path.join(script_dir, "commands", "publishSpacedTweets.py")
         }
 
 conn = mysql.connector.connect(
@@ -67,10 +68,6 @@ def fn_list_cronjob_logs(called_function_arguments_dict):
         ist = pytz.timezone('Asia/Kolkata')
         df['executed_at'] = df['executed_at'].apply(lambda x: x.replace(tzinfo=pytz.utc).astimezone(ist))
 
-    # Truncate tweet column to 30 characters and add "...." if it exceeds that limit
-    if 'tweet' in df.columns:
-        df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
-
     # Truncate error_logs column to 30 characters and add "...." if it exceeds that limit
     if 'error_logs' in df.columns:
         df['error_logs'] = df['error_logs'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
@@ -99,7 +96,6 @@ def fn_clear_cronjob_logs():
 def fn_activate_cronjobs():
     print('Activating cronjobs')
     with CronTab(user=getpass.getuser()) as cron:
-        # /home/rgw/Desktop/rgwbot/modules/services/cronjobs
         for job_name, script_path in CRONJOBS.items():
             print(script_path)
             job = cron.new(command=f'{parent_dir}/botvenv/bin/python {script_path}', comment=job_name)
