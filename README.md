@@ -272,6 +272,14 @@ STEP III - INSTALL PYTHON AND MYSQL
       KEY `note_id_idx` (`note_id`)
     );
 
+    CREATE TABLE spaced_tweets (
+        id INT NOT NULL AUTO_INCREMENT,
+        tweet LONGTEXT,
+        scheduled_at DATETIME,
+        note_id INT,
+        PRIMARY KEY (id)
+    );
+
     CREATE TABLE `reasons` (
       `id` int NOT NULL AUTO_INCREMENT,
       `goal_id` int,
