@@ -204,6 +204,9 @@ def fn_list_notes(called_function_arguments_dict):
     cursor = conn.cursor()
     limit = int(called_function_arguments_dict.get('limit', 10))
 
+    if limit < 10:
+        limit = 10
+
     query = "SELECT * FROM notes ORDER BY created_at DESC LIMIT %s"
     cursor.execute(query, (limit,))
 
