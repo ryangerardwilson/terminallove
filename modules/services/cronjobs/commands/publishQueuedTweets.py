@@ -91,6 +91,13 @@ def publish_queued_tweets():
             # get the id of the tweet
             tw_id = json_response['data']['id']
 
+            # Insert into the 'tweets' table
+            cursor.execute(
+                "INSERT INTO tweets (tweet, tweet_id, note_id) VALUES (%s, %s, %s)",
+                (tweet_text, tw_id, note_id)
+            )
+            conn.commit()
+
             # update previous_tweet_id
             previous_tweet_id = tw_id
 
@@ -115,7 +122,6 @@ def publish_queued_tweets():
             ("publishQueuedTweets.py", log_id)
         )
     conn.commit()
-
 
 def get_oauth_session():
 
