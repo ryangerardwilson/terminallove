@@ -157,124 +157,176 @@ STEP III - INSTALL PYTHON AND MYSQL
 2. Use MySQL command-line to create your bot's database and tables using the provided commands. The below set up works well with the default functions of in services/modules. Feel free to make it your own.
 
 ```
-    mysql -h YOUR_DB_HOST_IP -u YOUR_DB_USERNAME -p    
-    CREATE DATABASE your_database_name;
-    USE your_database_name;
-    CREATE TABLE actions (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        goal_id INT,
-        action VARCHAR(255) NOT NULL,
-        deadline DATE,
-        is_active TINYINT(1) DEFAULT 1,
-        FOREIGN KEY (goal_id) REFERENCES goals(id)
+    mysql -h YOUR_DB_HOST_IP -u YOUR_DB_USERNAME -p
+    CREATE DATABASE `<database_name>`;
+    USE `<database_name>`;
+
+    CREATE TABLE `actions` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `goal_id` int,
+      `action` varchar(255) NOT NULL,
+      `deadline` date,
+      `is_active` tinyint(1) DEFAULT b'1',
+      PRIMARY KEY (`id`),
+      KEY `goal_id_idx` (`goal_id`)
     );
 
-    CREATE TABLE debt_payments (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        debt_id INT,
-        date DATE NOT NULL,
-        amount DECIMAL(19,2) NOT NULL,
-        currency VARCHAR(10),
-        FOREIGN KEY (debt_id) REFERENCES debts(id)
+    CREATE TABLE `cronjob_logs` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `job_description` varchar(255),
+      `error_logs` json,
+      `executed_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (`id`)
     );
 
-    CREATE TABLE debt_status_logs (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        debt_id INT,
-        total_amount DECIMAL(19,2),
-        outstanding DECIMAL(19,2),
-        status_date DATE,
-        FOREIGN KEY (debt_id) REFERENCES debts(id)
+    CREATE TABLE `debt_payments` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `debt_id` int,
+      `date` date NOT NULL,
+      `amount` decimal(19,2) NOT NULL,
+      `currency` varchar(10),
+      PRIMARY KEY (`id`),
+      KEY `debt_id_idx` (`debt_id`)
     );
 
-    CREATE TABLE debts (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        source VARCHAR(50) NOT NULL,
-        total_amount DECIMAL(19,2) NOT NULL,
-        outstanding DECIMAL(19,2) NOT NULL,
-        interest_rate DECIMAL(5,2),
-        currency VARCHAR(10)
+    CREATE TABLE `debt_status_logs` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `debt_id` int,
+      `total_amount` decimal(19,2),
+      `outstanding` decimal(19,2),
+      `status_date` date,
+      PRIMARY KEY (`id`),
+      KEY `debt_id_idx` (`debt_id`)
     );
 
-    CREATE TABLE events (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        event VARCHAR(255) NOT NULL,
-        date DATE NOT NULL,
-        time TIME NOT NULL
+    CREATE TABLE `debts` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `source` varchar(50) NOT NULL,
+      `total_amount` decimal(19,2) NOT NULL,
+      `outstanding` decimal(19,2) NOT NULL,
+      `interest_rate` decimal(5,2),
+      `currency` varchar(10),
+      PRIMARY KEY (`id`)
     );
 
-    CREATE TABLE expenses (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        value DECIMAL(10,2),
-        expense_date DATE,
-        currency VARCHAR(20) DEFAULT 'INR',
-        particulars VARCHAR(255),
-        debt_id INT,
-        is_debt_repayment TINYINT(1) DEFAULT 0,
-        is_earmarked_for_debt_repayment TINYINT(1) DEFAULT 0,
-        FOREIGN KEY (debt_id) REFERENCES debts(id)
+    CREATE TABLE `events` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `event` varchar(255) NOT NULL,
+      `date` date NOT NULL,
+      `time` time NOT NULL,
+      PRIMARY KEY (`id`)
     );
 
-    CREATE TABLE goals (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        date DATE NOT NULL
+    CREATE TABLE `expenses` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `value` decimal(10,2),
+      `expense_date` date,
+      `currency` varchar(20) DEFAULT 'INR',
+      `particulars` varchar(255),
+      `debt_id` int,
+      `is_debt_repayment` tinyint(1) DEFAULT '0',
+      `is_earmarked_for_debt_repayment` tinyint(1) DEFAULT '0',
+      PRIMARY KEY (`id`),
+      KEY `debt_id_idx` (`debt_id`)
     );
 
-    CREATE TABLE mysql_databases (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        description VARCHAR(255),
-        command VARCHAR(255),
-        password VARCHAR(255)
+    CREATE TABLE `goals` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `name` varchar(255) NOT NULL,
+      `date` date NOT NULL,
+      PRIMARY KEY (`id`)
     );
 
-    CREATE TABLE passwords (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        service VARCHAR(255),
-        username VARCHAR(255),
-        password VARCHAR(255),
-        comments TEXT
+    CREATE TABLE `mysql_databases` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `description` varchar(255),
+      `command` varchar(255),
+      `password` varchar(255),
+      PRIMARY KEY (`id`)
     );
 
-    CREATE TABLE reasons (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        goal_id INT,
-        reason VARCHAR(255) NOT NULL,
-        FOREIGN KEY (goal_id) REFERENCES goals(id)
+    CREATE TABLE `notes` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `note` longtext,
+      `is_published` tinyint(1) DEFAULT '0',
+      `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+      `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (`id`)
     );
 
-    CREATE TABLE relational_databases (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        description VARCHAR(255),
-        mysql_connect_command VARCHAR(255),
-        password VARCHAR(255)
+    CREATE TABLE `passwords` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `service` varchar(255),
+      `username` varchar(255),
+      `password` varchar(255),
+      `comments` text,
+      PRIMARY KEY (`id`)
     );
 
-    CREATE TABLE runs (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        pre_run_weight_lbs FLOAT DEFAULT 0,
-        post_run_weight_lbs FLOAT DEFAULT 0,
-        fat_burn_zone_minutes FLOAT DEFAULT 0,
-        cardio_zone_minutes FLOAT DEFAULT 0,
-        peak_zone_minutes FLOAT DEFAULT 0,
-        distance_covered_kms FLOAT DEFAULT 0,
-        date DATE,
-        temperature_in_f FLOAT
+    CREATE TABLE `queued_tweets` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `tweet` longtext,
+      `tweet_failed_at` datetime,
+      `note_id` int,
+      PRIMARY KEY (`id`),
+      KEY `note_id_idx` (`note_id`)
     );
 
-    CREATE TABLE timesheets (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        action_id INT,
-        date DATE,
-        FOREIGN KEY (action_id) REFERENCES actions(id)
+    CREATE TABLE `reasons` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `goal_id` int,
+      `reason` varchar(255) NOT NULL,
+      PRIMARY KEY (`id`),
+      KEY `goal_id_idx` (`goal_id`)
     );
 
-    CREATE TABLE virtual_machines (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        description VARCHAR(255),
-        command VARCHAR(255),
-        password VARCHAR(255)
+    CREATE TABLE `relational_databases` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `description` varchar(255),
+      `mysql_connect_command` varchar(255),
+      `password` varchar(255),
+      PRIMARY KEY (`id`)
     );
+
+    CREATE TABLE `runs` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `pre_run_weight_lbs` float DEFAULT b'0',
+      `post_run_weight_lbs` float DEFAULT b'0',
+      `fat_burn_zone_minutes` float DEFAULT b'0',
+      `cardio_zone_minutes` float DEFAULT b'0',
+      `peak_zone_minutes` float DEFAULT b'0',
+      `distance_covered_kms` float DEFAULT b'0',
+      `date` date,
+      `temperature_in_f` float,
+      PRIMARY KEY (`id`)
+    );
+
+    CREATE TABLE `timesheets` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `action_id` int,
+      `date` date,
+      PRIMARY KEY (`id`),
+      KEY `action_id_idx` (`action_id`)
+    );
+
+    CREATE TABLE `tweets` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `tweet` longtext,
+      `tweet_id` varchar(255),
+      `posted_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+      `note_id` int,
+      PRIMARY KEY (`id`),
+      KEY `note_id_idx` (`note_id`)
+    );
+
+    CREATE TABLE `virtual_machines` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `description` varchar(255),
+      `command` varchar(255),
+      `password` varchar(255),
+      PRIMARY KEY (`id`)
+    );
+        
 ```
 
 ***
@@ -289,24 +341,54 @@ STEP IV - CREATE A VIRTUAL ENVIRONMENT AND INSTALL PYTHON PACKAGES VIA PIP
 ```
 
 ***
-STEP V - NAME YOUR BOT AND MAKE THE BOT EXECUTABLE SYSTEM WIDE
+STEP V - CREATE AN INITIALIZATION FILE
 ***
 
-1. Update the init.sh files to contain the absolute paths to the init.sh and main.py files.
-2. Make the init.sh and main.py files executable.
-3. Create a symbolic link for init.sh and name your bot.
-    
+1. Inside the product directory create an initiatization file init.sh, and make it executable along with the main.py file
+
 ```
-    pwd    
+    touch init.sh
     chmod +x init.sh
     chmod +x main.py
-    sudo ln -s /path/to/your/script/init.sh /usr/local/bin/rgw 
+```
+
+2. Get the path to the directory
+
+```
+    pwd
+```
+
+3. Update the init.sh file with the below content. Be sure to replace path_to_project_directory with the actual path
+
+```
+    #!/bin/bash
+    source path_to_project_directory/botvenv/bin/activate
+    python3 path_to_project_directory/main.py "$@"
+    
+```
+
+4. Create a symbolic link for init.sh and name your bot. Be sure to replace path_to_project_directory with the actual path, and rgw with your preferred bot name (mild narcissism compels me to call my bot by my name initials)
+    
+```
+    sudo ln -s path_to_project_directory/init.sh /usr/local/bin/rgw 
 ```
 
 ***
-STEP VI (OPTIONAL) - STORE SSH KEYS IN FILES/SSH, AND SET PERMISSIONS FOR SSH KEYS
+STEP VI (OPTIONAL FOR SSH KEY LOGINS TO VIRTUAL MACHINES) - PLACE YOUR SSH KEYS IN THE SSH DIRECTORY, AND SET PERMISSIONS FOR SSH KEYS
 ***
 
 ```
     chmod 600 path_to_the_directory/files/ssh/* 
 ```
+
+***
+STEP VII (OPTIONAL FOR TWITTER MODULE) - PLACE YOUR TWIITER TOKEN IN THE TOKENS DIRECTORY, AND SET PERMISSIONS FOR TOKENS
+
+***
+```
+    chmod 600 path_to_the_directory/files/tokens/* 
+```
+
+
+
+
