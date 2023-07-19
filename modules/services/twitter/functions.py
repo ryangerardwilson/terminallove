@@ -145,6 +145,8 @@ def fn_tweet_out_note(called_function_arguments_dict):
 
             if not paragraph.strip():
                 print(colored(f"Skipping empty paragraph {i}", 'red'))
+                if i == 1:
+                    print(colored('You may have forgotten to save the note', 'red'))
                 continue
 
             if len(paragraph) > 280:
@@ -178,7 +180,7 @@ def fn_tweet_out_note(called_function_arguments_dict):
             oauth = get_oauth_session()
 
             response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
-
+            
             if response.status_code == 429:  # Rate limit exceeded
                 print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow'))
                 tweet_failed_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
