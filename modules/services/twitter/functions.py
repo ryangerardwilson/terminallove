@@ -16,7 +16,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 load_dotenv(os.path.join(parent_dir, '.env'))
 
-TWEET_SPACING=os.getenv('TWEET_SPACING')
+TWITTER_NOTE_SPACING=int(os.getenv('TWITTER_NOTE_SPACING'))
 TWITTER_CONSUMER_KEY=os.getenv('TWITTER_CONSUMER_KEY')
 TWITTER_CONSUMER_SECRET=os.getenv('TWITTER_CONSUMER_SECRET')
 TWITTER_ACCESS_TOKEN=os.getenv('TWITTER_ACCESS_TOKEN')
@@ -228,7 +228,7 @@ def fn_tweet_out_note(called_function_arguments_dict):
             oauth = get_oauth_session()
 
             latest_time = max(filter(None, [datetime.datetime.now(), latest_tweet_time, latest_different_note_scheduled_time]))
-            scheduled_at = latest_time + datetime.timedelta(hours=TWEET_SPACING)
+            scheduled_at = latest_time + datetime.timedelta(hours=TWITTER_NOTE_SPACING)
 
             if datetime.datetime.now() < scheduled_at:
                 cursor.execute("INSERT INTO spaced_tweets (note_id, tweet, scheduled_at) VALUES (%s, %s, %s)", (note_id, paragraph, scheduled_at))

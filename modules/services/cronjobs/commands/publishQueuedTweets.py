@@ -16,7 +16,7 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.
 load_dotenv(os.path.join(parent_dir, '.env'))
 
 
-TWEET_SPACING=os.getenv('TWEET_SPACING')
+TWITTER_NOTE_SPACING=int(os.getenv('TWITTER_NOTE_SPACING'))
 TWITTER_CONSUMER_KEY=os.getenv('TWITTER_CONSUMER_KEY')
 TWITTER_CONSUMER_SECRET=os.getenv('TWITTER_CONSUMER_SECRET')
 TWITTER_ACCESS_TOKEN=os.getenv('TWITTER_ACCESS_TOKEN')
@@ -62,18 +62,18 @@ def publish_queued_tweets():
 
         payload = {"text": tweet_text}
 
-        # check if any tweet has been posted in the last TWEET_SPACING  hours for the same note_id
+        # check if any tweet has been posted in the last TWITTER_NOTE_SPACING  hours for the same note_id
         cursor.execute(
             "SELECT posted_at FROM tweets WHERE note_id = %s AND posted_at > %s ORDER BY posted_at DESC LIMIT 1",
-            (note_id, datetime.datetime.Inow() - datetime.timedelta(hours=TWEET_SPACING))
+            (note_id, datetime.datetime.Inow() - datetime.timedelta(hours=TWITTER_NOTE_SPACING))
         )
         last_tweet = cursor.fetchone()
 
-        if last_tweet is not None:  # If a tweet from the same note_id was posted in the last TWEET_SPACING hours
+        if last_tweet is not None:  # If a tweet from the same note_id was posted in the last TWITTER_NOTE_SPACING hours
             # Add the tweet to the 'spaced_tweets' table with a scheduled_at value 72 hours after the last tweet
             cursor.execute(
                 "INSERT INTO spaced_tweets (tweet, scheduled_at, note_id) VALUES (%s, %s, %s)",
-                (tweet_text, last_tweet[0] + datetime.timedelta(hours=TWEET_SPACING), note_id)
+                (tweet_text, last_tweet[0] + datetime.timedelta(hours=TWITTER_NOTE_SPACING), note_id)
             )
             conn.commit()
 
