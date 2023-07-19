@@ -212,6 +212,8 @@ def fn_tweet_out_note(called_function_arguments_dict):
 
     if inserted_tweets:
         df = pd.DataFrame(inserted_tweets)
+        df['tweet'] = df['tweet'].apply(lambda x: (x[:300] + '....') if len(x) > 300 else x)
+
         print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
     cursor.close()
