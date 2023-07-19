@@ -103,7 +103,7 @@ def fn_activate_cronjobs():
         for job_name, script_path in CRONJOBS.items():
             print(script_path)
             job = cron.new(command=f'{parent_dir}/botvenv/bin/python {script_path}', comment=job_name)
-            job.hour.every(1) # this is just an example, you can set your own time
+            job.setall('0 * * * *') # this sets the cron job to run every hour on the hour
             cron.write()
 
 def fn_deactivate_cronjobs():
