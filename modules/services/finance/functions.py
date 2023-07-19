@@ -1,5 +1,6 @@
 import mysql.connector
 import datetime
+import pytz
 import pandas as pd
 from termcolor import colored
 import os
@@ -10,7 +11,9 @@ import plotext as plt
 pd.set_option('display.precision', 10)
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-load_dotenv(os.path.join(parent_dir, '.env'))
+
+TIMEZONE=os.getenv('TIMEZONE')
+tz=pytz.timezone(TIMEZONE)
 
 conn = mysql.connector.connect(
     user=os.getenv('DB_USER'),
@@ -38,7 +41,7 @@ def fn_log_expenses(called_function_arguments_dict):
 
     # Set default values
     default_currency = 'INR'
-    default_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
 
     # If "currency" and "expense_date" are not in called_function_arguments_dict, set them to the defaults
     currency = called_function_arguments_dict.get('currency', default_currency)
@@ -168,7 +171,7 @@ def fn_log_debt_repayment(called_function_arguments_dict):
 
     # Set default values
     default_currency = 'INR'
-    default_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
 
     # If "currency" and "expense_date" are not in called_function_arguments_dict, set them to the defaults
     currency = called_function_arguments_dict.get('currency', default_currency)
@@ -302,8 +305,8 @@ def fn_list_expenses(called_function_arguments_dict):
 
     cursor = conn.cursor()
 
-    now = datetime.datetime.now()
-    start_of_month = datetime.datetime(now.year, now.month, 1)
+    now = datetime.datetime.now(tz)
+    start_of_month = datetime.datetime(now.year, now.month, 1, tzinfo=tz)
 
     # Calculate the number of days since the start of the month
     days_since_start_of_month = (now - start_of_month).days
@@ -315,8 +318,8 @@ def fn_list_expenses(called_function_arguments_dict):
         days_ago_start = int(called_function_arguments_dict.get('days_ago_start', days_since_start_of_month))
     days_ago_end = int(called_function_arguments_dict.get('days_ago_end', 0))
 
-    start_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
-    end_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
+    start_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
+    end_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
 
     include_debt_repayment_str = called_function_arguments_dict.get('include_debt_repayment', 'true')
     if include_debt_repayment_str == "true":
@@ -603,8 +606,8 @@ def fn_display_expenses_line_chart(called_function_arguments_dict):
     cursor = conn.cursor(dictionary=True)
 
 
-    now = datetime.datetime.now()
-    start_of_month = datetime.datetime(now.year, now.month, 1)
+    now = datetime.datetime.now(tz)
+    start_of_month = datetime.datetime(now.year, now.month, 1, tzinfo=tz)
 
     # Calculate the number of days since the start of the month
     days_since_start_of_month = (now - start_of_month).days
@@ -617,8 +620,8 @@ def fn_display_expenses_line_chart(called_function_arguments_dict):
         days_ago_start = int(called_function_arguments_dict.get('days_ago_start', days_since_start_of_month))
     days_ago_end = int(called_function_arguments_dict.get('days_ago_end', 0))
 
-    start_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
-    end_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
+    start_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
+    end_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
 
 
     is_cumulative = called_function_arguments_dict.get('is_cumulative', "false")
@@ -675,7 +678,7 @@ def fn_log_debts(called_function_arguments_dict):
 
     # Set default values
     default_currency = 'INR'
-    # default_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    # default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
 
     # If "currency" and "expense_date" are not in called_function_arguments_dict, set them to the defaults
     currency = called_function_arguments_dict.get('currency', default_currency)
@@ -749,7 +752,7 @@ def fn_insert_debt_status_log(called_function_arguments_dict):
             return
 
     # Get current date in YYYY-MM-DD format using Python
-    current_date = datetime.datetime.now().date() # Changed from .strftime('%Y-%m-%d')
+    current_date = datetime.datetime.now(tz).date() # Changed from .strftime('%Y-%m-%d')
 
     sql_log = "INSERT INTO debt_status_logs (debt_id, total_amount, outstanding, status_date) VALUES (%s, %s, %s, %s)"
     values_log = (debt_id, total_amount, outstanding, current_date)
@@ -1164,8 +1167,8 @@ def fn_display_debt_status_logs_line_chart(called_function_arguments_dict):
     days_ago_end = int(called_function_arguments_dict.get('days_ago_end', 0))
 
 
-    start_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
-    end_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
+    start_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
+    end_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
 
     query = f"SELECT DATE(status_date) as date, SUM(outstanding) as total_value FROM debt_status_logs WHERE debt_id = {debt_id} AND DATE(status_date) >= '{start_date}' AND DATE(status_date) <= '{end_date}' GROUP BY DATE(status_date) ORDER BY DATE(status_date)"
     # print(query)

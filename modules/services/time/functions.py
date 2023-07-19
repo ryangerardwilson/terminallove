@@ -1,5 +1,6 @@
 import mysql.connector
 import datetime
+import pytz
 import pandas as pd
 from termcolor import colored
 import os
@@ -8,6 +9,9 @@ from dotenv import load_dotenv
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 load_dotenv(os.path.join(parent_dir, '.env'))
+
+TIMEZONE=os.getenv('TIMEZONE')
+tz=pytz.timezone(TIMEZONE)
 
 conn = mysql.connector.connect(
     user=os.getenv('DB_USER'),
@@ -21,7 +25,7 @@ def fn_schedule_event(called_function_arguments_dict):
     cursor = conn.cursor()
 
     # Set default values
-    default_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
     default_time = '00:00:00'  # Change default time here
 
     # If "date" and "time" are not in called_function_arguments_dict, set them to the defaults
@@ -65,13 +69,11 @@ def fn_schedule_event(called_function_arguments_dict):
 def fn_list_events():
     cursor = conn.cursor()
 
-    default_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
 
     # Query to get all events sorted by date in descending order
     query = "SELECT * FROM events WHERE date >= DATE(%s) ORDER BY date DESC, time DESC"
     cursor.execute(query, (default_date,))
-
-
 
     # Fetch all columns
     columns = cursor.description
