@@ -121,6 +121,8 @@ def publish_queued_tweets():
             "UPDATE cronjob_logs SET job_description = %s WHERE id = %s",
             ("publishQueuedTweets.py", log_id)
         )
+        update_cmd = ("UPDATE notes SET is_published = 1 WHERE id = %s")
+        cursor.execute(update_cmd, (note_id,))
     conn.commit()
 
 def get_oauth_session():
