@@ -196,7 +196,7 @@ async def main(
             functions = [
                 list_tweets,
                 list_queued_tweets,
-                list_scheduled_tweets,
+                list_spaced_tweets,
                 tweet_out_note,
                 schedule_tweet,
                 edit_tweet,
@@ -204,6 +204,9 @@ async def main(
                 delete_tweets_by_note_ids,
                 delete_queued_tweets_by_ids,
                 delete_queued_tweets_by_note_ids,
+                delete_spaced_tweets_by_ids,
+                delete_spaced_tweets_by_note_ids,
+ 
             ]
 
         classification_data = {
@@ -266,12 +269,15 @@ async def main(
                 'tweet_out_note': fn_tweet_out_note,
                 'list_tweets': fn_list_tweets,
                 'list_queued_tweets': fn_list_queued_tweets,
+                'list_spaced_tweets': fn_list_spaced_tweets,
                 'schedule_tweet': fn_schedule_tweet,
                 'edit_tweet': fn_edit_tweet,
                 'delete_tweets_by_ids': fn_delete_tweets_by_ids,
                 'delete_tweets_by_note_ids': fn_delete_tweets_by_note_ids,
                 'delete_queued_tweets_by_ids': fn_delete_queued_tweets_by_ids,
                 'delete_queued_tweets_by_note_ids': fn_delete_queued_tweets_by_note_ids,
+                'delete_spaced_tweets_by_ids': fn_delete_spaced_tweets_by_ids,
+                'delete_spaced_tweets_by_note_ids': fn_delete_spaced_tweets_by_note_ids,
                 'list_cronjob_logs': fn_list_cronjob_logs,
             }
 
@@ -290,7 +296,6 @@ async def main(
                 'open_most_recently_edited_note': fn_open_most_recently_edited_note,
                 'save_and_close_notes': fn_save_and_close_notes,
                 'delete_local_note_cache': fn_delete_local_note_cache,
-                'list_scheduled_tweets': fn_list_scheduled_tweets,
                 'activate_cronjobs': fn_activate_cronjobs,
                 'deactivate_cronjobs': fn_deactivate_cronjobs,
                 'list_cronjobs': fn_list_cronjobs,

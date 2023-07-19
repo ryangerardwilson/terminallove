@@ -34,15 +34,15 @@ list_queued_tweets = {
   }
 }
 
-list_scheduled_tweets = {
-  "name": "list_scheduled_tweets",
-  "description": "Lists the user's scheduled tweets",
+list_spaced_tweets = {
+  "name": "list_spaced_tweets",
+  "description": "Lists the user's scheduled tweets, also known as spaced tweets",
   "parameters": {
     "type": "object",
     "properties": {
-      "connection": {
-        "type": "string",
-        "enum": ["Listing scheduled tweets"]
+      "limit": {
+        "type": "integer",
+        "description": "The number of spaced tweets to list out"
        },
      },
     "required": []
@@ -152,6 +152,37 @@ delete_queued_tweets_by_ids = {
 delete_queued_tweets_by_note_ids = {
   "name": "delete_queued_tweets_by_note_ids",
   "description": "Deletes queued tweets by their note ids",
+  "parameters": {
+    "type": "object",
+    "properties": {
+        "ids": {
+            "type": "string",
+            "description": "The ids to be deleted separated by camel case. For instance ids 4 and 5 would be 4_5"
+        },
+     },
+    "required": []
+  }
+}
+
+delete_spaced_tweets_by_ids = {
+  "name": "delete_spaced_tweets_by_ids",
+  "description": "Deletes spaced tweets by their ids",
+  "parameters": {
+    "type": "object",
+    "properties": {
+        "ids": {
+            "type": "string",
+            "description": "The ids to be deleted separated by camel case. For instance ids 4 and 5 would be 4_5"
+        },
+     },
+    "required": []
+  }
+}
+
+
+delete_spaced_tweets_by_note_ids = {
+  "name": "delete_spaced_tweets_by_note_ids",
+  "description": "Deletes spaced tweets by their note ids",
   "parameters": {
     "type": "object",
     "properties": {

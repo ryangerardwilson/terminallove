@@ -27,6 +27,7 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
+
 def publish_queued_tweets():
     # Create a new Cursor
     cursor = conn.cursor()
@@ -58,6 +59,28 @@ def publish_queued_tweets():
         tweet_id, tweet_text, note_id = tweet
 
         payload = {"text": tweet_text}
+
+        # check if any tweet has been posted in the last 72 hours for the same note_id
+        cursor.execute(
+            "SELECT posted_at FROM tweets WHERE note_id = %s AND posted_at > %s ORDER BY posted_at DESC LIMIT 1",
+            (note_id, datetime.datetime.now() - datetime.timedelta(hours=72))
+        )
+        last_tweet = cursor.fetchone()
+
+        if last_tweet is not None:  # If a tweet from the same note_id was posted in the last 72 hours
+            # Add the tweet to the 'spaced_tweets' table with a scheduled_at value 72 hours after the last tweet
+            cursor.execute(
+                "INSERT INTO spaced_tweets (tweet, scheduled_at, note_id) VALUES (%s, %s, %s)",
+                (tweet_text, last_tweet[0] + datetime.timedelta(hours=72), note_id)
+            )
+            conn.commit()
+
+            # Delete the tweet from the 'queued_tweets' table
+            cursor.execute("DELETE FROM queued_tweets WHERE id = %s", (tweet_id,))
+            conn.commit()
+
+            print(f"Tweet added to spaced queue: {tweet_text}")
+            continue  # Skip to the next tweet
 
         # add the previous tweet id to the payload if it's from the same note
         if previous_tweet_id is not None and note_id == previous_note_id:

@@ -94,9 +94,9 @@ def fn_list_queued_tweets(called_function_arguments_dict):
     if 'value' in df.columns:
         df['value'] = df['value'].astype(int)
 
-    # Truncate note column to 300 characters and add "...." if it exceeds that limit
+    # Truncate note column to 30 characters and add "...." if it exceeds that limit
     if 'tweet' in df.columns:
-        df['tweet'] = df['tweet'].apply(lambda x: (x[:300] + '....') if len(x) > 300 else x)
+        df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
 
     # Close the cursor but keep the connection open if it's needed elsewhere
     cursor.close()
@@ -107,10 +107,42 @@ def fn_list_queued_tweets(called_function_arguments_dict):
     print(colored(heading, 'cyan'))
     print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
-def fn_list_scheduled_tweets():
-     
-     cursor = conn.cursor()
-     print('List scheduled tweets')
+def fn_list_spaced_tweets(called_function_arguments_dict):
+    cursor = conn.cursor()
+    limit = int(called_function_arguments_dict.get('limit', 10))
+
+    query = "SELECT * FROM spaced_tweets ORDER BY id DESC LIMIT %s"
+    cursor.execute(query, (limit,))
+
+    # Fetch all columns
+    columns = [col[0] for col in cursor.description]
+
+    # Fetch all rows
+    result = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    if not result:
+        print("No result found")
+        return
+
+    # Convert the result to DataFrame
+    pd.options.display.float_format = lambda x: '{:.2f}'.format(x) if abs(x) < 1000000 else '{:.0f}'.format(x)
+    df = pd.DataFrame(result)
+
+    if 'value' in df.columns:
+        df['value'] = df['value'].astype(int)
+
+    # Truncate note column to 30 characters and add "...." if it exceeds that limit
+    if 'tweet' in df.columns:
+        df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
+
+    # Close the cursor but keep the connection open if it's needed elsewhere
+    cursor.close()
+
+    # Construct and print the heading
+    heading = f"SPACED TWEETS (Most recent {limit} records)"
+    print()
+    print(colored(heading, 'cyan'))
+    print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
 def fn_tweet_out_note(called_function_arguments_dict):
     cursor = conn.cursor()
@@ -141,6 +173,12 @@ def fn_tweet_out_note(called_function_arguments_dict):
         queued_tweets = {row[0] for row in cursor.fetchall()}
 
         previous_tweet_id = None
+
+        latest_tweet_time = None
+        cursor.execute("SELECT MAX(posted_at) FROM tweets")
+        result = cursor.fetchone()
+        if result is not None and result[0] is not None:
+            latest_tweet_time = result[0]
 
         rate_limit_hit = False
 
@@ -182,36 +220,42 @@ def fn_tweet_out_note(called_function_arguments_dict):
             time.sleep(1)
             oauth = get_oauth_session()
 
-            response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
-            
-            if response.status_code == 429:  # Rate limit exceeded
-                print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow'))
-                tweet_failed_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
-                cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
+            if latest_tweet_time is not None and datetime.datetime.now() - latest_tweet_time < datetime.timedelta(hours=72):
+                scheduled_at = latest_tweet_time + datetime.timedelta(hours=72)
+                cursor.execute("INSERT INTO spaced_tweets (note_id, tweet, scheduled_at) VALUES (%s, %s, %s)", (note_id, paragraph, scheduled_at))
                 conn.commit()
-                rate_limit_hit = True
+                print(colored(f"Paragraph {i} has been scheduled for a future tweet.", 'yellow'))
                 continue
+            else:
+                response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
+                if response.status_code == 429:  # Rate limit exceeded
+                    print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow'))
+                    tweet_failed_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
+                    cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
+                    conn.commit()
+                    rate_limit_hit = True
+                    continue
 
-            if response.status_code != 201:
-                raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
+                if response.status_code != 201:
+                    raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
 
-            json_response = response.json()
+                json_response = response.json()
 
-            if 'data' in json_response:
-                tweet_id = json_response['data']['id']
-                previous_tweet_id = tweet_id
-                posted_at = datetime.datetime.now()
-                insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id) VALUES (%s, %s, %s, %s)")
-                cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id))
-                conn.commit()
+                if 'data' in json_response:
+                    tweet_id = json_response['data']['id']
+                    previous_tweet_id = tweet_id
+                    posted_at = datetime.datetime.now()
+                    insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id) VALUES (%s, %s, %s, %s)")
+                    cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id))
+                    conn.commit()
 
-                inserted_tweets.append({
-                    'tweet': paragraph,
-                    'tweet_id': tweet_id,
-                    'posted_at': posted_at,
-                    'note_id': note_id,
-                })
+                    inserted_tweets.append({
+                        'tweet': paragraph,
+                        'tweet_id': tweet_id,
+                        'posted_at': posted_at,
+                        'note_id': note_id,
+                    })
 
         if inserted_tweets: 
             # Mark the note as published after all its paragraphs have been successfully tweeted
@@ -380,9 +424,58 @@ def fn_delete_queued_tweets_by_note_ids(called_function_arguments_dict):
 
     print(colored(f"QUEUED TWEETS FOR NOTE IDS {deleted_note_ids} SUCCESSFULLY DELETED", 'cyan'))
 
+def fn_delete_spaced_tweets_by_ids(called_function_arguments_dict):
+    cursor = conn.cursor()
+    ids_to_delete = called_function_arguments_dict.get('ids').split('_')
+    deleted_ids = []  # to store the successfully deleted tweet ids
 
+    oauth = get_oauth_session()
 
+    for table_id in ids_to_delete:
+        # Fetch the corresponding tweet_id from the database
+        select_cmd = "SELECT id FROM spaced_tweets WHERE id = %s"
+        cursor.execute(select_cmd, (table_id,))
+        result = cursor.fetchone()
 
+        if result is None:
+            print(colored(f"No spaced tweet found with ID {table_id}", 'red'))
+            continue
+
+        sql = "DELETE FROM spaced_tweets WHERE id = %s"
+        cursor.execute(sql, (table_id,))
+        deleted_ids.append(table_id)  # adding the id to the deleted_ids list
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print(colored(f"SPACED TWEETS WITH IDS {deleted_ids} SUCCESSFULLY DELETED", 'cyan'))
+
+def fn_delete_spaced_tweets_by_note_ids(called_function_arguments_dict):
+    cursor = conn.cursor()
+    note_ids_to_delete = [int(id_str) for id_str in called_function_arguments_dict.get('ids').split('_')]
+    deleted_note_ids = []  # to store the note ids for which tweets have been successfully deleted
+
+    oauth = get_oauth_session()
+
+    for note_id in note_ids_to_delete:
+        # Fetch the corresponding tweet_id(s) from the database
+        select_cmd = "SELECT id FROM spaced_tweets WHERE note_id = %s"
+        cursor.execute(select_cmd, (note_id,))
+        results = cursor.fetchall()
+
+        if not results:
+            print(colored(f"No tweets found for note ID {note_id}", 'red'))
+            continue
+
+        sql = "DELETE FROM spaced_tweets WHERE note_id = %s"
+        cursor.execute(sql, (note_id,))
+        deleted_note_ids.append(note_id)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    print(colored(f"SPACED TWEETS FOR NOTE IDS {deleted_note_ids} SUCCESSFULLY DELETED", 'cyan'))
 
 def get_oauth_session():
     TWITTER_CONSUMER_KEY=os.getenv('TWITTER_CONSUMER_KEY')
