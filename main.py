@@ -215,7 +215,7 @@ async def main(
         }
 
         classification_function_info = await make_functions_call_to_open_ai(url, headers, classification_data)
-        print(classification_function_info)
+        
         if classification_function_info:
             print(colored('Function Invoked: ' + classification_function_info["function_name"] + json.dumps(classification_function_info["arguments"]),
                           'yellow'))
