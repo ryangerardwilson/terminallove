@@ -32,6 +32,9 @@ def publish_queued_tweets():
     # Create a new Cursor
     cursor = conn.cursor()
 
+    # Set the timezone for this session to Indian Standard Time (IST)
+    cursor.execute("SET time_zone = '+05:30';")
+
     # Get the current time in Indian Standard Time (IST)
     ist = pytz.timezone('Asia/Kolkata')
     ist_time = datetime.datetime.now(ist)
@@ -40,7 +43,7 @@ def publish_queued_tweets():
     cursor.execute(
         "INSERT INTO cronjob_logs (job_description, executed_at, error_logs) VALUES (%s, %s, %s)",
         ("Executing publishedQueuedTweets.py", ist_time, json.dumps([]))
-    ) 
+    )
 
     # Remember the ID of the log entry
     log_id = cursor.lastrowid
