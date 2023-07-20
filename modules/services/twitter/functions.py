@@ -11,6 +11,7 @@ import time
 from requests_oauthlib import OAuth1Session
 import json
 import pytz
+from pytz import timezone
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -230,10 +231,43 @@ def fn_tweet_out_note(called_function_arguments_dict):
             time.sleep(1)
             oauth = get_oauth_session()
 
-            latest_time = max(filter(None, [datetime.datetime.now(tz), latest_tweet_time, latest_different_note_scheduled_time]))
-            scheduled_at = latest_time + datetime.timedelta(hours=TWITTER_NOTE_SPACING)
+            if latest_tweet_time is not None:
+                if latest_tweet_time.tzinfo is None or latest_tweet_time.tzinfo.utcoffset(latest_tweet_time) is None:
+                    latest_tweet_time = tz.localize(latest_tweet_time)
+                else:
+                    latest_tweet_time = latest_tweet_time.astimezone(tz)
 
-            if datetime.datetime.now(tz) < scheduled_at:
+            if latest_different_note_scheduled_time is not None:
+                if latest_different_note_scheduled_time.tzinfo is None or latest_different_note_scheduled_time.tzinfo.utcoffset(latest_different_note_scheduled_time) is None:
+                    latest_different_note_scheduled_time = tz.localize(latest_different_note_scheduled_time)
+                else:
+                    latest_different_note_scheduled_time = latest_different_note_scheduled_time.astimezone(tz)
+
+
+            latest_time = max(filter(None, [datetime.datetime.now(tz), latest_tweet_time, latest_different_note_scheduled_time]))
+            latest_same_note_scheduling_time = None
+            cursor.execute("SELECT MAX(scheduled_at) FROM spaced_tweets WHERE note_id = %s", (note_id,))
+            result = cursor.fetchone()
+            if result is not None and result[0] is not None:
+                latest_same_note_scheduling_time = result[0]
+
+            if latest_same_note_scheduling_time is not None:
+                if latest_same_note_scheduling_time.tzinfo is None or latest_same_note_scheduling_time.tzinfo.utcoffset(latest_same_note_scheduling_time) is None:
+                    latest_same_note_scheduling_time = tz.localize(latest_same_note_scheduling_time)
+                else:
+                    latest_same_note_scheduling_time = latest_same_note_scheduling_time.astimezone(tz)
+
+            if latest_different_note_scheduled_time is None and latest_same_note_scheduling_time is None:
+                scheduled_at = latest_tweet_time + datetime.timedelta(hours=TWITTER_NOTE_SPACING)
+            elif latest_same_note_scheduling_time is not None:
+                scheduled_at = latest_same_note_scheduling_time + datetime.timedelta(seconds=1)
+            elif latest_different_note_scheduled_time is not None:
+                scheduled_at = latest_different_note_scheduled_time + datetime.timedelta(hours=TWITTER_NOTE_SPACING)
+
+            # Insert into spaced_tweets only if (a) there are scheduled tweets for the same note_id; or (b) there are no scheduled tweets for the same note_id but there are tweets posted with the last TWITTER_NOTE_SPACING hours:
+            hours_since_latest_tweet = (datetime.datetime.now(tz) - latest_tweet_time).total_seconds() / 3600
+            if ((datetime.datetime.now(tz) < scheduled_at and latest_different_note_scheduled_time is not None) or
+               (latest_different_note_scheduled_time is None and hours_since_latest_tweet < TWITTER_NOTE_SPACING)):
                 cursor.execute("INSERT INTO spaced_tweets (note_id, tweet, scheduled_at) VALUES (%s, %s, %s)", (note_id, paragraph, scheduled_at))
                 conn.commit()
                 print(colored(f"Paragraph {i} has been scheduled for a future tweet.", 'yellow'))
