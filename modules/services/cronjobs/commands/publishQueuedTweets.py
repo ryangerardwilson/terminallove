@@ -103,12 +103,12 @@ def publish_queued_tweets():
 
         response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
 
-        if response.status_code == 429 and i == 1:  # Rate limit exceeded
+        if response.status_code == 429:  # Rate limit exceeded
             error_message = f"Rate limit exceeded. Queued tweets for {note_id} have not been posted"
             print(error_message)
             rate_limit_hit = True
             error_logs.append(error_message)
-            continue  # Skip to the next tweet
+            break
 
         if response.status_code != 201:
             raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))

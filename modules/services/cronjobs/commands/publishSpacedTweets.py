@@ -32,7 +32,6 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
-
 def publish_spaced_tweets():
     # Create a new Cursor
     cursor = conn.cursor()
@@ -51,7 +50,7 @@ def publish_spaced_tweets():
     cursor.execute("SELECT id, tweet, note_id, scheduled_at FROM spaced_tweets WHERE scheduled_at <= %s ORDER BY note_id, id", (current_time,))
     spaced_tweets = cursor.fetchall()
 
-    # initialize previous_tweet_id to None and previous_note_id to None
+    # Initialize previous_tweet_id to None and previous_note_id to None
     previous_tweet_id = None
     previous_note_id = None
 
@@ -66,7 +65,7 @@ def publish_spaced_tweets():
 
         payload = {"text": tweet_text}
 
-        # add the previous tweet id to the payload if it's from the same note
+        # Add the previous tweet id to the payload if it's from the same note
         if previous_tweet_id is not None and note_id == previous_note_id:
             payload["reply"] = {"in_reply_to_tweet_id": previous_tweet_id}
 
@@ -82,13 +81,28 @@ def publish_spaced_tweets():
             error_logs.append(error_message)
             continue  # Skip to the next tweet
 
+        if rate_limit_hit:  # If rate limit has been hit for a previous tweet
+            # Insert tweet into 'queued_tweets' table
+            cursor.execute(
+                "INSERT INTO queued_tweets (tweet, tweet_failed_at, note_id) VALUES (%s, %s, %s)",
+                (tweet_text, datetime.datetime.now(tz), note_id)
+            )
+            conn.commit()
+
+            # If the tweet is queued, delete it from the spaced_tweets table
+            cursor.execute("DELETE FROM spaced_tweets WHERE id = %s", (tweet_id,))
+            conn.commit()
+
+            print(f"Queued and removed from spaced_tweets table: {tweet_text}")
+            continue  # Skip to the next tweet
+
         if response.status_code != 201:
             raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
 
         json_response = response.json()
 
         if 'data' in json_response:
-            # get the id of the tweet
+            # Get the id of the tweet
             tw_id = json_response['data']['id']
 
             # Insert into the 'tweets' table
@@ -98,10 +112,10 @@ def publish_spaced_tweets():
             )
             conn.commit()
 
-            # update previous_tweet_id
+            # Update previous_tweet_id
             previous_tweet_id = tw_id
 
-            # update previous_note_id
+            # Update previous_note_id
             previous_note_id = note_id
 
             # If the tweet is successfully posted, delete it from the spaced_tweets table
