@@ -59,6 +59,7 @@ def publish_queued_tweets():
     error_logs = []
 
     i = 0
+    note_id = 0
     for tweet in queued_tweets:
         i += 1
         tweet_id, tweet_text, note_id = tweet
