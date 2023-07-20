@@ -9,10 +9,20 @@ from dotenv import load_dotenv
 import plotext as plt
 import time
 import pytz
+from google.cloud import storage
+import urllib.parse
+import requests
+import json
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 load_dotenv(os.path.join(parent_dir, '.env'))
+
+OPEN_AI_API_KEY=os.getenv('OPEN_AI_API_KEY')
+
+NOTE_IMAGE_STORAGE_BUCKET_NAME=os.getenv('NOTE_IMAGE_STORAGE_BUCKET_NAME')
+GOOGLE_SERVICE_ACCOUNT_KEY=os.getenv('GOOGLE_SERVICE_ACCOUNT_KEY')
+path_to_service_account_file=os.path.join(parent_dir,'files/tokens/',GOOGLE_SERVICE_ACCOUNT_KEY)
 
 TIMEZONE=os.getenv('TIMEZONE')
 tz=pytz.timezone(TIMEZONE)
@@ -263,10 +273,126 @@ def fn_list_notes(called_function_arguments_dict):
 def fn_delete_notes_by_ids(called_function_arguments_dict):
     cursor = conn.cursor()
     ids_to_delete = called_function_arguments_dict.get('ids').split('_')
+
     for note_id in ids_to_delete:
+        # Get the media_url before deleting the note
+        cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
+        result = cursor.fetchone()
+
+        if result is not None:
+            media_url = result[0]
+
+            try:
+                # Split URL to get bucket name and blob name
+                url_path = urllib.parse.urlparse(media_url).path
+                split_path = url_path.split("/")
+                bucket_name = split_path[1]
+                blob_name = urllib.parse.unquote("/".join(split_path[2:]))
+
+                # Delete the note from the database
+                cursor.execute("DELETE FROM notes WHERE id = %s", (note_id,))
+
+                # Delete the file from Google Cloud Storage
+                storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
+                bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
+                blob = bucket.blob(blob_name)
+
+                blob.delete()
+            except:
+                print(f"(Media for note id {note_id} could not be deleted from storage bucket. Url is {media_url}")
+
         sql = "DELETE FROM notes WHERE id = %s"
         cursor.execute(sql, (note_id,))
+
     conn.commit()
     cursor.close()
     conn.close()
     print(colored(f"NOTES WITH IDS {ids_to_delete} DELETED", 'cyan'))
+
+def fn_add_or_update_media_to_notes_by_ids(called_function_arguments_dict):
+    cursor = conn.cursor()
+    ids_to_add_media_to = called_function_arguments_dict.get('ids').split('_')
+
+    for note_id in ids_to_add_media_to:
+        # Get the media_url before updating the note
+        cursor.execute("SELECT note, is_published, media_url FROM notes WHERE id = %s", (note_id,))
+        result = cursor.fetchone()
+
+        if result is not None:
+            note_text, is_published, old_media_url = result
+            if is_published == 1:
+                print(colored(f"Note id {note_id} not deleted. Please delete publications of note id {note_id} before adding/ updating media", 'red'))
+                continue
+            paragraphs = note_text.split("\n\n")
+            first_paragraph = paragraphs[0]
+
+            if old_media_url is not None:
+                try:
+                    # Delete old_media_url from cloud storage
+                    url_path = urllib.parse.urlparse(old_media_url).path
+                    split_path = url_path.split("/")
+                    bucket_name = split_path[1]
+                    blob_name = urllib.parse.unquote("/".join(split_path[2:]))
+
+                    # Delete the file from Google Cloud Storage
+                    storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
+                    bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
+                    blob = bucket.blob(blob_name)
+
+                    blob.delete()
+                except:
+                    print(f"Deletion of old media from cloud storage failed for note id {note_id}. Old media url is: {old_media_url}")
+
+            media_url = get_media_url_after_generating_image_and_uploading_to_cloud_storage(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {first_paragraph}", "512x512")
+            print()
+            print(colored(f"New media_url for note id {note_id} is: {media_url}", 'cyan'))
+            print()
+            # Update the media_url column of the row with new media_url
+            cursor.execute("UPDATE notes SET media_url = %s WHERE id = %s", (media_url, note_id))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print(colored(f"NOTES WITH IDS {ids_to_add_media_to} UPDATED", 'cyan'))
+
+
+def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, size):
+
+    url = "https://api.openai.com/v1/images/generations"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OPEN_AI_API_KEY}"
+    }
+    data = {
+        "prompt": prompt,
+        "n": 1,
+        "size": size
+    }
+
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+
+    # Return the response data as JSON
+    response_data = response.json()
+
+    open_ai_media_url = response_data['data'][0]['url']
+
+    # Download the image from the URL
+    downloaded_image = requests.get(open_ai_media_url)
+
+    if downloaded_image.status_code != 200:
+        raise Exception("Failed to download image from URL: {} {}".format(downloaded_image.status_code, downloaded_image.text))
+
+    image_content = downloaded_image.content
+
+    # Upload the media to Google Cloud Storage
+    storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
+    bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
+    blob = bucket.blob(f"{prompt}_{size}.jpg")
+    blob.upload_from_string(
+        image_content,
+        content_type='image/jpeg'
+    )
+    media_url = blob.public_url
+
+    return media_url
+

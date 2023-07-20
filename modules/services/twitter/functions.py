@@ -21,6 +21,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 load_dotenv(os.path.join(parent_dir, '.env'))
 
+OPEN_AI_API_KEY=os.getenv('OPEN_AI_API_KEY')
+
 TIMEZONE=os.getenv('TIMEZONE')
 tz=pytz.timezone(TIMEZONE)
 
@@ -386,27 +388,43 @@ def fn_delete_tweets_by_ids(called_function_arguments_dict):
     oauth = get_oauth_session()
 
     for table_id in ids_to_delete:
-        # Fetch the corresponding tweet_id from the database
-        select_cmd = "SELECT tweet_id FROM tweets WHERE id = %s"
+        # Fetch the corresponding tweet_id and note_id from the database
+        select_cmd = "SELECT tweet_id, note_id FROM tweets WHERE id = %s"
         cursor.execute(select_cmd, (table_id,))
         result = cursor.fetchone()
-
+    
         if result is None:
             print(colored(f"No tweet found with ID {table_id}", 'red'))
             continue
 
-        tweet_id = result[0]
+        tweet_id, note_id = result
+
+        # Check if note_id is not null and there is a corresponding row in the notes table
+        if note_id is not None:
+            cursor.execute("SELECT 1 FROM notes WHERE id = %s", (note_id,))
+            note_exists = cursor.fetchone() is not None
+            if not note_exists:
+                print(colored(f"No corresponding note found for tweet with ID {table_id}", 'red'))
+                continue
+        else:
+            print(colored(f"No corresponding note ID found for tweet with ID {table_id}", 'red'))
+            continue
 
         # Delete the tweet on Twitter
         url = f"https://api.twitter.com/2/tweets/:{tweet_id}"
         time.sleep(1)
         response = oauth.delete("https://api.twitter.com/2/tweets/{}".format(tweet_id))
-
+    
         # Check for a successful response
         if response.status_code == 200:
             # If the deletion was successful on Twitter, delete the record from the tweets table
             sql = "DELETE FROM tweets WHERE id = %s"
             cursor.execute(sql, (table_id,))
+
+            # Set is_published to false for the corresponding note in the notes table
+            update_note_cmd = "UPDATE notes SET is_published = false WHERE id = %s"
+            cursor.execute(update_note_cmd, (note_id,))
+            
             deleted_ids.append(table_id)  # adding the id to the deleted_ids list
         else:
             print(colored(f"FAILED TO DELETE TWEET WITH ID {table_id}", 'red'))
@@ -434,6 +452,8 @@ def fn_delete_tweets_by_note_ids(called_function_arguments_dict):
             print(colored(f"No tweets found for note ID {note_id}", 'red'))
             continue
 
+        all_tweets_deleted = True  # flag to check if all tweets for a note have been successfully deleted
+
         for result in results:
             table_id, tweet_id = result
             time.sleep(1)
@@ -449,16 +469,21 @@ def fn_delete_tweets_by_note_ids(called_function_arguments_dict):
             else:
                 print(colored(f"FAILED TO DELETE TWEET WITH ID {tweet_id} FOR NOTE ID {note_id}", 'red'))
                 print(response.text)
+                all_tweets_deleted = False
 
-        # if all tweets for a note have been successfully deleted, add the note id to the deleted_note_ids list
-        deleted_note_ids.append(note_id)
+        if all_tweets_deleted:
+            # If all tweets for a note have been successfully deleted, set the note's is_published to 0
+            update_note_cmd = "UPDATE notes SET is_published = 0 WHERE id = %s"
+            cursor.execute(update_note_cmd, (note_id,))
+
+            # add the note id to the deleted_note_ids list
+            deleted_note_ids.append(note_id)
 
     conn.commit()
     cursor.close()
     conn.close()
 
     print(colored(f"TWEETS FOR NOTE IDS {deleted_note_ids} SUCCESSFULLY DELETED", 'cyan'))
-
 
 def fn_delete_queued_tweets_by_ids(called_function_arguments_dict):
     cursor = conn.cursor()
@@ -626,8 +651,6 @@ def get_oauth_session():
 def get_media_id_after_generating_image_and_uploading_to_twitter(prompt, size, media_url: str = None):
 
     if media_url is None:
-        # Assuming you've set OPENAI_API_KEY as an environment variable
-        OPEN_AI_API_KEY = os.getenv("OPEN_AI_API_KEY")
 
         url = "https://api.openai.com/v1/images/generations"
         headers = {
@@ -656,7 +679,7 @@ def get_media_id_after_generating_image_and_uploading_to_twitter(prompt, size, m
     image_content = downloaded_image.content
 
     # Upload the media to Google Cloud Storage
-    storage_client = storage.Client.from_service_account_json(path_to_your_service_account_file)
+    storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
     bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
     blob = bucket.blob(f"{prompt}_{size}.jpg")
     blob.upload_from_string(

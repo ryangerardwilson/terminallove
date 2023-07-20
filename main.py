@@ -192,6 +192,7 @@ async def main(
                 delete_local_note_cache,
                 list_notes,
                 delete_notes_by_ids,
+                add_or_update_media_to_notes_by_ids,
             ]
 
         if preliminary_classification_function_info['function_name'] == 'invoke_twitter_module':
@@ -289,6 +290,7 @@ async def main(
                 'delete_queued_tweets_by_note_ids': fn_delete_queued_tweets_by_note_ids,
                 'delete_spaced_tweets_by_ids': fn_delete_spaced_tweets_by_ids,
                 'delete_spaced_tweets_by_note_ids': fn_delete_spaced_tweets_by_note_ids,
+                'add_or_update_media_to_notes_by_ids': fn_add_or_update_media_to_notes_by_ids,
                 'list_cronjob_logs': fn_list_cronjob_logs,
             }
 

@@ -105,6 +105,21 @@ delete_notes_by_ids = {
     }
 }
 
+add_or_update_media_to_notes_by_ids = {
+    "name": "add_or_update_media_to_notes_by_ids",
+    "description": "Adds/updates/replaces media to notes by their ids",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "ids": {
+                "type": "string",
+                "description": "The ids to be deleted separated by camel case. For instance ids 4 and 5 would be 4_5"
+            },
+        },
+        "required": ["ids"]
+    }
+}
+
 list_notes = {
     "name": "list_notes",
     "description": "Lists the user's notes",
