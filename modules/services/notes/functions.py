@@ -150,6 +150,7 @@ def fn_save_and_close_notes():
             file_path = os.path.join(dir_path, filename)
             with open(file_path, 'r') as fp:
                 note_content = fp.read()
+                print(note_content)
 
             # Get the modified time of the file
             mod_time = os.path.getmtime(file_path)
@@ -166,19 +167,27 @@ def fn_save_and_close_notes():
             db_updated_at, = cursor.fetchone()  # Unpack the tuple here
 
             # Only perform the update if the file's modified time is newer than the db_updated_at time
-            db_updated_at = db_updated_at.replace(tzinfo=pytz.UTC).astimezone(tz)
-            if mod_time > db_updated_at.replace(tzinfo=pytz.UTC).astimezone(tz):
-                update_cmd = (
-                    "UPDATE notes SET note = %s, updated_at = %s WHERE id = %s"
-                )
-                updated_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
-                cursor.execute(update_cmd, (note_content, updated_at, note_id))
+            print('mod_time', mod_time)
+            print('db_updated_at', db_updated_at)
+            mod_time = mod_time.replace(tzinfo=None)
+
+            media_url = None
+            if mod_time > db_updated_at:
+
+                try:
+                    update_cmd = (
+                         "UPDATE notes SET note = %s, updated_at = %s, media_url = %s WHERE id = %s"
+                        )
+                    updated_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+                    cursor.execute(update_cmd, (note_content, updated_at, media_url, note_id))
+                    conn.commit() # Move this inside the loop
+                except Exception as e:
+                    print(f"Error updating note: {e}")
 
             os.remove(file_path)
             print(colored(f"Synced and closed note at: {file_path}",'cyan'))
             is_any_file_saved = True
 
-    conn.commit()
     cursor.close()
 
     if is_any_file_saved:

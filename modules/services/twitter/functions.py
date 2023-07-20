@@ -43,7 +43,7 @@ def fn_list_tweets(called_function_arguments_dict):
     if limit < 10:
         limit = 10
 
-    query = "SELECT * FROM tweets ORDER BY posted_at DESC LIMIT %s"
+    query = "SELECT * FROM tweets ORDER BY id DESC LIMIT %s"
     cursor.execute(query, (limit,))
 
     # Fetch all columns
@@ -66,6 +66,12 @@ def fn_list_tweets(called_function_arguments_dict):
     # Truncate note column to 300 characters and add "...." if it exceeds that limit
     if 'tweet' in df.columns:
         df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
+
+    # Convert posted_at to IST
+    if 'posted_at' in df.columns:
+        ist = pytz.timezone('Asia/Kolkata')
+        df['posted_at'] = df['posted_at'].apply(lambda x: x.replace(tzinfo=pytz.utc).astimezone(ist))
+
 
     # Close the cursor but keep the connection open if it's needed elsewhere
     cursor.close()
@@ -104,6 +110,12 @@ def fn_list_queued_tweets(called_function_arguments_dict):
     # Truncate note column to 30 characters and add "...." if it exceeds that limit
     if 'tweet' in df.columns:
         df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
+
+    # Convert executed_at to IST
+    if 'tweet_failed_at' in df.columns:
+        ist = pytz.timezone('Asia/Kolkata')
+        df['tweet_failed_at'] = df['tweet_failed_at'].apply(lambda x: x.replace(tzinfo=pytz.utc).astimezone(ist))
+
 
     # Close the cursor but keep the connection open if it's needed elsewhere
     cursor.close()
