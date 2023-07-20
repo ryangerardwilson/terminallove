@@ -46,7 +46,7 @@ def fn_list_cronjob_logs(called_function_arguments_dict):
     cursor = conn.cursor()
     limit = int(called_function_arguments_dict.get('limit', 10))
 
-    query = "SELECT * FROM cronjob_logs ORDER BY executed_at DESC LIMIT %s"
+    query = "SELECT * FROM cronjob_logs ORDER BY id DESC LIMIT %s"
     cursor.execute(query, (limit,))
 
     # Fetch all columns
