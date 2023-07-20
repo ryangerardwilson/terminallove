@@ -163,6 +163,11 @@ def fn_tweet_out_note(called_function_arguments_dict):
     media_id = None
 
     if note_id != 0:
+        select_cmd = ("SELECT note, media_url FROM notes WHERE id = %s")
+        cursor.execute(select_cmd, (note_id,))
+        note_result = cursor.fetchone()
+        note_text, media_url = note_result
+
         select_cmd = ("SELECT note FROM notes WHERE id = %s")
         cursor.execute(select_cmd, (note_id,))
         note_text = cursor.fetchone()
@@ -248,16 +253,19 @@ def fn_tweet_out_note(called_function_arguments_dict):
                     latest_different_note_scheduled_time = latest_different_note_scheduled_time.astimezone(tz)
             
             if i == 1:
-                media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "512x512")
+                media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "512x512", media_url)
 
                 # Access the image URL and media ID
-                media_url = media_info["image_url"]
+                media_url = media_info["media_url"]
                 media_id = media_info["media_id"]
                 payload["media"] = {"media_ids": [media_id]}
 
                 update_cmd = ("UPDATE notes SET media_url = %s WHERE id = %s")
                 cursor.execute(update_cmd, (media_url, note_id))
                 conn.commit()
+            else:
+                media_url = None
+                media_id = None
 
             latest_time = max(filter(None, [datetime.datetime.now(tz), latest_tweet_time, latest_different_note_scheduled_time]))
             latest_same_note_scheduling_time = None
@@ -600,30 +608,32 @@ def get_oauth_session():
 
     return oauth
 
-def get_media_id_after_generating_image_and_uploading_to_twitter(prompt, size):
-    # Assuming you've set OPENAI_API_KEY as an environment variable
-    OPEN_AI_API_KEY = os.getenv("OPEN_AI_API_KEY")
+def get_media_id_after_generating_image_and_uploading_to_twitter(prompt, size, media_url: str = None):
 
-    url = "https://api.openai.com/v1/images/generations"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {OPEN_AI_API_KEY}"
-    }
-    data = {
-        "prompt": prompt,
-        "n": 1,
-        "size": size
-    }
+    if media_url is None:
+        # Assuming you've set OPENAI_API_KEY as an environment variable
+        OPEN_AI_API_KEY = os.getenv("OPEN_AI_API_KEY")
 
-    response = requests.post(url, headers=headers, data=json.dumps(data))
+        url = "https://api.openai.com/v1/images/generations"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPEN_AI_API_KEY}"
+        }
+        data = {
+            "prompt": prompt,
+            "n": 1,
+            "size": size
+        }
 
-    # Return the response data as JSON
-    response_data = response.json()
+        response = requests.post(url, headers=headers, data=json.dumps(data))
 
-    image_url = response_data['data'][0]['url']
+        # Return the response data as JSON
+        response_data = response.json()
+
+        media_url = response_data['data'][0]['url']
 
     # Download the image from the URL
-    downloaded_image = requests.get(image_url)
+    downloaded_image = requests.get(media_url)
 
     if downloaded_image.status_code != 200:
         raise Exception("Failed to download image from URL: {} {}".format(downloaded_image.status_code, downloaded_image.text))
@@ -641,7 +651,7 @@ def get_media_id_after_generating_image_and_uploading_to_twitter(prompt, size):
         json_image_upload_response = image_upload_response.json()
         print(json_image_upload_response)
         media_id = json_image_upload_response["media_id_string"]
-        return {"image_url": image_url, "media_id": media_id}
+        return {"media_url": media_url, "media_id": media_id}
     else:
         print(colored('Image upload to twitter failed','red'))
 

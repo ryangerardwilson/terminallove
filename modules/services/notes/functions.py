@@ -237,6 +237,10 @@ def fn_list_notes(called_function_arguments_dict):
     if 'note' in df.columns:
         df['note'] = df['note'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
 
+    # Truncate media_url column to 30 characters and add "...." if it exceeds that limit
+    if 'media_url' in df.columns:
+        df['media_url'] = df['media_url'].apply(lambda x: (x[:30] + '....') if x and len(x) > 30 else x)
+
     # Close the cursor but keep the connection open if it's needed elsewhere
     cursor.close()
 
