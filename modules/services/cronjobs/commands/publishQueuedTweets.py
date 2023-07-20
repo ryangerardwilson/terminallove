@@ -48,7 +48,7 @@ def publish_queued_tweets():
     conn.commit()
 
     # Select all queued tweets, ordered by note_id and id
-    cursor.execute("SELECT id, tweet, note_id FROM queued_tweets ORDER BY note_id, id")
+    cursor.execute("SELECT id, tweet, note_id, media_id FROM queued_tweets ORDER BY note_id, id")
     queued_tweets = cursor.fetchall()
 
     # initialize previous_tweet_id to None and previous_note_id to None
@@ -62,9 +62,12 @@ def publish_queued_tweets():
     note_id = 0
     for tweet in queued_tweets:
         i += 1
-        tweet_id, tweet_text, note_id = tweet
+        tweet_id, tweet_text, note_id, media_id = tweet
 
-        payload = {"text": tweet_text}
+        if media_id is not None:
+            payload = {"text": tweet_text, "media": {"media_ids": [media_id]}}
+        else:
+            payload = {"text": tweet_text}
 
         # check if any tweet has been posted in the last TWITTER_NOTE_SPACING  hours for the same note_id
         cursor.execute(
@@ -76,8 +79,8 @@ def publish_queued_tweets():
         if last_tweet is not None:  # If a tweet from the same note_id was posted in the last TWITTER_NOTE_SPACING hours
             # Add the tweet to the 'spaced_tweets' table with a scheduled_at value 72 hours after the last tweet
             cursor.execute(
-                "INSERT INTO spaced_tweets (tweet, scheduled_at, note_id) VALUES (%s, %s, %s)",
-                (tweet_text, last_tweet[0] + datetime.timedelta(hours=TWITTER_NOTE_SPACING), note_id)
+                "INSERT INTO spaced_tweets (tweet, scheduled_at, note_id, media_id) VALUES (%s, %s, %s, %s)",
+                (tweet_text, last_tweet[0] + datetime.timedelta(hours=TWITTER_NOTE_SPACING), note_id, media_id)
             )
             conn.commit()
 
@@ -122,8 +125,8 @@ def publish_queued_tweets():
 
             # Insert into the 'tweets' table
             cursor.execute(
-                "INSERT INTO tweets (tweet, tweet_id, note_id) VALUES (%s, %s, %s)",
-                (tweet_text, tw_id, note_id)
+                "INSERT INTO tweets (tweet, tweet_id, note_id, media_id) VALUES (%s, %s, %s, %s)",
+                (tweet_text, tw_id, note_id, media_id)
             )
             conn.commit()
 

@@ -166,7 +166,8 @@ def fn_save_and_close_notes():
             db_updated_at, = cursor.fetchone()  # Unpack the tuple here
 
             # Only perform the update if the file's modified time is newer than the db_updated_at time
-            if mod_time > db_updated_at:
+            db_updated_at = db_updated_at.replace(tzinfo=pytz.UTC).astimezone(tz)
+            if mod_time > db_updated_at.replace(tzinfo=pytz.UTC).astimezone(tz):
                 update_cmd = (
                     "UPDATE notes SET note = %s, updated_at = %s WHERE id = %s"
                 )

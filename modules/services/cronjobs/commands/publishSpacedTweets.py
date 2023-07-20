@@ -47,7 +47,7 @@ def publish_spaced_tweets():
     conn.commit()
 
     current_time = datetime.datetime.now(tz)
-    cursor.execute("SELECT id, tweet, note_id, scheduled_at FROM spaced_tweets WHERE scheduled_at <= %s ORDER BY note_id, id", (current_time,))
+    cursor.execute("SELECT id, tweet, note_id, scheduled_at, media_id FROM spaced_tweets WHERE scheduled_at <= %s ORDER BY note_id, id", (current_time,))
     spaced_tweets = cursor.fetchall()
 
     # Initialize previous_tweet_id to None and previous_note_id to None
@@ -61,9 +61,12 @@ def publish_spaced_tweets():
     note_id = 0
     for tweet in spaced_tweets:
         i += 1
-        tweet_id, tweet_text, note_id, scheduled_at = tweet
+        tweet_id, tweet_text, note_id, scheduled_at, media_id = tweet
 
-        payload = {"text": tweet_text}
+        if media_id is not None:
+            payload = {"text": tweet_text, "media": {"media_ids": [media_id]}}
+        else:
+            payload = {"text": tweet_text}
 
         # Add the previous tweet id to the payload if it's from the same note
         if previous_tweet_id is not None and note_id == previous_note_id:
@@ -84,8 +87,8 @@ def publish_spaced_tweets():
         if rate_limit_hit:  # If rate limit has been hit for a previous tweet
             # Insert tweet into 'queued_tweets' table
             cursor.execute(
-                "INSERT INTO queued_tweets (tweet, tweet_failed_at, note_id) VALUES (%s, %s, %s)",
-                (tweet_text, datetime.datetime.now(tz), note_id)
+                "INSERT INTO queued_tweets (tweet, tweet_failed_at, note_id, media_id) VALUES (%s, %s, %s, %s)",
+                (tweet_text, datetime.datetime.now(tz), note_id, media_id)
             )
             conn.commit()
 
@@ -107,8 +110,8 @@ def publish_spaced_tweets():
 
             # Insert into the 'tweets' table
             cursor.execute(
-                "INSERT INTO tweets (tweet, tweet_id, note_id) VALUES (%s, %s, %s)",
-                (tweet_text, tw_id, note_id)
+                "INSERT INTO tweets (tweet, tweet_id, note_id, media_id) VALUES (%s, %s, %s, %s)",
+                (tweet_text, tw_id, note_id, media_id)
             )
             conn.commit()
 

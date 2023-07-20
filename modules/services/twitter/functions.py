@@ -10,8 +10,10 @@ import plotext as plt
 import time
 from requests_oauthlib import OAuth1Session
 import json
+import requests
 import pytz
 from pytz import timezone
+import base64
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -157,6 +159,8 @@ def fn_tweet_out_note(called_function_arguments_dict):
     note_id = int(called_function_arguments_dict.get('id', 0))
 
     inserted_tweets = []
+    media_url = None
+    media_id = None
 
     if note_id != 0:
         select_cmd = ("SELECT note FROM notes WHERE id = %s")
@@ -242,7 +246,18 @@ def fn_tweet_out_note(called_function_arguments_dict):
                     latest_different_note_scheduled_time = tz.localize(latest_different_note_scheduled_time)
                 else:
                     latest_different_note_scheduled_time = latest_different_note_scheduled_time.astimezone(tz)
+            
+            if i == 1:
+                media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "512x512")
 
+                # Access the image URL and media ID
+                media_url = media_info["image_url"]
+                media_id = media_info["media_id"]
+                payload["media"] = {"media_ids": [media_id]}
+
+                update_cmd = ("UPDATE notes SET media_url = %s WHERE id = %s")
+                cursor.execute(update_cmd, (media_url, note_id))
+                conn.commit()
 
             latest_time = max(filter(None, [datetime.datetime.now(tz), latest_tweet_time, latest_different_note_scheduled_time]))
             latest_same_note_scheduling_time = None
@@ -268,7 +283,7 @@ def fn_tweet_out_note(called_function_arguments_dict):
             hours_since_latest_tweet = (datetime.datetime.now(tz) - latest_tweet_time).total_seconds() / 3600
             if ((datetime.datetime.now(tz) < scheduled_at and latest_different_note_scheduled_time is not None) or
                (latest_different_note_scheduled_time is None and hours_since_latest_tweet < TWITTER_NOTE_SPACING)):
-                cursor.execute("INSERT INTO spaced_tweets (note_id, tweet, scheduled_at) VALUES (%s, %s, %s)", (note_id, paragraph, scheduled_at))
+                cursor.execute("INSERT INTO spaced_tweets (note_id, tweet, scheduled_at, media_id) VALUES (%s, %s, %s, %s)", (note_id, paragraph, scheduled_at, media_id))
                 conn.commit()
                 print(colored(f"Paragraph {i} has been scheduled for a future tweet.", 'yellow'))
                 continue
@@ -277,8 +292,8 @@ def fn_tweet_out_note(called_function_arguments_dict):
                 if response.status_code == 429:  # Rate limit exceeded
                     print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow'))
                     tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
-                    queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
-                    cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
+                    queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at, media_id) VALUES (%s, %s, %s, %s)")
+                    cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at, media_id))
                     conn.commit()
                     rate_limit_hit = True
                     continue
@@ -292,8 +307,8 @@ def fn_tweet_out_note(called_function_arguments_dict):
                     tweet_id = json_response['data']['id']
                     previous_tweet_id = tweet_id
                     posted_at = datetime.datetime.now(tz)
-                    insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id) VALUES (%s, %s, %s, %s)")
-                    cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id))
+                    insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id, media_id) VALUES (%s, %s, %s, %s, %s)")
+                    cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id, media_id))
                     conn.commit()
 
                     inserted_tweets.append({
@@ -301,12 +316,13 @@ def fn_tweet_out_note(called_function_arguments_dict):
                         'tweet_id': tweet_id,
                         'posted_at': posted_at,
                         'note_id': note_id,
+                        'media_id':media_id,
                     })
 
         if inserted_tweets: 
             # Mark the note as published after all its paragraphs have been successfully tweeted
-            update_cmd = ("UPDATE notes SET is_published = 1 WHERE id = %s")
-            cursor.execute(update_cmd, (note_id,))
+            update_cmd = ("UPDATE notes SET is_published = 1, media_url = %s WHERE id = %s")
+            cursor.execute(update_cmd, (media_url, note_id,))
             conn.commit() 
             df = pd.DataFrame(inserted_tweets)
             df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
@@ -583,4 +599,51 @@ def get_oauth_session():
         )
 
     return oauth
+
+def get_media_id_after_generating_image_and_uploading_to_twitter(prompt, size):
+    # Assuming you've set OPENAI_API_KEY as an environment variable
+    OPEN_AI_API_KEY = os.getenv("OPEN_AI_API_KEY")
+
+    url = "https://api.openai.com/v1/images/generations"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OPEN_AI_API_KEY}"
+    }
+    data = {
+        "prompt": prompt,
+        "n": 1,
+        "size": size
+    }
+
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+
+    # Return the response data as JSON
+    response_data = response.json()
+
+    image_url = response_data['data'][0]['url']
+
+    # Download the image from the URL
+    downloaded_image = requests.get(image_url)
+
+    if downloaded_image.status_code != 200:
+        raise Exception("Failed to download image from URL: {} {}".format(downloaded_image.status_code, downloaded_image.text))
+
+    image_content = downloaded_image.content
+    base64_image_content = base64.b64encode(image_content).decode('utf-8')
+
+    # Upload the media to Twitter
+    media_upload_url = "https://upload.twitter.com/1.1/media/upload.json"
+
+    oauth = get_oauth_session()
+    image_upload_response = oauth.post(media_upload_url, data={"media_data": base64_image_content})
+
+    if image_upload_response.status_code == 200:
+        json_image_upload_response = image_upload_response.json()
+        print(json_image_upload_response)
+        media_id = json_image_upload_response["media_id_string"]
+        return {"image_url": image_url, "media_id": media_id}
+    else:
+        print(colored('Image upload to twitter failed','red'))
+
+
 
