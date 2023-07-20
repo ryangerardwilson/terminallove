@@ -5,14 +5,6 @@ import argparse
 
 from modules.botHelpers import *
 
-from modules.services.finance.functions import *
-from modules.services.time.functions import *
-from modules.services.goals.functions import *
-from modules.services.runs.functions import *
-from modules.services.twitter.functions import *
-from modules.services.notes.functions import *
-from modules.services.cronjobs.functions import *
-
 from modules.services.finance.params import *
 from modules.services.time.params import *
 from modules.services.goals.params import *
@@ -20,10 +12,19 @@ from modules.services.runs.params import *
 from modules.services.twitter.params import *
 from modules.services.notes.params import *
 from modules.services.cronjobs.params import *
+from modules.services.blogposts.params import *
+
+
+from modules.services.finance.functions import *
+from modules.services.time.functions import *
+from modules.services.goals.functions import *
+from modules.services.runs.functions import *
+from modules.services.twitter.functions import *
+from modules.services.notes.functions import *
+from modules.services.cronjobs.functions import *
+from modules.services.blogposts.functions import *
 
 from modules.services.nonAiHelpers.utilities.functions import *
-
-
 
 async def main(
         user_message: str,
@@ -50,13 +51,14 @@ async def main(
     api_key = os.getenv('OPEN_AI_API_KEY')
     gpt_model = os.getenv('GPT_MODEL')
     preliminary_classification_functions = [
+        invoke_cronjobs_module,
         invoke_finance_module,
         invoke_goals_module,
         invoke_runs_module,
         invoke_time_module,
         invoke_notes_module,
         invoke_twitter_module,
-        invoke_cronjobs_module,
+        invoke_blogposts_module,
     ]
 
     # Define the URL
@@ -207,6 +209,15 @@ async def main(
                 delete_spaced_tweets_by_ids,
                 delete_spaced_tweets_by_note_ids,
  
+            ]
+
+        if preliminary_classification_function_info['function_name'] == 'invoke_blogposts_module':
+            print('YOYOYO')
+            functions = [
+                list_blogposts,
+                post_note_to_blog,
+                edit_blogpost,
+                delete_blogposts_by_ids,
             ]
 
         classification_data = {

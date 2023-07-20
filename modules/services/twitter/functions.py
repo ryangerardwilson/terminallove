@@ -14,6 +14,8 @@ import requests
 import pytz
 from pytz import timezone
 import base64
+from google.cloud import storage
+
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -22,6 +24,11 @@ load_dotenv(os.path.join(parent_dir, '.env'))
 TIMEZONE=os.getenv('TIMEZONE')
 tz=pytz.timezone(TIMEZONE)
 
+NOTE_IMAGE_STORAGE_BUCKET_NAME=os.getenv('NOTE_IMAGE_STORAGE_BUCKET_NAME')
+GOOGLE_SERVICE_ACCOUNT_KEY=os.getenv('GOOGLE_SERVICE_ACCOUNT_KEY')
+path_to_service_account_file=os.path.join(parent_dir,'files/tokens/',GOOGLE_SERVICE_ACCOUNT_KEY)
+
+TWITTER_AUTHENTICATION_KEY=os.getenv('TWITTER_AUTHENTICATION_KEY')
 TWITTER_NOTE_SPACING=int(os.getenv('TWITTER_NOTE_SPACING'))
 TWITTER_CONSUMER_KEY=os.getenv('TWITTER_CONSUMER_KEY')
 TWITTER_CONSUMER_SECRET=os.getenv('TWITTER_CONSUMER_SECRET')
@@ -560,10 +567,6 @@ def fn_delete_spaced_tweets_by_note_ids(called_function_arguments_dict):
     print(colored(f"SPACED TWEETS FOR NOTE IDS {deleted_note_ids} SUCCESSFULLY DELETED", 'cyan'))
 
 def get_oauth_session():
-    TWITTER_CONSUMER_KEY=os.getenv('TWITTER_CONSUMER_KEY')
-    TWITTER_CONSUMER_SECRET=os.getenv('TWITTER_CONSUMER_SECRET')
-    TWITTER_ACCESS_TOKEN=os.getenv('TWITTER_ACCESS_TOKEN')
-    TWITTER_ACCESS_TOKEN_SECRET=os.getenv('TWITTER_ACCESS_TOKEN_SECRET')
 
     oauth = OAuth1Session(
         TWITTER_CONSUMER_KEY,
@@ -575,7 +578,7 @@ def get_oauth_session():
     response = oauth.post("https://api.twitter.com/2/tweets")
     if response.status_code != 201:
         # Load existing tokens from file, if available
-        tokens_file = f"{parent_dir}/files/tokens/rgw-tokens.json"
+        tokens_file = f"{parent_dir}/files/tokens/{TWITTER_AUTHENTICATION_KEY}"
         try:
             with open(tokens_file, 'r') as f:
                 tokens = json.load(f)
@@ -651,6 +654,18 @@ def get_media_id_after_generating_image_and_uploading_to_twitter(prompt, size, m
         raise Exception("Failed to download image from URL: {} {}".format(downloaded_image.status_code, downloaded_image.text))
 
     image_content = downloaded_image.content
+
+    # Upload the media to Google Cloud Storage
+    storage_client = storage.Client.from_service_account_json(path_to_your_service_account_file)
+    bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
+    blob = bucket.blob(f"{prompt}_{size}.jpg")
+    blob.upload_from_string(
+        image_content,
+        content_type='image/jpeg'
+    )
+    print(f"Image uploaded to {blob.public_url}")
+    media_url = blob.public_url
+
     base64_image_content = base64.b64encode(image_content).decode('utf-8')
 
     # Upload the media to Twitter

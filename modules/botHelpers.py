@@ -435,5 +435,20 @@ invoke_cronjobs_module = {
     }
 }
 
+invoke_blogposts_module = {
+    "name": "invoke_blogposts_module",
+    "description": "Invokes a library of functions that manage the user's blogposts",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "connection": {
+                "type": "string",
+                "enum": ["Blogposts module invoked"]
+            },
+        },
+        "required": []
+    }
+}
+
 
 
