@@ -1,16 +1,24 @@
 import calendar
 import datetime
-now = datetime.datetime.now()
+import os
+import pytz
+from dotenv import load_dotenv
+
+parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+load_dotenv(os.path.join(parent_dir, '.env'))
+
+TIMEZONE=os.getenv('TIMEZONE')
+tz=pytz.timezone(TIMEZONE)
+
+now = datetime.datetime.now(tz)
 weekday_num = now.weekday()
 days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 day = days_of_week[weekday_num]
 today = now.strftime('%Y-%m-%d %H:%M:%S')
 days_in_current_month = calendar.monthrange(now.year, now.month)[1]
 days_left_in_current_month = days_in_current_month - now.day
-last_day_of_current_year = datetime.datetime(now.year, 12, 31)
+last_day_of_current_year = datetime.datetime(now.year, 12, 31, tzinfo=tz)
 days_left_in_current_year = (last_day_of_current_year - now).days
-
-
 
 add_goal = {
   "name": "add_goal",

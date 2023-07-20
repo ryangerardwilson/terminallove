@@ -10,11 +10,14 @@ import plotext as plt
 import time
 from requests_oauthlib import OAuth1Session
 import json
+import pytz
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 load_dotenv(os.path.join(parent_dir, '.env'))
 
+TIMEZONE=os.getenv('TIMEZONE')
+tz=pytz.timezone(TIMEZONE)
 
 TWITTER_NOTE_SPACING=int(os.getenv('TWITTER_NOTE_SPACING'))
 TWITTER_CONSUMER_KEY=os.getenv('TWITTER_CONSUMER_KEY')
@@ -37,7 +40,7 @@ def publish_queued_tweets():
     # Log the start of the job
     cursor.execute(
         "INSERT INTO cronjob_logs (job_description, executed_at, error_logs) VALUES (%s, %s, %s)",
-        ("Executing publishQueuedTweets.py", datetime.datetime.now(), json.dumps([]))
+        ("Executing publishQueuedTweets.py", datetime.datetime.now(tz), json.dumps([]))
     )
 
     # Remember the ID of the log entry
@@ -65,7 +68,7 @@ def publish_queued_tweets():
         # check if any tweet has been posted in the last TWITTER_NOTE_SPACING  hours for the same note_id
         cursor.execute(
             "SELECT posted_at FROM tweets WHERE note_id = %s AND posted_at > %s ORDER BY posted_at DESC LIMIT 1",
-            (note_id, datetime.datetime.Inow() - datetime.timedelta(hours=TWITTER_NOTE_SPACING))
+            (note_id, datetime.datetime.now(tz) - datetime.timedelta(hours=TWITTER_NOTE_SPACING))
         )
         last_tweet = cursor.fetchone()
 

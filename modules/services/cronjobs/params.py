@@ -1,6 +1,16 @@
 import calendar
 import datetime
-now = datetime.datetime.now()
+import os
+import pytz
+from dotenv import load_dotenv
+
+parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+load_dotenv(os.path.join(parent_dir, '.env'))
+
+TIMEZONE=os.getenv('TIMEZONE')
+tz=pytz.timezone(TIMEZONE)
+
+now = datetime.datetime.now(tz)
 today = now.strftime('%Y-%m-%d %H:%M:%S')
 
 list_cronjobs = {

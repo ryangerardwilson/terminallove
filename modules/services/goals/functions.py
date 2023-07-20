@@ -6,9 +6,13 @@ import os
 from tabulate import tabulate
 from dotenv import load_dotenv
 import plotext as plt
+import pytz
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 load_dotenv(os.path.join(parent_dir, '.env'))
+
+TIMEZONE=os.getenv('TIMEZONE')
+tz=pytz.timezone(TIMEZONE)
 
 conn = mysql.connector.connect(
     user=os.getenv('DB_USER'),
@@ -22,7 +26,7 @@ def fn_add_goal(called_function_arguments_dict):
     cursor = conn.cursor()
 
     # Set default values
-    default_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
 
     # If "date" is not in called_function_arguments_dict, set it to the default
     name = called_function_arguments_dict.get('name')
@@ -283,7 +287,7 @@ def fn_add_action(called_function_arguments_dict):
     # Get the values from the dictionary
     goal_id = called_function_arguments_dict.get('goal_id')
     action = called_function_arguments_dict.get('action')
-    default_deadline = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_deadline = datetime.datetime.now(tz).strftime('%Y-%m-%d')
     deadline = called_function_arguments_dict.get('deadline', default_deadline)
 
     # Check if goal_id and reason are provided
@@ -458,11 +462,11 @@ def fn_add_timesheet_logs(called_function_arguments_dict):
     # Convert each id string into an integer
     action_ids = [int(action_id_str) for action_id_str in action_id_strs]
 
-    default_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
     date = called_function_arguments_dict.get('date', default_date)
 
     # Calculate the date 3 days ago
-    three_days_ago = (datetime.datetime.now() - datetime.timedelta(days=3)).strftime('%Y-%m-%d')
+    three_days_ago = (datetime.datetime.now(tz) - datetime.timedelta(days=3)).strftime('%Y-%m-%d')
 
     sql = "INSERT INTO timesheets (action_id, date) VALUES (%s, %s)"
 
@@ -568,11 +572,11 @@ def fn_list_timesheet_logs(called_function_arguments_dict):
     cursor = conn.cursor()
 
     # Get current date
-    default_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
     date = called_function_arguments_dict.get('date', default_date)
 
     # Calculate the date 3 days ago
-    three_days_ago = (datetime.datetime.now() - datetime.timedelta(days=3)).strftime('%Y-%m-%d')
+    three_days_ago = (datetime.datetime.now(tz) - datetime.timedelta(days=3)).strftime('%Y-%m-%d')
 
     # Query the actions that have been logged today
     cursor.execute(
@@ -634,7 +638,7 @@ def fn_delete_timesheet_logs(called_function_arguments_dict):
 
     cursor = conn.cursor()
     action_ids_str = called_function_arguments_dict.get('action_ids', '')
-    three_days_ago = (datetime.datetime.now() - datetime.timedelta(days=3)).strftime('%Y-%m-%d')
+    three_days_ago = (datetime.datetime.now(tz) - datetime.timedelta(days=3)).strftime('%Y-%m-%d')
 
     # If ids are not provided, raise an error
     if not action_ids_str:
@@ -646,7 +650,7 @@ def fn_delete_timesheet_logs(called_function_arguments_dict):
     # Convert each id string into an integer
     action_ids = [int(action_id_str) for action_id_str in action_id_strs]
 
-    default_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
     date = called_function_arguments_dict.get('date', default_date)
 
     sql = "DELETE FROM timesheets WHERE action_id = %s AND date = %s"
@@ -735,8 +739,8 @@ def fn_display_timesheets_line_chart(called_function_arguments_dict):
 
     is_cumulative = called_function_arguments_dict.get('is_cumulative')
 
-    start_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
-    end_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
+    start_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
+    end_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
 
     query = f"SELECT DATE(date) as date, COUNT(*) as total_entries FROM timesheets WHERE DATE(date) >= '{start_date}' AND DATE(date) <= '{end_date}' GROUP BY DATE(date) ORDER BY DATE(date)"
     # print(query)

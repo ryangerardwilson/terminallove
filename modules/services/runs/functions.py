@@ -6,9 +6,13 @@ import os
 from tabulate import tabulate
 from dotenv import load_dotenv
 import plotext as plt
+import pytz
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 load_dotenv(os.path.join(parent_dir, '.env'))
+
+TIMEZONE=os.getenv('TIMEZONE')
+tz=pytz.timezone(TIMEZONE)
 
 conn = mysql.connector.connect(
     user=os.getenv('DB_USER'),
@@ -36,7 +40,7 @@ def fn_add_run_logs(called_function_arguments_dict):
     cursor = conn.cursor()
 
     # Set default values
-    default_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
 
     pre_run_weight_lbs = called_function_arguments_dict.get('pre_run_weight_lbs', 0)
     post_run_weight_lbs = called_function_arguments_dict.get('post_run_weight_lbs', 0)
@@ -179,8 +183,8 @@ def fn_display_running_weight_line_chart(called_function_arguments_dict):
     # Extract the days_ago_start and days_ago_end from the argument dict, with default values
     days_ago_start = int(called_function_arguments_dict.get('days_ago_start', 30))
     days_ago_end = int(called_function_arguments_dict.get('days_ago_end', 0))
-    start_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
-    end_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
+    start_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
+    end_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
 
    # Modify the query to calculate average weights
     query = """
@@ -235,8 +239,8 @@ def fn_display_runs_fat_burn_line_chart(called_function_arguments_dict):
     # Extract the days_ago_start and days_ago_end from the argument dict, with default values
     days_ago_start = int(called_function_arguments_dict.get('days_ago_start', 30))
     days_ago_end = int(called_function_arguments_dict.get('days_ago_end', 0))
-    start_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
-    end_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
+    start_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
+    end_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
 
     is_cumulative = called_function_arguments_dict.get('is_cumulative')
 
@@ -283,8 +287,8 @@ def fn_display_runs_distance_line_chart(called_function_arguments_dict):
     # Extract the days_ago_start and days_ago_end from the argument dict, with default values
     days_ago_start = int(called_function_arguments_dict.get('days_ago_start', 30))
     days_ago_end = int(called_function_arguments_dict.get('days_ago_end', 0))
-    start_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
-    end_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
+    start_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_start)).strftime('%Y-%m-%d')
+    end_date = (datetime.datetime.now(tz) - datetime.timedelta(days=days_ago_end)).strftime('%Y-%m-%d')
 
     is_cumulative = called_function_arguments_dict.get('is_cumulative')
 

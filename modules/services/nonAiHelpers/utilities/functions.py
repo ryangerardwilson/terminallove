@@ -1,5 +1,4 @@
 import mysql.connector
-import datetime
 import pandas as pd
 from termcolor import colored
 import os

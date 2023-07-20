@@ -17,6 +17,9 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 load_dotenv(os.path.join(parent_dir, '.env'))
 
+TIMEZONE=os.getenv('TIMEZONE')
+tz=pytz.timezone(TIMEZONE)
+
 CRONJOBS = {
         "publishQueuedTweets": os.path.join(script_dir, "commands", "publishQueuedTweets.py"),
         "publishSpacedTweets": os.path.join(script_dir, "commands", "publishSpacedTweets.py")

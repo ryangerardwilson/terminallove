@@ -10,11 +10,14 @@ import plotext as plt
 import time
 from requests_oauthlib import OAuth1Session
 import json
-
+import pytz
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 load_dotenv(os.path.join(parent_dir, '.env'))
+
+TIMEZONE=os.getenv('TIMEZONE')
+tz=pytz.timezone(TIMEZONE)
 
 TWITTER_NOTE_SPACING=int(os.getenv('TWITTER_NOTE_SPACING'))
 TWITTER_CONSUMER_KEY=os.getenv('TWITTER_CONSUMER_KEY')
@@ -148,7 +151,7 @@ def fn_list_spaced_tweets(called_function_arguments_dict):
 def fn_tweet_out_note(called_function_arguments_dict):
     cursor = conn.cursor()
 
-    default_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
     date = called_function_arguments_dict.get('date', default_date)
     note_id = int(called_function_arguments_dict.get('id', 0))
 
@@ -212,7 +215,7 @@ def fn_tweet_out_note(called_function_arguments_dict):
                 continue
 
             if rate_limit_hit:
-                tweet_failed_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
                 queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
                 cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
                 conn.commit()
@@ -227,10 +230,10 @@ def fn_tweet_out_note(called_function_arguments_dict):
             time.sleep(1)
             oauth = get_oauth_session()
 
-            latest_time = max(filter(None, [datetime.datetime.now(), latest_tweet_time, latest_different_note_scheduled_time]))
+            latest_time = max(filter(None, [datetime.datetime.now(tz), latest_tweet_time, latest_different_note_scheduled_time]))
             scheduled_at = latest_time + datetime.timedelta(hours=TWITTER_NOTE_SPACING)
 
-            if datetime.datetime.now() < scheduled_at:
+            if datetime.datetime.now(tz) < scheduled_at:
                 cursor.execute("INSERT INTO spaced_tweets (note_id, tweet, scheduled_at) VALUES (%s, %s, %s)", (note_id, paragraph, scheduled_at))
                 conn.commit()
                 print(colored(f"Paragraph {i} has been scheduled for a future tweet.", 'yellow'))
@@ -239,7 +242,7 @@ def fn_tweet_out_note(called_function_arguments_dict):
                 response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
                 if response.status_code == 429:  # Rate limit exceeded
                     print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow'))
-                    tweet_failed_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
                     queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
                     cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
                     conn.commit()
@@ -254,7 +257,7 @@ def fn_tweet_out_note(called_function_arguments_dict):
                 if 'data' in json_response:
                     tweet_id = json_response['data']['id']
                     previous_tweet_id = tweet_id
-                    posted_at = datetime.datetime.now()
+                    posted_at = datetime.datetime.now(tz)
                     insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id) VALUES (%s, %s, %s, %s)")
                     cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id))
                     conn.commit()
@@ -284,7 +287,7 @@ def fn_schedule_tweet(called_function_arguments_dict):
     print('schedule tweet')
     
     # Set default values
-    default_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
     date = called_function_arguments_dict.get('date', default_date)
     print(date)
 
@@ -294,7 +297,7 @@ def fn_edit_tweet(called_function_arguments_dict):
     print('edit tweet')
     
     # Set default values
-    default_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
     date = called_function_arguments_dict.get('date', default_date)
     print(date)
 

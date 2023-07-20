@@ -8,11 +8,14 @@ from tabulate import tabulate
 from dotenv import load_dotenv
 import plotext as plt
 import time
-
+import pytz
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 load_dotenv(os.path.join(parent_dir, '.env'))
+
+TIMEZONE=os.getenv('TIMEZONE')
+tz=pytz.timezone(TIMEZONE)
 
 conn = mysql.connector.connect(
     user=os.getenv('DB_USER'),
@@ -35,12 +38,12 @@ def fn_open_note(called_function_arguments_dict):
                 "VALUES (%s, %s, %s, %s)"
             )
             is_published = False
-            created_at = updated_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            created_at = updated_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
             cursor.execute(insert_cmd, ( '', is_published, created_at, updated_at))
             conn.commit()
             new_id = cursor.lastrowid
-            updated_at_filename = datetime.datetime.now().strftime('[U:%Y%m%d(%H%M%S)]')
-            created_at_filename = datetime.datetime.now().strftime('[C:%Y%m%d(%H%M%S)]')
+            updated_at_filename = datetime.datetime.now(tz).strftime('[U:%Y%m%d(%H%M%S)]')
+            created_at_filename = datetime.datetime.now(tz).strftime('[C:%Y%m%d(%H%M%S)]')
             file_path = os.path.join(dir_path, f"note_{new_id}_{created_at_filename}_{updated_at_filename}.txt")
             with open(file_path, 'w') as fp:
                 pass
@@ -129,7 +132,7 @@ def fn_open_most_recently_edited_note():
     subprocess.call(["vim", file_path])
 
 def fn_save_and_close_notes():
-    default_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
 
     dir_path = os.path.join(parent_dir, "files")
     cursor = conn.cursor()
@@ -151,7 +154,9 @@ def fn_save_and_close_notes():
             # Get the modified time of the file
             mod_time = os.path.getmtime(file_path)
             # Convert it to a datetime object
-            mod_time = datetime.datetime.fromtimestamp(mod_time)
+
+            utc_time = datetime.datetime.utcfromtimestamp(mod_time)
+            mod_time = utc_time.replace(tzinfo=pytz.UTC).astimezone(tz)
 
             # Get the updated_at time from the database for the current note_id
             select_cmd = (
@@ -165,7 +170,7 @@ def fn_save_and_close_notes():
                 update_cmd = (
                     "UPDATE notes SET note = %s, updated_at = %s WHERE id = %s"
                 )
-                updated_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                updated_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
                 cursor.execute(update_cmd, (note_content, updated_at, note_id))
 
             os.remove(file_path)

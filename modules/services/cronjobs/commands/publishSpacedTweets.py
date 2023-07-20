@@ -11,10 +11,14 @@ import plotext as plt
 import time
 from requests_oauthlib import OAuth1Session
 import json
+import pytz
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 load_dotenv(os.path.join(parent_dir, '.env'))
+
+TIMEZONE=os.getenv('TIMEZONE')
+tz=pytz.timezone(TIMEZONE)
 
 TWITTER_CONSUMER_KEY=os.getenv('TWITTER_CONSUMER_KEY')
 TWITTER_CONSUMER_SECRET=os.getenv('TWITTER_CONSUMER_SECRET')
@@ -36,14 +40,14 @@ def publish_spaced_tweets():
     # Log the start of the job
     cursor.execute(
         "INSERT INTO cronjob_logs (job_description, executed_at, error_logs) VALUES (%s, %s, %s)",
-        ("Executing publishSpacedTweets.py", datetime.datetime.now(), json.dumps([]))
+        ("Executing publishSpacedTweets.py", datetime.datetime.now(tz), json.dumps([]))
     )
 
     # Remember the ID of the log entry
     log_id = cursor.lastrowid
     conn.commit()
 
-    current_time = datetime.datetime.now() + timedelta(hours=5, minutes=30)
+    current_time = datetime.datetime.now(tz)
     cursor.execute("SELECT id, tweet, note_id, scheduled_at FROM spaced_tweets WHERE scheduled_at <= %s ORDER BY note_id, id", (current_time,))
     spaced_tweets = cursor.fetchall()
 
