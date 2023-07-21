@@ -161,180 +161,159 @@ STEP III - INSTALL PYTHON AND MYSQL
     CREATE DATABASE `<database_name>`;
     USE `<database_name>`;
 
-    CREATE TABLE `actions` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `goal_id` int,
-      `action` varchar(255) NOT NULL,
-      `deadline` date,
-      `is_active` tinyint(1) DEFAULT b'1',
-      PRIMARY KEY (`id`),
-      KEY `goal_id_idx` (`goal_id`)
+    CREATE TABLE actions (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        goal_id INT,
+        action VARCHAR(255) NOT NULL,
+        deadline DATE,
+        is_active TINYINT(1) DEFAULT b'1'
     );
 
-    CREATE TABLE `cronjob_logs` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `job_description` varchar(255),
-      `error_logs` json,
-      `executed_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      PRIMARY KEY (`id`)
+    CREATE TABLE cronjob_logs (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        job_description VARCHAR(255),
+        error_logs JSON,
+        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     );
 
-    CREATE TABLE `debt_payments` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `debt_id` int,
-      `date` date NOT NULL,
-      `amount` decimal(19,2) NOT NULL,
-      `currency` varchar(10),
-      PRIMARY KEY (`id`),
-      KEY `debt_id_idx` (`debt_id`)
+    CREATE TABLE debt_payments (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        debt_id INT,
+        date DATE NOT NULL,
+        amount DECIMAL(19,2) NOT NULL,
+        currency VARCHAR(10)
     );
 
-    CREATE TABLE `debt_status_logs` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `debt_id` int,
-      `total_amount` decimal(19,2),
-      `outstanding` decimal(19,2),
-      `status_date` date,
-      PRIMARY KEY (`id`),
-      KEY `debt_id_idx` (`debt_id`)
+    CREATE TABLE debt_status_logs (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        debt_id INT,
+        total_amount DECIMAL(19,2),
+        outstanding DECIMAL(19,2),
+        status_date DATE
     );
 
-    CREATE TABLE `debts` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `source` varchar(50) NOT NULL,
-      `total_amount` decimal(19,2) NOT NULL,
-      `outstanding` decimal(19,2) NOT NULL,
-      `interest_rate` decimal(5,2),
-      `currency` varchar(10),
-      PRIMARY KEY (`id`)
+    CREATE TABLE debts (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        source VARCHAR(50) NOT NULL,
+        total_amount DECIMAL(19,2) NOT NULL,
+        outstanding DECIMAL(19,2) NOT NULL,
+        interest_rate DECIMAL(5,2),
+        currency VARCHAR(10)
     );
 
-    CREATE TABLE `events` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `event` varchar(255) NOT NULL,
-      `date` date NOT NULL,
-      `time` time NOT NULL,
-      PRIMARY KEY (`id`)
+    CREATE TABLE events (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        event VARCHAR(255) NOT NULL,
+        date DATE NOT NULL,
+        time TIME NOT NULL
     );
 
-    CREATE TABLE `expenses` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `value` decimal(10,2),
-      `expense_date` date,
-      `currency` varchar(20) DEFAULT 'INR',
-      `particulars` varchar(255),
-      `debt_id` int,
-      `is_debt_repayment` tinyint(1) DEFAULT '0',
-      `is_earmarked_for_debt_repayment` tinyint(1) DEFAULT '0',
-      PRIMARY KEY (`id`),
-      KEY `debt_id_idx` (`debt_id`)
+    CREATE TABLE expenses (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        value DECIMAL(10,2),
+        expense_date DATE,
+        currency VARCHAR(20) DEFAULT 'INR',
+        particulars VARCHAR(255),
+        debt_id INT,
+        is_debt_repayment TINYINT(1) DEFAULT 0,
+        is_earmarked_for_debt_repayment TINYINT(1) DEFAULT 0
     );
 
-    CREATE TABLE `goals` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `name` varchar(255) NOT NULL,
-      `date` date NOT NULL,
-      PRIMARY KEY (`id`)
+    CREATE TABLE goals (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL,
+        date DATE NOT NULL
     );
 
-    CREATE TABLE `mysql_databases` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `description` varchar(255),
-      `command` varchar(255),
-      `password` varchar(255),
-      PRIMARY KEY (`id`)
+    CREATE TABLE mysql_databases (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        description VARCHAR(255),
+        command VARCHAR(255),
+        password VARCHAR(255)
     );
 
-    CREATE TABLE `notes` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `note` longtext,
-      `is_published` tinyint(1) DEFAULT '0',
-      `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-      `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      PRIMARY KEY (`id`)
+    CREATE TABLE notes (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        note LONGTEXT,
+        is_published TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        media_url TEXT,
+        is_organic TINYINT(1) DEFAULT 1,
+        published_at DATETIME
     );
 
-    CREATE TABLE `passwords` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `service` varchar(255),
-      `username` varchar(255),
-      `password` varchar(255),
-      `comments` text,
-      PRIMARY KEY (`id`)
+    CREATE TABLE passwords (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        service VARCHAR(255),
+        username VARCHAR(255),
+        password VARCHAR(255),
+        comments TEXT
     );
 
-    CREATE TABLE `queued_tweets` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `tweet` longtext,
-      `tweet_failed_at` datetime,
-      `note_id` int,
-      PRIMARY KEY (`id`),
-      KEY `note_id_idx` (`note_id`)
+    CREATE TABLE queued_tweets (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        tweet LONGTEXT,
+        tweet_failed_at DATETIME,
+        note_id INT,
+        media_id TEXT
+    );
+
+    CREATE TABLE reasons (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        goal_id INT,
+        reason VARCHAR(255) NOT NULL
+    );
+
+    CREATE TABLE relational_databases (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        description VARCHAR(255),
+        mysql_connect_command VARCHAR(255),
+        password VARCHAR(255)
+    );
+
+    CREATE TABLE runs (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        pre_run_weight_lbs FLOAT DEFAULT 0,
+        post_run_weight_lbs FLOAT DEFAULT 0,
+        fat_burn_zone_minutes FLOAT DEFAULT 0,
+        cardio_zone_minutes FLOAT DEFAULT 0,
+        peak_zone_minutes FLOAT DEFAULT 0,
+        distance_covered_kms FLOAT DEFAULT 0,
+        date DATE,
+        temperature_in_f FLOAT
     );
 
     CREATE TABLE spaced_tweets (
-        id INT NOT NULL AUTO_INCREMENT,
+        id INT PRIMARY KEY AUTO_INCREMENT,
         tweet LONGTEXT,
         scheduled_at DATETIME,
         note_id INT,
-        PRIMARY KEY (id)
+        media_id TEXT
     );
 
-    CREATE TABLE `reasons` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `goal_id` int,
-      `reason` varchar(255) NOT NULL,
-      PRIMARY KEY (`id`),
-      KEY `goal_id_idx` (`goal_id`)
+    CREATE TABLE timesheets (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        action_id INT,
+        date DATE
     );
 
-    CREATE TABLE `relational_databases` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `description` varchar(255),
-      `mysql_connect_command` varchar(255),
-      `password` varchar(255),
-      PRIMARY KEY (`id`)
+    CREATE TABLE tweets (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        tweet LONGTEXT,
+        tweet_id VARCHAR(255),
+        posted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        note_id INT,
+        media_id TEXT
     );
 
-    CREATE TABLE `runs` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `pre_run_weight_lbs` float DEFAULT b'0',
-      `post_run_weight_lbs` float DEFAULT b'0',
-      `fat_burn_zone_minutes` float DEFAULT b'0',
-      `cardio_zone_minutes` float DEFAULT b'0',
-      `peak_zone_minutes` float DEFAULT b'0',
-      `distance_covered_kms` float DEFAULT b'0',
-      `date` date,
-      `temperature_in_f` float,
-      PRIMARY KEY (`id`)
+    CREATE TABLE virtual_machines (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        description VARCHAR(255),
+        command VARCHAR(255),
+        password VARCHAR(255)
     );
 
-    CREATE TABLE `timesheets` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `action_id` int,
-      `date` date,
-      PRIMARY KEY (`id`),
-      KEY `action_id_idx` (`action_id`)
-    );
-
-    CREATE TABLE `tweets` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `tweet` longtext,
-      `tweet_id` varchar(255),
-      `posted_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-      `note_id` int,
-      PRIMARY KEY (`id`),
-      KEY `note_id_idx` (`note_id`)
-    );
-
-    CREATE TABLE `virtual_machines` (
-      `id` int NOT NULL AUTO_INCREMENT,
-      `description` varchar(255),
-      `command` varchar(255),
-      `password` varchar(255),
-      PRIMARY KEY (`id`)
-    );
-        
 ```
 
 ***
