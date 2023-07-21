@@ -48,6 +48,17 @@ conn = mysql.connector.connect(
 def improvise_tweets():
 
     cursor = conn.cursor()
+    # Log the start of the job
+    cursor.execute(
+        "INSERT INTO cronjob_logs (job_description, executed_at, error_logs) VALUES (%s, %s, %s)",
+        ("Executing improviseTweets.py", datetime.datetime.now(tz), json.dumps([]))
+    )
+
+    # Remember the ID of the log entry
+    log_id = cursor.lastrowid
+    conn.commit()
+
+
 
     # Step 1 - Check the following conditions:
     # (a) No tweets have been published in the last hour.
@@ -73,55 +84,56 @@ def improvise_tweets():
 
     if not recently_published_tweets_exists and not queued_tweets_exists and not upcoming_tweets_exists:
 
-        # Step 2 - Randowmly select one of the last 10 published notes, and use AI to rephrase that
-        cursor.execute(
-            "SELECT * FROM (SELECT * FROM notes WHERE is_published = 1 ORDER BY published_at DESC LIMIT 10) AS last_10_published_notes ORDER BY RAND() LIMIT 1"
-        )
-        random_note = cursor.fetchone()
-        random_note_text = random_note[1]
-        print('aaa', random_note_text)
-        print()
-        print()
-        prompt = f"Use vivid imagery and tell me a similar story, using fictional characters and short sentences: {random_note_text}"
+        try:
+            # Step 2 - Randowmly select one of the last 10 published notes, and use AI to rephrase that
+            cursor.execute(
+                "SELECT * FROM (SELECT * FROM notes WHERE is_published = 1 ORDER BY published_at DESC LIMIT 10) AS last_10_published_notes ORDER BY RAND() LIMIT 1"
+            )
+            random_note = cursor.fetchone()
+            random_note_text = random_note[1]
+            print('aaa', random_note_text)
+            print()
+            print()
+            prompt = f"Use vivid imagery and tell me a similar story, using fictional characters and short sentences: {random_note_text}"
 
-        ai_generated_note_text = get_completion(prompt)
-        print('bbb', ai_generated_note_text)
-        print()
-        print()
+            ai_generated_note_text = get_completion(prompt)
+            print('bbb', ai_generated_note_text)
+            print()
+            print()
 
-        formatted_text = reformat_text(ai_generated_note_text, 3)
-        print(formatted_text)
+            formatted_text = reformat_text(ai_generated_note_text, 3)
+            print(formatted_text)
 
-        # Step 3 - Inset it into notes, and set the is_organic value of the note to false
-        insert_cmd = (
-            "INSERT INTO notes (note, is_published, created_at, updated_at, is_organic) "
-            "VALUES (%s, %s, %s, %s, %s)"
-        )
-        is_published = False
-        is_organic = False
-        created_at = updated_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
-        cursor.execute(insert_cmd, (formatted_text, is_published, created_at, updated_at, is_organic))
-        conn.commit()
-        note_id = cursor.lastrowid
+            # Step 3 - Inset it into notes, and set the is_organic value of the note to false
+            insert_cmd = (
+                "INSERT INTO notes (note, is_published, created_at, updated_at, is_organic) "
+                "VALUES (%s, %s, %s, %s, %s)"
+            )
+            is_published = False
+            is_organic = False
+            created_at = updated_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute(insert_cmd, (formatted_text, is_published, created_at, updated_at, is_organic))
+            conn.commit()
+            note_id = cursor.lastrowid
 
-        # Step 4 - Use the tweet out note pipeline to tweet it out
-        generate_ai_image_for_ai_note(note_id)
-        tweet_out_ai_note(note_id)
-        
-    return
-    # Update the job log entry with the final status
-    if rate_limit_hit:
-        cursor.execute(
-            "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
-            ("publishQueuedTweets.py", json.dumps(error_logs), log_id)
-        )
-    else:
-        cursor.execute(
-            "UPDATE cronjob_logs SET job_description = %s WHERE id = %s",
-            ("publishQueuedTweets.py", log_id)
-        )
-        update_cmd = ("UPDATE notes SET is_published = 1 WHERE id = %s")
-        cursor.execute(update_cmd, (note_id,))
+            # Step 4 - Use the tweet out note pipeline to tweet it out
+            generate_ai_image_for_ai_note(note_id)
+            tweet_out_ai_note(note_id)
+
+            cursor.execute(
+                "UPDATE cronjob_logs SET job_description = %s WHERE id = %s",
+                ("improviseTweets.py", log_id)
+            )
+            update_cmd = ("UPDATE notes SET is_published = 1 WHERE id = %s")
+            cursor.execute(update_cmd, (note_id,))
+        except:
+            # Assume error_logs is a dictionary, add "Something went wrong" into error_logs
+            error_logs["message"] = "Something went wrong"
+
+            cursor.execute(
+                "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
+                ("improviseTweets.py", json.dumps(error_logs), log_id)
+            )
     conn.commit()
 
 def get_completion(prompt):

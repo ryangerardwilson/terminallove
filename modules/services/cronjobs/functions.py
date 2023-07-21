@@ -22,7 +22,8 @@ tz=pytz.timezone(TIMEZONE)
 
 CRONJOBS = {
         "publishQueuedTweets": os.path.join(script_dir, "commands", "publishQueuedTweets.py"),
-        "publishSpacedTweets": os.path.join(script_dir, "commands", "publishSpacedTweets.py")
+        "publishSpacedTweets": os.path.join(script_dir, "commands", "publishSpacedTweets.py"),
+        "improviseTweets": os.path.join(script_dir, "commands", "improviseTweets.py"),
         }
 
 conn = mysql.connector.connect(
