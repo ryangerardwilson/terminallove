@@ -78,6 +78,10 @@ def fn_display_functionalities():
             "description": "lists all functionalities",
         },
         {
+            "command": "--locate",
+            "description": "locates the bot in the file system",
+        },
+        {
             "command": "--reset",
             "description": "clears history of AI chat",
         },
@@ -88,6 +92,10 @@ def fn_display_functionalities():
         {
             "command": "--db --id n",
             "description": "mysql connect to a mysql database with id n in the mysql_databases table",
+        },
+        {
+            "command": "--l",
+            "description": "lists all functionalities",
         },
         {
             "command": "--db:schema --id n",

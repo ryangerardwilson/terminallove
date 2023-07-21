@@ -38,11 +38,10 @@ def clear_history() -> None:
         os.remove(history_file)
 
 def update_bot() -> None:
-    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     os.chdir(parent_dir)
     subprocess.run(['git', 'pull', '--rebase'], check=True)
 
-def process_hard_coded_flags(update, reset, p_action, p, l, id, service, username, password, comments, vm, db, vm_action, db_action, command, description):
+def process_hard_coded_flags(update, reset, locate, p_action, p, l, id, service, username, password, comments, vm, db, vm_action, db_action, command, description):
 
     function_invoked = False
 
@@ -53,7 +52,11 @@ def process_hard_coded_flags(update, reset, p_action, p, l, id, service, usernam
 
     if reset:
         clear_history()
-        print("Interaction history cleared.")
+        print("Interaction history cleared")
+        function_invoked = True
+
+    if locate:
+        print(f'{parent_dir}')
         function_invoked = True
 
     if p_action != None:
