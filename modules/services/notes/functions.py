@@ -353,7 +353,7 @@ def fn_add_or_update_media_to_notes_by_ids(called_function_arguments_dict):
     conn.commit()
     cursor.close()
     conn.close()
-    print(colored(f"NOTES WITH IDS {ids_to_add_media_to} UPDATED", 'cyan'))
+    print(colored(f"NOTES UPDATED", 'cyan'))
 
 
 def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, size, note_id):

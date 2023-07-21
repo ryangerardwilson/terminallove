@@ -48,6 +48,8 @@ conn = mysql.connector.connect(
 def improvise_tweets():
 
     cursor = conn.cursor()
+
+    error_logs = []
     # Log the start of the job
     cursor.execute(
         "INSERT INTO cronjob_logs (job_description, executed_at, error_logs) VALUES (%s, %s, %s)",
@@ -67,7 +69,7 @@ def improvise_tweets():
 
     cursor.execute(
         "SELECT EXISTS(SELECT 1 FROM tweets WHERE posted_at > %s LIMIT 1)",
-        (datetime.datetime.now(tz) - datetime.timedelta(hours=1),)
+        (datetime.datetime.now(tz) - datetime.timedelta(hours=TWITTER_NOTE_SPACING),)
     )
     recently_published_tweets_exists = cursor.fetchone()[0] == 1
 
@@ -78,9 +80,11 @@ def improvise_tweets():
 
     cursor.execute(
         "SELECT EXISTS(SELECT 1 FROM spaced_tweets WHERE scheduled_at < %s AND scheduled_at > %s LIMIT 1)",
-        (datetime.datetime.now(tz), datetime.datetime.now(tz) + datetime.timedelta(hours=1))
+        (datetime.datetime.now(tz), datetime.datetime.now(tz) + datetime.timedelta(hours=TWITTER_NOTE_SPACING))
     )
     upcoming_tweets_exists = cursor.fetchone()[0] == 1
+
+    print(recently_published_tweets_exists, queued_tweets_exists, upcoming_tweets_exists)
 
     if not recently_published_tweets_exists and not queued_tweets_exists and not upcoming_tweets_exists:
 
@@ -117,7 +121,9 @@ def improvise_tweets():
             note_id = cursor.lastrowid
 
             # Step 4 - Use the tweet out note pipeline to tweet it out
+            print('124')
             generate_ai_image_for_ai_note(note_id)
+            print('125')
             tweet_out_ai_note(note_id)
 
             cursor.execute(
@@ -128,7 +134,8 @@ def improvise_tweets():
             cursor.execute(update_cmd, (note_id,))
         except:
             # Assume error_logs is a dictionary, add "Something went wrong" into error_logs
-            error_logs["message"] = "Something went wrong"
+            message = "Something went wrong"
+            error_logs.append(message)
 
             cursor.execute(
                 "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
@@ -140,8 +147,6 @@ def improvise_tweets():
              "UPDATE cronjob_logs SET job_description = %s WHERE id = %s",
              ("improviseTweets.py", log_id)
         )
-        update_cmd = ("UPDATE notes SET is_published = 1 WHERE id = %s")
-        cursor.execute(update_cmd, (note_id,))
 
     conn.commit()
 
@@ -184,7 +189,7 @@ def reformat_text(text, min_paragraphs):
     formatted_paragraphs = []
     current_paragraph = ""
     for sentence in sentences:
-        if len(current_paragraph) + len(sentence) + 10 > 280:  # +5 for prefix
+        if len(current_paragraph) + len(sentence) > 270:  # +10 for prefix
             formatted_paragraphs.append(current_paragraph.strip())
             current_paragraph = sentence
         else:
@@ -269,11 +274,11 @@ def get_oauth_session():
 def generate_ai_image_for_ai_note(note_id):
     
     cursor = conn.cursor()
-
+    print('279')
     # Get the media_url before updating the note
     cursor.execute("SELECT note, is_published, media_url FROM notes WHERE id = %s", (note_id,))
     result = cursor.fetchone()
-
+    print('283')
     if result is not None:
         note_text, is_published, old_media_url = result
         if is_published == 1:
@@ -281,25 +286,8 @@ def generate_ai_image_for_ai_note(note_id):
             return
         paragraphs = note_text.split("\n\n")
         first_paragraph = paragraphs[0]
-
-        if old_media_url is not None:
-            try:
-                # Delete old_media_url from cloud storage
-                url_path = urllib.parse.urlparse(old_media_url).path
-                split_path = url_path.split("/")
-                bucket_name = split_path[1]
-                blob_name = urllib.parse.unquote("/".join(split_path[2:]))
-
-                # Delete the file from Google Cloud Storage
-                storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
-                bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
-                blob = bucket.blob(blob_name)
-
-                blob.delete()
-            except:
-                print(f"Deletion of old media from cloud storage failed for note id {note_id}. Old media url is: {old_media_url}")
-
-        media_url = get_media_url_after_generating_image_and_uploading_to_cloud_storage(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {first_paragraph}", "256x256")
+        print('291')
+        media_url = get_media_url_after_generating_image_and_uploading_to_cloud_storage(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {first_paragraph}", "256x256", note_id)
         print()
         print(colored(f"New media_url for note id {note_id} is: {media_url}", 'cyan'))
         print()
@@ -311,6 +299,7 @@ def generate_ai_image_for_ai_note(note_id):
 
 def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, size, note_id):
 
+    print('304')
     url = "https://api.openai.com/v1/images/generations"
     headers = {
         "Content-Type": "application/json",
@@ -351,7 +340,7 @@ def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, 
     return media_url
 
 def tweet_out_ai_note(note_id):
-
+    print('359')
     cursor = conn.cursor()
     default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
 
@@ -387,9 +376,10 @@ def tweet_out_ai_note(note_id):
         latest_different_note_scheduled_time = result[0]
 
     rate_limit_hit = False
-
+    
     for i, paragraph in enumerate(paragraphs, 1):
-
+        print('i: ', i)
+        print('397')
         if not paragraph.strip():
             print(colored(f"Skipping empty paragraph {i}", 'red'))
             if i == 1:
@@ -403,7 +393,7 @@ def tweet_out_ai_note(note_id):
         if paragraph in previous_tweets:
             print(colored(f"Paragraph {i} has already been posted. Not tweeting anything", 'red'))
             return
-
+        print('411')
         check_cmd = ("SELECT tweet FROM tweets WHERE tweet = %s")
         cursor.execute(check_cmd, (paragraph,))
         if cursor.fetchone() is not None:
@@ -417,42 +407,30 @@ def tweet_out_ai_note(note_id):
             conn.commit()
             print(colored(f"Paragraph {i} has been queued due to rate limit hit.", 'yellow'))
             continue
-
+        
         payload = {"text": paragraph}
-
+        print('413')
         if previous_tweet_id is not None:
             payload["reply"] = {"in_reply_to_tweet_id": previous_tweet_id}
 
-        time.sleep(1)
         oauth = get_oauth_session()
-
-        if latest_tweet_time is not None:
-            if latest_tweet_time.tzinfo is None or latest_tweet_time.tzinfo.utcoffset(latest_tweet_time) is None:
-                latest_tweet_time = tz.localize(latest_tweet_time)
-            else:
-                latest_tweet_time = latest_tweet_time.astimezone(tz)
-
-        if latest_different_note_scheduled_time is not None:
-            if latest_different_note_scheduled_time.tzinfo is None or latest_different_note_scheduled_time.tzinfo.utcoffset(latest_different_note_scheduled_time) is None:
-                latest_different_note_scheduled_time = tz.localize(latest_different_note_scheduled_time)
-            else:
-                latest_different_note_scheduled_time = latest_different_note_scheduled_time.astimezone(tz)
-
+        print('418')
         if i == 1:
-            media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "256x256", media_url, note_id)
-
+            print('421') 
+            media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "256x256", note_id)
+            print('423')
             # Access the image URL and media ID
             media_url = media_info["media_url"]
             media_id = media_info["media_id"]
             payload["media"] = {"media_ids": [media_id]}
-
+            print('428')
             update_cmd = ("UPDATE notes SET media_url = %s WHERE id = %s")
             cursor.execute(update_cmd, (media_url, note_id))
             conn.commit()
         else:
             media_url = None
             media_id = None
-
+        print('433')
         response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
         if response.status_code == 429:  # Rate limit exceeded
             print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow'))
@@ -467,8 +445,9 @@ def tweet_out_ai_note(note_id):
             raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
 
         json_response = response.json()
-
+        print('449')
         if 'data' in json_response:
+            print('451')
             tweet_id = json_response['data']['id']
             previous_tweet_id = tweet_id
             posted_at = datetime.datetime.now(tz)
@@ -501,27 +480,26 @@ def tweet_out_ai_note(note_id):
 
     cursor.close()
 
-def get_media_id_after_generating_image_and_uploading_to_twitter(prompt, size, media_url: str = None):
+def get_media_id_after_generating_image_and_uploading_to_twitter(prompt, size, note_id):
 
-    if media_url is None:
+    print('487')
+    url = "https://api.openai.com/v1/images/generations"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OPEN_AI_API_KEY}"
+    }
+    data = {
+        "prompt": prompt,
+        "n": 1,
+        "size": size
+    }
 
-        url = "https://api.openai.com/v1/images/generations"
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {OPEN_AI_API_KEY}"
-        }
-        data = {
-            "prompt": prompt,
-            "n": 1,
-            "size": size
-        }
+    response = requests.post(url, headers=headers, data=json.dumps(data))
 
-        response = requests.post(url, headers=headers, data=json.dumps(data))
+    # Return the response data as JSON
+    response_data = response.json()
 
-        # Return the response data as JSON
-        response_data = response.json()
-
-        media_url = response_data['data'][0]['url']
+    media_url = response_data['data'][0]['url']
 
     # Download the image from the URL
     downloaded_image = requests.get(media_url)
@@ -534,7 +512,12 @@ def get_media_id_after_generating_image_and_uploading_to_twitter(prompt, size, m
     # Upload the media to Google Cloud Storage
     storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
     bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
-    blob = bucket.blob(f"{prompt}_{size}.jpg")
+    
+    filename = f"{note_id}_{datetime.datetime.now(tz).strftime('%Y%m%d_%H%M%S')}"
+
+    blob = bucket.blob(f"{filename}.jpg")
+
+
     blob.upload_from_string(
         image_content,
         content_type='image/jpeg'
