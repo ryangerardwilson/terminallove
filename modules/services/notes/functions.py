@@ -343,7 +343,7 @@ def fn_add_or_update_media_to_notes_by_ids(called_function_arguments_dict):
                 except:
                     print(f"Deletion of old media from cloud storage failed for note id {note_id}. Old media url is: {old_media_url}")
 
-            media_url = get_media_url_after_generating_image_and_uploading_to_cloud_storage(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {first_paragraph}", "512x512")
+            media_url = get_media_url_after_generating_image_and_uploading_to_cloud_storage(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {first_paragraph}", "256x256", note_id)
             print()
             print(colored(f"New media_url for note id {note_id} is: {media_url}", 'cyan'))
             print()
@@ -356,7 +356,7 @@ def fn_add_or_update_media_to_notes_by_ids(called_function_arguments_dict):
     print(colored(f"NOTES WITH IDS {ids_to_add_media_to} UPDATED", 'cyan'))
 
 
-def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, size):
+def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, size, note_id):
 
     url = "https://api.openai.com/v1/images/generations"
     headers = {
@@ -387,7 +387,10 @@ def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, 
     # Upload the media to Google Cloud Storage
     storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
     bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
-    blob = bucket.blob(f"{prompt}_{size}.jpg")
+
+    filename = f"{note_id}_{datetime.datetime.now(tz).strftime('%Y%m%d_%H%M%S')}"
+
+    blob = bucket.blob(f"{filename}.jpg")
     blob.upload_from_string(
         image_content,
         content_type='image/jpeg'

@@ -309,7 +309,7 @@ def generate_ai_image_for_ai_note(note_id):
     conn.commit()
     cursor.close()
 
-def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, size):
+def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, size, note_id):
 
     url = "https://api.openai.com/v1/images/generations"
     headers = {
@@ -340,7 +340,8 @@ def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, 
     # Upload the media to Google Cloud Storage
     storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
     bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
-    blob = bucket.blob(f"{prompt}_{size}.jpg")
+    filename = f"{note_id}_{datetime.datetime.now(tz).strftime('%Y%m%d_%H%M%S')}"
+    blob = bucket.blob(f"{filename}.jpg")
     blob.upload_from_string(
         image_content,
         content_type='image/jpeg'
@@ -438,7 +439,7 @@ def tweet_out_ai_note(note_id):
                 latest_different_note_scheduled_time = latest_different_note_scheduled_time.astimezone(tz)
 
         if i == 1:
-            media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "256x256", media_url)
+            media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "256x256", media_url, note_id)
 
             # Access the image URL and media ID
             media_url = media_info["media_url"]
