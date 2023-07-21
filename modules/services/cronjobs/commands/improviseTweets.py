@@ -11,6 +11,10 @@ import time
 from requests_oauthlib import OAuth1Session
 import json
 import pytz
+import requests
+import textwrap
+import base64
+from google.cloud import storage
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
@@ -19,6 +23,14 @@ load_dotenv(os.path.join(parent_dir, '.env'))
 TIMEZONE=os.getenv('TIMEZONE')
 tz=pytz.timezone(TIMEZONE)
 
+NOTE_IMAGE_STORAGE_BUCKET_NAME=os.getenv('NOTE_IMAGE_STORAGE_BUCKET_NAME')
+GOOGLE_SERVICE_ACCOUNT_KEY=os.getenv('GOOGLE_SERVICE_ACCOUNT_KEY')
+path_to_service_account_file=os.path.join(parent_dir,'files/tokens/',GOOGLE_SERVICE_ACCOUNT_KEY)
+
+OPEN_AI_API_KEY=os.getenv('OPEN_AI_API_KEY')
+GPT_MODEL=os.getenv('GPT_MODEL')
+
+TWITTER_AUTHENTICATION_KEY=os.getenv('TWITTER_AUTHENTICATION_KEY')
 TWITTER_NOTE_SPACING=int(os.getenv('TWITTER_NOTE_SPACING'))
 TWITTER_CONSUMER_KEY=os.getenv('TWITTER_CONSUMER_KEY')
 TWITTER_CONSUMER_SECRET=os.getenv('TWITTER_CONSUMER_SECRET')
@@ -35,126 +47,68 @@ conn = mysql.connector.connect(
 
 def improvise_tweets():
 
-    # Step 1 - Check if there are no tweets (a) published in the last 1 hour; AND (b) queued to be published; AND (c) scheduled to be published in the next 1 hour
-
-    # Step 2 - Randowmly select one of the last 10 published notes, and use AI to rephrase that
-
-    # Step 3 - Set the is_organic value of the note to false
-
-    # Step 4 - Use the tweet out note pipeline to tweet it out
-
-
-
-    return
-
-    # Create a new Cursor
     cursor = conn.cursor()
 
-    # Log the start of the job
+    # Step 1 - Check the following conditions:
+    # (a) No tweets have been published in the last hour.
+    # (b) No tweets are currently queued to be published.
+    # (c) No tweets are scheduled to be published in the next hour.
+
     cursor.execute(
-        "INSERT INTO cronjob_logs (job_description, executed_at, error_logs) VALUES (%s, %s, %s)",
-        ("Executing publishQueuedTweets.py", datetime.datetime.now(tz), json.dumps([]))
+        "SELECT EXISTS(SELECT 1 FROM tweets WHERE posted_at > %s LIMIT 1)",
+        (datetime.datetime.now(tz) - datetime.timedelta(hours=1),)
     )
+    recently_published_tweets_exists = cursor.fetchone()[0] == 1
 
-    # Remember the ID of the log entry
-    log_id = cursor.lastrowid
-    conn.commit()
+    cursor.execute(
+        "SELECT EXISTS(SELECT 1 FROM queued_tweets LIMIT 1)"
+    )
+    queued_tweets_exists = cursor.fetchone()[0] == 1
 
-    # Select all queued tweets, ordered by note_id and id
-    cursor.execute("SELECT id, tweet, note_id, media_id FROM queued_tweets ORDER BY note_id, id")
-    queued_tweets = cursor.fetchall()
+    cursor.execute(
+        "SELECT EXISTS(SELECT 1 FROM spaced_tweets WHERE scheduled_at < %s AND scheduled_at > %s LIMIT 1)",
+        (datetime.datetime.now(tz), datetime.datetime.now(tz) + datetime.timedelta(hours=1))
+    )
+    upcoming_tweets_exists = cursor.fetchone()[0] == 1
 
-    # initialize previous_tweet_id to None and previous_note_id to None
-    previous_tweet_id = None
-    previous_note_id = None
+    if not recently_published_tweets_exists and not queued_tweets_exists and not upcoming_tweets_exists:
 
-    rate_limit_hit = False
-    error_logs = []
-
-    i = 0
-    note_id = 0
-    for tweet in queued_tweets:
-        i += 1
-        tweet_id, tweet_text, note_id, media_id = tweet
-
-        if media_id is not None:
-            payload = {"text": tweet_text, "media": {"media_ids": [media_id]}}
-        else:
-            payload = {"text": tweet_text}
-
-        # check if any tweet has been posted in the last TWITTER_NOTE_SPACING  hours for the same note_id
+        # Step 2 - Randowmly select one of the last 10 published notes, and use AI to rephrase that
         cursor.execute(
-            "SELECT posted_at FROM tweets WHERE note_id = %s AND posted_at > %s ORDER BY posted_at DESC LIMIT 1",
-            (note_id, datetime.datetime.now(tz) - datetime.timedelta(hours=TWITTER_NOTE_SPACING))
+            "SELECT * FROM (SELECT * FROM notes WHERE is_published = 1 ORDER BY published_at DESC LIMIT 10) AS last_10_published_notes ORDER BY RAND() LIMIT 1"
         )
-        last_tweet = cursor.fetchone()
+        random_note = cursor.fetchone()
+        random_note_text = random_note[1]
+        print('aaa', random_note_text)
+        print()
+        print()
+        prompt = f"Use vivid imagery and tell me a similar story, using fictional characters and short sentences: {random_note_text}"
 
-        if last_tweet is not None:  # If a tweet from the same note_id was posted in the last TWITTER_NOTE_SPACING hours
-            # Add the tweet to the 'spaced_tweets' table with a scheduled_at value 72 hours after the last tweet
-            cursor.execute(
-                "INSERT INTO spaced_tweets (tweet, scheduled_at, note_id, media_id) VALUES (%s, %s, %s, %s)",
-                (tweet_text, last_tweet[0] + datetime.timedelta(hours=TWITTER_NOTE_SPACING), note_id, media_id)
-            )
-            conn.commit()
+        ai_generated_note_text = get_completion(prompt)
+        print('bbb', ai_generated_note_text)
+        print()
+        print()
 
-            # Delete the tweet from the 'queued_tweets' table
-            cursor.execute("DELETE FROM queued_tweets WHERE id = %s", (tweet_id,))
-            conn.commit()
+        formatted_text = reformat_text(ai_generated_note_text, 3)
+        print(formatted_text)
 
-            print(f"Tweet added to spaced queue: {tweet_text}")
-            continue  # Skip to the next tweet
+        # Step 3 - Inset it into notes, and set the is_organic value of the note to false
+        insert_cmd = (
+            "INSERT INTO notes (note, is_published, created_at, updated_at, is_organic) "
+            "VALUES (%s, %s, %s, %s, %s)"
+        )
+        is_published = False
+        is_organic = False
+        created_at = updated_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+        cursor.execute(insert_cmd, (formatted_text, is_published, created_at, updated_at, is_organic))
+        conn.commit()
+        note_id = cursor.lastrowid
 
-        # add the previous tweet id to the payload if it's from the same note
-        if previous_tweet_id is not None and note_id == previous_note_id:
-            payload["reply"] = {"in_reply_to_tweet_id": previous_tweet_id}
-
-        # If it's a new note_id, look for a tweet in the 'tweets' table with the same note_id
-        elif note_id != previous_note_id:
-            cursor.execute("SELECT tweet_id FROM tweets WHERE note_id = %s ORDER BY posted_at DESC LIMIT 1", (note_id,))
-            result = cursor.fetchone()
-            if result is not None:  # If a tweet from the same note_id exists
-                payload["reply"] = {"in_reply_to_tweet_id": result[0]}  # reply to this tweet
-
-        time.sleep(1)
-        oauth = get_oauth_session()
-
-        response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
-
-        if response.status_code == 429:  # Rate limit exceeded
-            error_message = f"Rate limit exceeded. Queued tweets for {note_id} have not been posted"
-            print(error_message)
-            rate_limit_hit = True
-            error_logs.append(error_message)
-            break
-
-        if response.status_code != 201:
-            raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
-
-        json_response = response.json()
-
-        if 'data' in json_response:
-            # get the id of the tweet
-            tw_id = json_response['data']['id']
-
-            # Insert into the 'tweets' table
-            cursor.execute(
-                "INSERT INTO tweets (tweet, tweet_id, note_id, media_id) VALUES (%s, %s, %s, %s)",
-                (tweet_text, tw_id, note_id, media_id)
-            )
-            conn.commit()
-
-            # update previous_tweet_id
-            previous_tweet_id = tw_id
-
-            # update previous_note_id
-            previous_note_id = note_id
-
-            # If the tweet is successfully posted, delete it from the queue
-            cursor.execute("DELETE FROM queued_tweets WHERE id = %s", (tweet_id,))
-            conn.commit()
-
-            print(f"Tweeted and removed from queue: {tweet_text}")
-
+        # Step 4 - Use the tweet out note pipeline to tweet it out
+        generate_ai_image_for_ai_note(note_id)
+        tweet_out_ai_note(note_id)
+        
+    return
     # Update the job log entry with the final status
     if rate_limit_hit:
         cursor.execute(
@@ -169,6 +123,70 @@ def improvise_tweets():
         update_cmd = ("UPDATE notes SET is_published = 1 WHERE id = %s")
         cursor.execute(update_cmd, (note_id,))
     conn.commit()
+
+def get_completion(prompt):
+    
+    url = "https://api.openai.com/v1/chat/completions"
+    messages = [
+            {"role": "system", "content": "You are a helpful assistant."}, 
+            {"role": "user", "content": prompt}
+            ]
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OPEN_AI_API_KEY}",
+    }
+    data = {
+        "model": GPT_MODEL,
+        "messages": messages,
+    }
+    
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    
+    if response.status_code == 200:  # Check if the request was successful
+        response_content = response.json()  
+        assistant_message = response_content['choices'][0]['message']['content']
+        return assistant_message  # Returns the content of the assistant's message
+    else:
+        return f"API call failed with status code {response.status_code} and error: {response.text}"
+
+def reformat_text(text, min_paragraphs):
+    # combine all text into one paragraph
+    combined_text = text.replace("\n\n", " ").replace("\n", " ")
+
+    # split the combined text into sentences
+    sentences = combined_text.split('. ')
+
+    # Add the '.' back into each sentence except for the last one
+    sentences = [sentence + '.' for sentence in sentences[:-1]] + [sentences[-1]]
+
+    # combine sentences into new paragraphs of less than 280 characters
+    formatted_paragraphs = []
+    current_paragraph = ""
+    for sentence in sentences:
+        if len(current_paragraph) + len(sentence) + 7 > 280:  # +5 for prefix
+            formatted_paragraphs.append(current_paragraph.strip())
+            current_paragraph = sentence
+        else:
+            current_paragraph += " " + sentence
+
+    # don't forget the last paragraph
+    if current_paragraph:
+        formatted_paragraphs.append(current_paragraph.strip())
+
+    # if not enough paragraphs, split the longest one
+    while len(formatted_paragraphs) < min_paragraphs:
+        max_len_idx = max(range(len(formatted_paragraphs)), key=lambda index: len(formatted_paragraphs[index]))
+        long_paragraph = formatted_paragraphs.pop(max_len_idx)
+        half = len(long_paragraph) // 2
+        first_half = long_paragraph[:half].rsplit('. ', 1)[0] + '.'
+        second_half = long_paragraph[half:].lstrip()
+        formatted_paragraphs.extend([first_half, second_half])
+
+    total = len(formatted_paragraphs)
+    # add the prefix
+    formatted_paragraphs = ["{" + f"{i+1}/{total}" + "} " + para for i, para in enumerate(formatted_paragraphs)]
+
+    return '\n\n'.join(formatted_paragraphs)
 
 def get_oauth_session():
 
@@ -226,6 +244,327 @@ def get_oauth_session():
         )
 
     return oauth
+
+def generate_ai_image_for_ai_note(note_id):
+    
+    cursor = conn.cursor()
+
+    # Get the media_url before updating the note
+    cursor.execute("SELECT note, is_published, media_url FROM notes WHERE id = %s", (note_id,))
+    result = cursor.fetchone()
+
+    if result is not None:
+        note_text, is_published, old_media_url = result
+        if is_published == 1:
+            print(colored(f"Note id {note_id} not deleted. Please delete publications of note id {note_id} before adding/ updating media", 'red'))
+            return
+        paragraphs = note_text.split("\n\n")
+        first_paragraph = paragraphs[0]
+
+        if old_media_url is not None:
+            try:
+                # Delete old_media_url from cloud storage
+                url_path = urllib.parse.urlparse(old_media_url).path
+                split_path = url_path.split("/")
+                bucket_name = split_path[1]
+                blob_name = urllib.parse.unquote("/".join(split_path[2:]))
+
+                # Delete the file from Google Cloud Storage
+                storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
+                bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
+                blob = bucket.blob(blob_name)
+
+                blob.delete()
+            except:
+                print(f"Deletion of old media from cloud storage failed for note id {note_id}. Old media url is: {old_media_url}")
+
+        media_url = get_media_url_after_generating_image_and_uploading_to_cloud_storage(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {first_paragraph}", "256x256")
+        print()
+        print(colored(f"New media_url for note id {note_id} is: {media_url}", 'cyan'))
+        print()
+        # Update the media_url column of the row with new media_url
+        cursor.execute("UPDATE notes SET media_url = %s WHERE id = %s", (media_url, note_id))
+
+    conn.commit()
+    cursor.close()
+
+def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, size):
+
+    url = "https://api.openai.com/v1/images/generations"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OPEN_AI_API_KEY}"
+    }
+    data = {
+        "prompt": prompt,
+        "n": 1,
+        "size": size
+    }
+
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+
+    # Return the response data as JSON
+    response_data = response.json()
+
+    open_ai_media_url = response_data['data'][0]['url']
+
+    # Download the image from the URL
+    downloaded_image = requests.get(open_ai_media_url)
+
+    if downloaded_image.status_code != 200:
+        raise Exception("Failed to download image from URL: {} {}".format(downloaded_image.status_code, downloaded_image.text))
+
+    image_content = downloaded_image.content
+
+    # Upload the media to Google Cloud Storage
+    storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
+    bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
+    blob = bucket.blob(f"{prompt}_{size}.jpg")
+    blob.upload_from_string(
+        image_content,
+        content_type='image/jpeg'
+    )
+    media_url = blob.public_url
+
+    return media_url
+
+def tweet_out_ai_note(note_id):
+
+    cursor = conn.cursor()
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
+
+    inserted_tweets = []
+    media_url = None
+    media_id = None
+
+    select_cmd = ("SELECT note, media_url FROM notes WHERE id = %s")
+    cursor.execute(select_cmd, (note_id,))
+    note_result = cursor.fetchone()
+    note_text, media_url = note_result
+
+    paragraphs = note_text.split("\n\n")
+
+    cursor.execute("SELECT tweet FROM tweets")
+    previous_tweets = {row[0] for row in cursor.fetchall()}
+
+    cursor.execute("SELECT tweet FROM queued_tweets")
+    queued_tweets = {row[0] for row in cursor.fetchall()}
+
+    previous_tweet_id = None
+
+    latest_tweet_time = None
+    cursor.execute("SELECT MAX(posted_at) FROM tweets")
+    result = cursor.fetchone()
+    if result is not None and result[0] is not None:
+        latest_tweet_time = result[0]
+
+    latest_different_note_scheduled_time = None
+    cursor.execute("SELECT MAX(scheduled_at) FROM spaced_tweets WHERE note_id != %s", (note_id,))
+    result = cursor.fetchone()
+    if result is not None and result[0] is not None:
+        latest_different_note_scheduled_time = result[0]
+
+    rate_limit_hit = False
+
+    for i, paragraph in enumerate(paragraphs, 1):
+
+        if not paragraph.strip():
+            print(colored(f"Skipping empty paragraph {i}", 'red'))
+            if i == 1:
+                print(colored('You may have forgotten to save the note', 'red'))
+            continue
+
+        if len(paragraph) > 280:
+            print(colored(f"Paragraph {i} is longer than 280 characters by {len(paragraph) - 280} characters. Not tweeting anything", 'red'))
+            return
+
+        if paragraph in previous_tweets:
+            print(colored(f"Paragraph {i} has already been posted. Not tweeting anything", 'red'))
+            return
+
+        check_cmd = ("SELECT tweet FROM tweets WHERE tweet = %s")
+        cursor.execute(check_cmd, (paragraph,))
+        if cursor.fetchone() is not None:
+            print(colored(f"Paragraph {i} has already been posted", 'red'))
+            continue
+
+        if rate_limit_hit:
+            tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+            queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
+            cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
+            conn.commit()
+            print(colored(f"Paragraph {i} has been queued due to rate limit hit.", 'yellow'))
+            continue
+
+        payload = {"text": paragraph}
+
+        if previous_tweet_id is not None:
+            payload["reply"] = {"in_reply_to_tweet_id": previous_tweet_id}
+
+        time.sleep(1)
+        oauth = get_oauth_session()
+
+        if latest_tweet_time is not None:
+            if latest_tweet_time.tzinfo is None or latest_tweet_time.tzinfo.utcoffset(latest_tweet_time) is None:
+                latest_tweet_time = tz.localize(latest_tweet_time)
+            else:
+                latest_tweet_time = latest_tweet_time.astimezone(tz)
+
+        if latest_different_note_scheduled_time is not None:
+            if latest_different_note_scheduled_time.tzinfo is None or latest_different_note_scheduled_time.tzinfo.utcoffset(latest_different_note_scheduled_time) is None:
+                latest_different_note_scheduled_time = tz.localize(latest_different_note_scheduled_time)
+            else:
+                latest_different_note_scheduled_time = latest_different_note_scheduled_time.astimezone(tz)
+
+        if i == 1:
+            media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "256x256", media_url)
+
+            # Access the image URL and media ID
+            media_url = media_info["media_url"]
+            media_id = media_info["media_id"]
+            payload["media"] = {"media_ids": [media_id]}
+
+            update_cmd = ("UPDATE notes SET media_url = %s WHERE id = %s")
+            cursor.execute(update_cmd, (media_url, note_id))
+            conn.commit()
+        else:
+            media_url = None
+            media_id = None
+
+        latest_time = max(filter(None, [datetime.datetime.now(tz), latest_tweet_time, latest_different_note_scheduled_time]))
+        latest_same_note_scheduling_time = None
+        cursor.execute("SELECT MAX(scheduled_at) FROM spaced_tweets WHERE note_id = %s", (note_id,))
+        result = cursor.fetchone()
+        if result is not None and result[0] is not None:
+            latest_same_note_scheduling_time = result[0]
+
+        if latest_same_note_scheduling_time is not None:
+            if latest_same_note_scheduling_time.tzinfo is None or latest_same_note_scheduling_time.tzinfo.utcoffset(latest_same_note_scheduling_time) is None:
+                latest_same_note_scheduling_time = tz.localize(latest_same_note_scheduling_time)
+            else:
+                latest_same_note_scheduling_time = latest_same_note_scheduling_time.astimezone(tz)
+
+        if latest_different_note_scheduled_time is None and latest_same_note_scheduling_time is None:
+            scheduled_at = latest_tweet_time + datetime.timedelta(hours=TWITTER_NOTE_SPACING)
+        elif latest_same_note_scheduling_time is not None:
+            scheduled_at = latest_same_note_scheduling_time + datetime.timedelta(seconds=1)
+        elif latest_different_note_scheduled_time is not None:
+            scheduled_at = latest_different_note_scheduled_time + datetime.timedelta(hours=TWITTER_NOTE_SPACING)
+
+
+        # Insert into spaced_tweets only if (a) there are scheduled tweets for the same note_id; or (b) there are no scheduled tweets for the same note_id but there are tweets posted with the last TWITTER_NOTE_SPACING hours:
+        hours_since_latest_tweet = (datetime.datetime.now(tz) - latest_tweet_time).total_seconds() / 3600
+        if ((datetime.datetime.now(tz) < scheduled_at and latest_different_note_scheduled_time is not None) or
+           (latest_different_note_scheduled_time is None and hours_since_latest_tweet < TWITTER_NOTE_SPACING)):
+            cursor.execute("INSERT INTO spaced_tweets (note_id, tweet, scheduled_at, media_id) VALUES (%s, %s, %s, %s)", (note_id, paragraph, scheduled_at, media_id))
+            conn.commit()
+            print(colored(f"Paragraph {i} has been scheduled for a future tweet.", 'yellow'))
+            continue
+        else:
+            response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
+            if response.status_code == 429:  # Rate limit exceeded
+                print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow'))
+                tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+                queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at, media_id) VALUES (%s, %s, %s, %s)")
+                cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at, media_id))
+                conn.commit()
+                rate_limit_hit = True
+                continue
+
+            if response.status_code != 201:
+                raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
+
+            json_response = response.json()
+
+            if 'data' in json_response:
+                tweet_id = json_response['data']['id']
+                previous_tweet_id = tweet_id
+                posted_at = datetime.datetime.now(tz)
+                insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id, media_id) VALUES (%s, %s, %s, %s, %s)")
+                cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id, media_id))
+                conn.commit()
+
+                inserted_tweets.append({
+                    'tweet': paragraph,
+                    'tweet_id': tweet_id,
+                    'posted_at': posted_at,
+                    'note_id': note_id,
+                    'media_id':media_id,
+                })
+
+    if inserted_tweets:
+        published_at = datetime.datetime.now(tz)
+        print(published_at)
+        print(media_url)
+        print(note_id)
+
+        # Mark the note as published after all its paragraphs have been successfully tweeted
+        update_cmd = ("UPDATE notes SET is_published = 1, published_at = %s, media_url = %s WHERE id = %s")
+        cursor.execute(update_cmd, (published_at, media_url, note_id,))
+        conn.commit()
+        df = pd.DataFrame(inserted_tweets)
+        df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
+
+        print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
+
+    cursor.close()
+
+def get_media_id_after_generating_image_and_uploading_to_twitter(prompt, size, media_url: str = None):
+
+    if media_url is None:
+
+        url = "https://api.openai.com/v1/images/generations"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPEN_AI_API_KEY}"
+        }
+        data = {
+            "prompt": prompt,
+            "n": 1,
+            "size": size
+        }
+
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+
+        # Return the response data as JSON
+        response_data = response.json()
+
+        media_url = response_data['data'][0]['url']
+
+    # Download the image from the URL
+    downloaded_image = requests.get(media_url)
+
+    if downloaded_image.status_code != 200:
+        raise Exception("Failed to download image from URL: {} {}".format(downloaded_image.status_code, downloaded_image.text))
+
+    image_content = downloaded_image.content
+
+    # Upload the media to Google Cloud Storage
+    storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
+    bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
+    blob = bucket.blob(f"{prompt}_{size}.jpg")
+    blob.upload_from_string(
+        image_content,
+        content_type='image/jpeg'
+    )
+    print(f"Image uploaded to {blob.public_url}")
+    media_url = blob.public_url
+
+    base64_image_content = base64.b64encode(image_content).decode('utf-8')
+
+    # Upload the media to Twitter
+    media_upload_url = "https://upload.twitter.com/1.1/media/upload.json"
+
+    oauth = get_oauth_session()
+    image_upload_response = oauth.post(media_upload_url, data={"media_data": base64_image_content})
+
+    if image_upload_response.status_code == 200:
+        json_image_upload_response = image_upload_response.json()
+        print(json_image_upload_response)
+        media_id = json_image_upload_response["media_id_string"]
+        return {"media_url": media_url, "media_id": media_id}
+    else:
+        print(colored('Image upload to twitter failed','red'))
 
 
 if __name__ == '__main__':

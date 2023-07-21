@@ -348,10 +348,12 @@ def fn_tweet_out_note(called_function_arguments_dict):
                         'media_id':media_id,
                     })
 
-        if inserted_tweets: 
+        if inserted_tweets:
+            published_at = datetime.datetime.now(tz)
+
             # Mark the note as published after all its paragraphs have been successfully tweeted
-            update_cmd = ("UPDATE notes SET is_published = 1, media_url = %s WHERE id = %s")
-            cursor.execute(update_cmd, (media_url, note_id,))
+            update_cmd = ("UPDATE notes SET is_published = 1, published_at = %s, media_url = %s WHERE id = %s")
+            cursor.execute(update_cmd, (published_at, media_url, note_id,))
             conn.commit() 
             df = pd.DataFrame(inserted_tweets)
             df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
