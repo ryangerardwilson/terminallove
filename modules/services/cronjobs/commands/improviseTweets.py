@@ -134,6 +134,15 @@ def improvise_tweets():
                 "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
                 ("improviseTweets.py", json.dumps(error_logs), log_id)
             )
+    else:
+        print('Too soon to imrpovise')
+        cursor.execute(
+             "UPDATE cronjob_logs SET job_description = %s WHERE id = %s",
+             ("improviseTweets.py", log_id)
+        )
+        update_cmd = ("UPDATE notes SET is_published = 1 WHERE id = %s")
+        cursor.execute(update_cmd, (note_id,))
+
     conn.commit()
 
 def get_completion(prompt):
@@ -175,7 +184,7 @@ def reformat_text(text, min_paragraphs):
     formatted_paragraphs = []
     current_paragraph = ""
     for sentence in sentences:
-        if len(current_paragraph) + len(sentence) + 7 > 280:  # +5 for prefix
+        if len(current_paragraph) + len(sentence) + 10 > 280:  # +5 for prefix
             formatted_paragraphs.append(current_paragraph.strip())
             current_paragraph = sentence
         else:
@@ -443,66 +452,36 @@ def tweet_out_ai_note(note_id):
             media_url = None
             media_id = None
 
-        latest_time = max(filter(None, [datetime.datetime.now(tz), latest_tweet_time, latest_different_note_scheduled_time]))
-        latest_same_note_scheduling_time = None
-        cursor.execute("SELECT MAX(scheduled_at) FROM spaced_tweets WHERE note_id = %s", (note_id,))
-        result = cursor.fetchone()
-        if result is not None and result[0] is not None:
-            latest_same_note_scheduling_time = result[0]
-
-        if latest_same_note_scheduling_time is not None:
-            if latest_same_note_scheduling_time.tzinfo is None or latest_same_note_scheduling_time.tzinfo.utcoffset(latest_same_note_scheduling_time) is None:
-                latest_same_note_scheduling_time = tz.localize(latest_same_note_scheduling_time)
-            else:
-                latest_same_note_scheduling_time = latest_same_note_scheduling_time.astimezone(tz)
-
-        if latest_different_note_scheduled_time is None and latest_same_note_scheduling_time is None:
-            scheduled_at = latest_tweet_time + datetime.timedelta(hours=TWITTER_NOTE_SPACING)
-        elif latest_same_note_scheduling_time is not None:
-            scheduled_at = latest_same_note_scheduling_time + datetime.timedelta(seconds=1)
-        elif latest_different_note_scheduled_time is not None:
-            scheduled_at = latest_different_note_scheduled_time + datetime.timedelta(hours=TWITTER_NOTE_SPACING)
-
-
-        # Insert into spaced_tweets only if (a) there are scheduled tweets for the same note_id; or (b) there are no scheduled tweets for the same note_id but there are tweets posted with the last TWITTER_NOTE_SPACING hours:
-        hours_since_latest_tweet = (datetime.datetime.now(tz) - latest_tweet_time).total_seconds() / 3600
-        if ((datetime.datetime.now(tz) < scheduled_at and latest_different_note_scheduled_time is not None) or
-           (latest_different_note_scheduled_time is None and hours_since_latest_tweet < TWITTER_NOTE_SPACING)):
-            cursor.execute("INSERT INTO spaced_tweets (note_id, tweet, scheduled_at, media_id) VALUES (%s, %s, %s, %s)", (note_id, paragraph, scheduled_at, media_id))
+        response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
+        if response.status_code == 429:  # Rate limit exceeded
+            print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow'))
+            tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+            queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at, media_id) VALUES (%s, %s, %s, %s)")
+            cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at, media_id))
             conn.commit()
-            print(colored(f"Paragraph {i} has been scheduled for a future tweet.", 'yellow'))
+            rate_limit_hit = True
             continue
-        else:
-            response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
-            if response.status_code == 429:  # Rate limit exceeded
-                print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow'))
-                tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
-                queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at, media_id) VALUES (%s, %s, %s, %s)")
-                cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at, media_id))
-                conn.commit()
-                rate_limit_hit = True
-                continue
 
-            if response.status_code != 201:
-                raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
+        if response.status_code != 201:
+            raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
 
-            json_response = response.json()
+        json_response = response.json()
 
-            if 'data' in json_response:
-                tweet_id = json_response['data']['id']
-                previous_tweet_id = tweet_id
-                posted_at = datetime.datetime.now(tz)
-                insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id, media_id) VALUES (%s, %s, %s, %s, %s)")
-                cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id, media_id))
-                conn.commit()
+        if 'data' in json_response:
+            tweet_id = json_response['data']['id']
+            previous_tweet_id = tweet_id
+            posted_at = datetime.datetime.now(tz)
+            insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id, media_id) VALUES (%s, %s, %s, %s, %s)")
+            cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id, media_id))
+            conn.commit()
 
-                inserted_tweets.append({
-                    'tweet': paragraph,
-                    'tweet_id': tweet_id,
-                    'posted_at': posted_at,
-                    'note_id': note_id,
-                    'media_id':media_id,
-                })
+            inserted_tweets.append({
+                'tweet': paragraph,
+                'tweet_id': tweet_id,
+                'posted_at': posted_at,
+                'note_id': note_id,
+                'media_id':media_id,
+            })
 
     if inserted_tweets:
         published_at = datetime.datetime.now(tz)
