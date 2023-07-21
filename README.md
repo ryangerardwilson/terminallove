@@ -344,7 +344,7 @@ STEP IV - CREATE A VIRTUAL ENVIRONMENT AND INSTALL PYTHON PACKAGES VIA PIP
 ```
     python3 -m venv botvenv
     source botvenv/bin/activate
-    pip3 install termcolor tabulate pandas aiohttp mysql-connector-python python-dotenv plotext requests_oauthlib python-crontab base64 pytz os subprocess requests google-cloud-storage
+    pip install aiohttp aiosignal async-timeout attrs cachetools certifi charset-normalizer frozenlist google-api-core google-auth google-cloud-core google-cloud-storage google-crc32c google-resumable-media googleapis-common-protos idna multidict mysql-connector-python numpy oauthlib pandas plotext protobuf pyasn1 pyasn1-modules python-crontab python-dateutil python-dotenv pytz requests requests-oauthlib rsa setuptools six tabulate termcolor tzdata urllib3 yarl
     deactivate
 ```
 
