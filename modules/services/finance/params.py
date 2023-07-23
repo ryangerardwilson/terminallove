@@ -22,6 +22,21 @@ days_left_in_current_month = days_in_current_month - now.day
 last_day_of_current_year = datetime.datetime(now.year, 12, 31, tzinfo=tz)
 days_left_in_current_year = (last_day_of_current_year - now).days
 
+list_functions = {
+    "name": "list_functions",
+    "description": "Lists functions in the module",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "connection": {
+                "type": "string",
+                "enum": ["Listing functions from Finance module"]
+            },
+        },
+        "required": []
+    }
+}
+
 list_expense_logging_params = {
     "name": "list_expense_logging_params",
     "description": "Lists the parameters required to log an expense",
@@ -211,7 +226,7 @@ delete_expenses_by_ids = {
 
 display_expenses_line_chart = {
     "name": "display_expenses_line_chart",
-    "description": "Plots an ascii line chart of the users expenses",
+    "description": "Plots a line chart of the users expenses",
     "parameters": {
         "type": "object",
         "properties": {
@@ -448,7 +463,7 @@ delete_debt_status_logs_by_ids = {
 
 display_debt_status_logs_line_chart = {
     "name": "display_debt_status_logs_line_chart",
-    "description": "Plots an ascii line chart of the status of the debt with a specific id over the given range of days",
+    "description": "Plots a line chart of the status of a specific debt id over the given range of days",
     "parameters": {
         "type": "object",
         "properties": {

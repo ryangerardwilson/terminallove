@@ -14,7 +14,6 @@ from modules.services.notes.params import *
 from modules.services.cronjobs.params import *
 from modules.services.blogposts.params import *
 
-
 from modules.services.finance.functions import *
 from modules.services.time.functions import *
 from modules.services.goals.functions import *
@@ -118,6 +117,7 @@ async def main(
 
         if preliminary_classification_function_info['function_name'] == 'invoke_finance_module':
             functions =[
+                list_functions,
                 list_expense_logging_params,
                 log_expenses,
                 log_debt_repayment,
@@ -297,6 +297,10 @@ async def main(
 
             # Mapping functions that do not require arguments
             functions_without_args = {
+                # Functions with common names across multiple modules
+                'list_functions': fn_list_functions,
+
+                # Functions with module specific names
                 'list_expense_logging_params': fn_list_expense_logging_params,
                 'recalculate_debts': fn_recalculate_debts,
                 'list_debts': fn_list_debts,

@@ -25,6 +25,100 @@ conn = mysql.connector.connect(
 PRIMARY_CREDIT_CARD_INTEREST_COEFFICIENT_AGAINST_NEW_EXPENSES = os.getenv('PRIMARY_CREDIT_CARD_INTEREST_COEFFICIENT_AGAINST_NEW_EXPENSES')
 DEFAULT_DEBT_ID_FOR_PRIMARY_CREDIT_CARD = os.getenv('DEFAULT_DEBT_ID_FOR_PRIMARY_CREDIT_CARD')
 
+def fn_list_functions():
+
+    functions = [
+        {
+            "function": "list_functions",
+            "description": "Lists functions in the module",
+        },
+        {
+            "function": "list_expense_logging_params",
+            "description": "Lists parameters required to log an expense",
+        },
+        {
+            "function": "log_expenses",
+            "description": "Log the user's expenses",
+        },
+        {
+            "function": "log_debt_repayment",
+            "description": "Log the user's debt repayments",
+        },
+        {
+            "function": "list_expenses",
+            "description": "Lists the user's expenses",
+        },
+        {
+            "function": "update_expense_by_id",
+            "description": "Updates an expense by its id",
+        },
+        {
+            "function": "delete_expenses_by_ids",
+            "description": "Delete expenses by their ids",
+        },
+        {
+            "function": "display_expenses_line_chart",
+            "description": "PLots a line chart of the user's expenses",
+        },
+        {
+            "function": "log_debts",
+            "description": "Logs the user's debt",
+        },
+        {
+            "function": "insert_debt_status_log",
+            "description": "Insert a debt status log against a debt id",
+        },
+        {
+            "function": "recalculate_debts",
+            "description": "Recalculates the outstanding amount of the user's debts",
+        },
+        {
+            "function": "list_debts",
+            "description": "Lists the user's debts",
+        },
+        {
+            "function": "list_debt_status_logs",
+            "description": "Lists the status logs against a given debt id showing how much the total and outstanding have changed over time",
+        },
+        {
+            "function": "update_debt_by_id",
+            "description": "Update a debt by its ids",
+        },
+        {
+            "function": "update_debt_status_log_by_id",
+            "description": "Update a debt status log by its id",
+        },
+        {
+            "function": "delete_debts_by_ids",
+            "description": "Delete debts by their ids",
+        },
+        {
+            "function": "delete_debt_status_logs_by_ids",
+            "description": "Delete debt status logs by their ids. Unlike delete_debts_by_ids, this function deletes status logs of debts",
+        },
+        {
+            "function": "display_debt_status_logs_line_chart",
+            "description": "Plots a line chart of the status of a specific debt id over a given range of days",
+        },
+        # Add more entries here, each as a separate dictionary
+    ]
+
+    # Convert the passwords to a list of lists
+    rows = [
+        [index + 1, entry["function"], entry["description"]]
+        for index, entry in enumerate(functions)
+    ]
+
+    # Column names
+    column_names = ["", "function", "description"]
+
+    # Print the passwords in tabular form
+    print()
+    print(colored('FINANCE MODULE FUNCTIONS', 'red'))
+    print()
+    print(colored(tabulate(rows, headers=column_names), 'cyan'))
+    print()
+
 def fn_list_expense_logging_params():
     print(colored('The following parameters are required:', 'cyan'))
     print(colored('1.  value', 'cyan'))
