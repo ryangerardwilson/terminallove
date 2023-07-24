@@ -108,6 +108,8 @@ async def main(
         
         if preliminary_classification_function_info['function_name'] == 'invoke_cronjobs_module':
             functions =[
+                list_functions,
+                inspect_cronjob_logs_by_id,
                 list_cronjobs,
                 list_cronjob_logs,
                 clear_cronjob_logs,
@@ -198,6 +200,8 @@ async def main(
 
         if preliminary_classification_function_info['function_name'] == 'invoke_twitter_module':
             functions = [
+                list_functions,
+                list_rate_limits,
                 list_tweets,
                 list_queued_tweets,
                 list_spaced_tweets,
@@ -214,7 +218,6 @@ async def main(
             ]
 
         if preliminary_classification_function_info['function_name'] == 'invoke_blogposts_module':
-            print('YOYOYO')
             functions = [
                 list_blogposts,
                 post_note_to_blog,
@@ -293,6 +296,7 @@ async def main(
                 'delete_spaced_tweets_by_note_ids': fn_delete_spaced_tweets_by_note_ids,
                 'add_or_update_media_to_notes_by_ids': fn_add_or_update_media_to_notes_by_ids,
                 'list_cronjob_logs': fn_list_cronjob_logs,
+                'inspect_cronjob_logs_by_id': fn_inspect_cronjob_logs_by_id,
             }
 
             # Mapping functions that do not require arguments
@@ -314,6 +318,7 @@ async def main(
                 'open_most_recently_edited_note': fn_open_most_recently_edited_note,
                 'save_and_close_notes': fn_save_and_close_notes,
                 'delete_local_note_cache': fn_delete_local_note_cache,
+                'list_rate_limits': fn_list_rate_limits,
                 'activate_cronjobs': fn_activate_cronjobs,
                 'deactivate_cronjobs': fn_deactivate_cronjobs,
                 'list_cronjobs': fn_list_cronjobs,

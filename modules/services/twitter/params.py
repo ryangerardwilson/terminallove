@@ -13,6 +13,35 @@ tz=pytz.timezone(TIMEZONE)
 now = datetime.datetime.now(tz)
 today = now.strftime('%Y-%m-%d %H:%M:%S')
 
+list_functions = {
+    "name": "list_functions",
+    "description": "Lists functions in the module",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "connection": {
+                "type": "string",
+                "enum": ["Listing functions from Twitter module"]
+            },
+        },
+        "required": []
+    }
+}
+
+list_rate_limits = {
+    "name": "list_rate_limits",
+    "description": "Lists Twitter rate limits",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "connection": {
+                "type": "string",
+                "enum": ["Listing Twitter rate limits"]
+            },
+        },
+        "required": []
+    }
+}
 
 list_tweets = {
   "name": "list_tweets",
@@ -76,7 +105,7 @@ tweet_out_note = {
 
 schedule_tweet = {
   "name": "schedule_tweet",
-  "description": "Schedule the tweet the note prepared by the user to be tweeted on a late date",
+  "description": "Schedules the tweeting of the note prepared by the user to a late date",
   "parameters": {
     "type": "object",
     "properties": {
@@ -176,7 +205,7 @@ delete_queued_tweets_by_note_ids = {
 
 delete_spaced_tweets_by_ids = {
   "name": "delete_spaced_tweets_by_ids",
-  "description": "Deletes spaced tweets by their ids",
+  "description": "Deletes spaced/ scheduled tweets by their ids",
   "parameters": {
     "type": "object",
     "properties": {
@@ -192,7 +221,7 @@ delete_spaced_tweets_by_ids = {
 
 delete_spaced_tweets_by_note_ids = {
   "name": "delete_spaced_tweets_by_note_ids",
-  "description": "Deletes spaced tweets by their note ids",
+  "description": "Deletes spaced/ scheduled tweets by their note ids",
   "parameters": {
     "type": "object",
     "properties": {

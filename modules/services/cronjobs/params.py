@@ -13,17 +13,47 @@ tz=pytz.timezone(TIMEZONE)
 now = datetime.datetime.now(tz)
 today = now.strftime('%Y-%m-%d %H:%M:%S')
 
+list_functions = {
+    "name": "list_functions",
+    "description": "Lists functions in the module",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "connection": {
+                "type": "string",
+                "enum": ["Listing functions from Twitter module"]
+            },
+        },
+        "required": []
+    }
+}
+
+inspect_cronjob_logs_by_id = {
+  "name": "inspect_cronjob_logs_by_id",
+  "description": "Inspects cron job logs by id",
+  "parameters": {
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "The id of the cron job log"
+        },
+     },
+    "required": ["id"]
+  }
+}
+
 list_cronjobs = {
   "name": "list_cronjobs",
   "description": "Lists the user's cronjobs",
   "parameters": {
     "type": "object",
     "properties": {
-      "connection": {
-        "type": "string",
-        "enum": ["Listing cronjobs"]
-       },
-     },
+        "connection": {
+            "type": "string",
+            "enum": ["Listing functions from Twitter module"]
+        },
+    },
     "required": []
   }
 }

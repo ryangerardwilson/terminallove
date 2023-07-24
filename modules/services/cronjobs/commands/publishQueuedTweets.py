@@ -11,6 +11,8 @@ import time
 from requests_oauthlib import OAuth1Session
 import json
 import pytz
+import requests
+import base64
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
@@ -64,11 +66,6 @@ def publish_queued_tweets():
         i += 1
         tweet_id, tweet_text, note_id, media_id = tweet
 
-        if media_id is not None:
-            payload = {"text": tweet_text, "media": {"media_ids": [media_id]}}
-        else:
-            payload = {"text": tweet_text}
-
         # check if any tweet has been posted in the last TWITTER_NOTE_SPACING  hours for the same note_id
         cursor.execute(
             "SELECT posted_at FROM tweets WHERE note_id = %s AND posted_at > %s ORDER BY posted_at DESC LIMIT 1",
@@ -91,6 +88,18 @@ def publish_queued_tweets():
             print(f"Tweet added to spaced queue: {tweet_text}")
             continue  # Skip to the next tweet
 
+        if media_id is not None:
+            # Select media_url for the current note_id from notes table
+            cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
+            result = cursor.fetchone()
+
+            media_url = result[0]
+            media_id = get_media_id_after_reuploading_to_twitter(media_url)
+            payload = {"text": tweet_text, "media": {"media_ids": [media_id]}}
+        else:
+            payload = {"text": tweet_text}
+
+
         # add the previous tweet id to the payload if it's from the same note
         if previous_tweet_id is not None and note_id == previous_note_id:
             payload["reply"] = {"in_reply_to_tweet_id": previous_tweet_id}
@@ -106,16 +115,27 @@ def publish_queued_tweets():
         oauth = get_oauth_session()
 
         response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
+        
+        try:
+            if response.status_code == 429:  # Rate limit exceeded
+                rate_limit_limit = response.headers.get('x-rate-limit-limit')
+                rate_limit_remaining = response.headers.get('x-rate-limit-remaining')
+                rate_limit_reset = response.headers.get('x-rate-limit-reset')
 
-        if response.status_code == 429:  # Rate limit exceeded
-            error_message = f"Rate limit exceeded. Queued tweets for {note_id} have not been posted"
-            print(error_message)
-            rate_limit_hit = True
-            error_logs.append(error_message)
-            break
+                rate_limit_reset_date = datetime.datetime.utcfromtimestamp(int(rate_limit_reset))
+                rate_limit_reset_date = rate_limit_reset_date.replace(tzinfo=pytz.utc).astimezone(tz)
 
-        if response.status_code != 201:
-            raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
+                error_message = f"Rate limit exceeded. Queued tweets for {note_id} have not been posted. Rate limit ceiling: {rate_limit_limit}, rate limit remaining: {rate_limit_remaining}, rate limit reset: {rate_limit_reset_date}"
+                rate_limit_hit = True
+                error_logs.append(error_message)
+
+            if response.status_code != 201:
+                raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
+
+        except Exception as e:
+            error_logs.append(str(e))
+
+
 
         json_response = response.json()
 
@@ -215,6 +235,31 @@ def get_oauth_session():
 
     return oauth
 
+
+def get_media_id_after_reuploading_to_twitter(media_url):
+
+    # Download the image from the URL
+    downloaded_image = requests.get(media_url)
+
+    if downloaded_image.status_code != 200:
+        raise Exception("Failed to download image from URL: {} {}".format(downloaded_image.status_code, downloaded_image.text))
+
+    image_content = downloaded_image.content
+    base64_image_content = base64.b64encode(image_content).decode('utf-8')
+
+    # Upload the media to Twitter
+    media_upload_url = "https://upload.twitter.com/1.1/media/upload.json"
+
+    oauth = get_oauth_session()
+    image_upload_response = oauth.post(media_upload_url, data={"media_data": base64_image_content})
+
+    if image_upload_response.status_code == 200:
+        json_image_upload_response = image_upload_response.json()
+        print(json_image_upload_response)
+        media_id = json_image_upload_response["media_id_string"]
+        return media_id
+    else:
+        print(colored('Image upload to twitter failed','red'))
 
 if __name__ == '__main__':
     publish_queued_tweets()

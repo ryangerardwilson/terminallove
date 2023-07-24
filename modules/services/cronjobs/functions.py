@@ -33,6 +33,101 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
+def fn_list_functions():
+    functions = [
+            {
+                "function": "inspect_cronjob_logs_by_id",
+                "description": "Inspects cron job logs by id",
+            },
+            {
+                "function": "list_cronjobs",
+                "description": "Lists the user's cronjobs",
+            },
+            {
+                "function": "list_cronjob_logs",
+                "description": "Lists the user's cronjob logs",
+            },
+            {
+                "function": "clear_cronjob_logs",
+                "description": "Clears, deletes, truncates the user's cronjob logs",
+            },
+            {
+                "function": "activate_cronjobs",
+                "description": "Activates the user's cronjobs",
+            },
+            {
+                "function": "deactivate_cronjobs",
+                "description": "Deactivates the user's cronjobs",
+            },
+        ]
+        # Convert the passwords to a list of lists
+    rows = [
+        [index + 1, entry["function"], entry["description"]]
+        for index, entry in enumerate(functions)
+    ]
+
+    # Column names
+    column_names = ["", "function", "description"]
+
+    # Print the passwords in tabular form
+    print()
+    print(colored('CRONJOBS MODULE FUNCTIONS', 'red'))
+    print()
+    print(colored(tabulate(rows, headers=column_names), 'cyan'))
+    print()
+
+def fn_inspect_cronjob_logs_by_id(called_function_arguments_dict):
+    cursor = conn.cursor()
+    id = int(called_function_arguments_dict.get('id', 0))
+
+    if id != 0:
+        query = "SELECT * FROM cronjob_logs WHERE id=%s"
+        cursor.execute(query, (id,))
+        
+        # Fetch all columns
+        columns = [col[0] for col in cursor.description]
+
+        # Fetch the row
+        row = cursor.fetchone()
+        
+        if row is None:
+            print(colored("No result found", 'cyan'))
+            return
+        
+        result = dict(zip(columns, row))
+
+        # Convert 'value' to int if it's present
+        if 'value' in result:
+            result['value'] = int(result['value'])
+
+        # Convert executed_at to IST
+        if 'executed_at' in result:
+            ist = pytz.timezone('Asia/Kolkata')
+            result['executed_at'] = result['executed_at'].replace(tzinfo=pytz.utc).astimezone(ist)
+
+        # If error_logs is present and is JSON, parse it and pretty print it
+        if 'error_logs' in result:
+            try:
+                error_logs = json.loads(result['error_logs'])
+                result['error_logs'] = json.dumps(error_logs, indent=4)
+            except json.JSONDecodeError:
+                pass
+
+        # Close the cursor but keep the connection open if it's needed elsewhere
+        cursor.close()
+
+        # Print the heading
+        heading = f"CRONJOB LOG DETAIL FOR ID {id}"
+        print()
+        print(colored(heading, 'cyan'))
+
+        # Print each item of the result
+        for key, value in result.items():
+            print(colored(f"{key}: {value}", 'cyan'))
+
+    else:
+        print(colored("Please provide a valid ID", 'red'))
+
 def fn_list_cronjobs():
     print(colored('Listing cronjobs', 'cyan'))
     with CronTab(user=getpass.getuser()) as cron:

@@ -78,8 +78,14 @@ def publish_spaced_tweets():
         response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
 
         if response.status_code == 429 and i == 1:  # Rate limit exceeded
-            error_message = f"Rate limit exceeded. Spaced tweets for {note_id} have not been posted"
-            print(error_message)
+            rate_limit_limit = response.headers.get('x-rate-limit-limit')
+            rate_limit_remaining = response.headers.get('x-rate-limit-remaining')
+            rate_limit_reset = response.headers.get('x-rate-limit-reset')
+
+            rate_limit_reset_date = datetime.datetime.utcfromtimestamp(int(rate_limit_reset))
+            rate_limit_reset_date = rate_limit_reset_date.replace(tzinfo=pytz.utc).astimezone(tz)
+
+            error_message = f"Rate limit exceeded. Spaced tweets for {note_id} have not been posted. Rate limit ceiling: {rate_limit_limit}, rate limit remaining: {rate_limit_remaining}, rate limit reset: {rate_limit_reset_date}"
             rate_limit_hit = True
             error_logs.append(error_message)
             continue  # Skip to the next tweet

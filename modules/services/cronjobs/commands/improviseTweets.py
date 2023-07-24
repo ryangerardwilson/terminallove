@@ -148,6 +148,11 @@ def improvise_tweets():
              ("improviseTweets.py", log_id)
         )
 
+    if rate_limit_hit:
+        cursor.execute(
+            "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
+            ("improviseTweets.py", json.dumps(error_logs), log_id)
+        )
     conn.commit()
 
 def get_completion(prompt):
@@ -433,7 +438,16 @@ def tweet_out_ai_note(note_id):
         print('433')
         response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
         if response.status_code == 429:  # Rate limit exceeded
-            print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow'))
+            rate_limit_limit = response.headers.get('x-rate-limit-limit')
+            rate_limit_remaining = response.headers.get('x-rate-limit-remaining')
+            rate_limit_reset = response.headers.get('x-rate-limit-reset')
+
+            rate_limit_reset_date = datetime.datetime.utcfromtimestamp(int(rate_limit_reset))
+            rate_limit_reset_date = rate_limit_reset_date.replace(tzinfo=pytz.utc).astimezone(tz)
+
+            error_message = f"Rate limit exceeded. Improvised tweets have been queued. Rate limit ceiling: {rate_limit_limit}, rate limit remaining: {rate_limit_remaining}, rate limit reset: {rate_limit_reset_date}"
+            rate_limit_hit = True
+            error_logs.append(error_message)
             tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
             queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at, media_id) VALUES (%s, %s, %s, %s)")
             cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at, media_id))

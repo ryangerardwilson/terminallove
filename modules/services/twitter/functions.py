@@ -44,6 +44,103 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
+def fn_list_functions():
+
+    functions = [
+            {
+                "function": "list_tweets",
+                "description": "Lists the user's tweets",
+            },
+            {
+                "function": "list_rate_limits",
+                "description": "Lists Twitter rate limits",
+            },
+
+            {
+                "function": "list_queued_tweets",
+                "description": "Lists the user's queued tweets",
+            },
+            {
+                "function": "list_spaced_tweets",
+                "description": "Lists the user's scheduled tweets, also known as spaced tweets",
+            },
+            {
+                "function": "tweet_out_note",
+                "description": "Tweets the note prepared by the user by its ids",
+            },
+            {
+                "function": "schedule_tweet",
+                "description": "Schedules the tweeting of the note prepared by the user to a later date",
+            },
+            {
+                "function": "edit_tweet",
+                "description": "Edits the user's tweet",
+            },
+            {
+                "function": "delete_tweets_by_ids",
+                "description": "Deletes tweets by their ids",
+            },
+            {
+                "function": "delete_tweets_by_note_ids",
+                "description": "Deletes tweets by their note ids",
+            },
+            {
+                "function": "delete_queued_tweets_by_ids",
+                "description": "Deletes queued tweets by their ids",
+            },
+            {
+                "function": "delete_queued_tweets_by_note_ids",
+                "description": "Deletes queued tweets by their note ids",
+            },
+            {
+                "function": "delete_spaced_tweets_by_ids",
+                "description": "Deletes spaced/ scheduled tweets by their ids",
+            },        
+            {
+                "function": "delets_spaced_tweets_by_their_note_ids",
+                "description": "Deletes spaced/ scheduled tweets by their note ids",
+            },
+            
+        ]
+        # Convert the passwords to a list of lists
+    rows = [
+        [index + 1, entry["function"], entry["description"]]
+        for index, entry in enumerate(functions)
+    ]
+
+    # Column names
+    column_names = ["", "function", "description"]
+
+    # Print the passwords in tabular form
+    print()
+    print(colored('TWITTER MODULE FUNCTIONS', 'red'))
+    print()
+    print(colored(tabulate(rows, headers=column_names), 'cyan'))
+    print()
+
+def fn_list_rate_limits():
+    oauth = get_oauth_session() # this function should return an OAuth1Session or OAuth2Session instance
+    
+    url = "https://api.twitter.com/2/tweets/"
+
+    paragraph = ''
+    payload = {"text": paragraph}
+    response = oauth.post(url, json=payload)
+
+    print(colored(f"https://api.twitter.com/2/tweets/ endpoint response status code for blank tweet: {response.status_code}",'cyan'))
+
+    rate_limit_limit = response.headers.get('x-rate-limit-limit')
+    rate_limit_remaining = response.headers.get('x-rate-limit-remaining')
+    rate_limit_reset = response.headers.get('x-rate-limit-reset')
+
+    rate_limit_reset_date = datetime.datetime.utcfromtimestamp(int(rate_limit_reset))
+    rate_limit_reset_date = rate_limit_reset_date.replace(tzinfo=pytz.utc).astimezone(tz)
+
+    print(colored(f"rate limit ceiling: {rate_limit_limit}",'cyan'))
+    print(colored(f"rate limit remaining: {rate_limit_remaining}",'cyan'))
+    print(colored(f"rate limit reset: {rate_limit_reset_date}",'cyan'))
+
+
 def fn_list_tweets(called_function_arguments_dict):
 
     cursor = conn.cursor()
@@ -492,8 +589,6 @@ def fn_delete_queued_tweets_by_ids(called_function_arguments_dict):
     ids_to_delete = called_function_arguments_dict.get('ids').split('_')
     deleted_ids = []  # to store the successfully deleted tweet ids
 
-    oauth = get_oauth_session()
-
     for table_id in ids_to_delete:
         # Fetch the corresponding tweet_id from the database
         select_cmd = "SELECT id FROM queued_tweets WHERE id = %s"
@@ -517,8 +612,6 @@ def fn_delete_queued_tweets_by_note_ids(called_function_arguments_dict):
     cursor = conn.cursor()
     note_ids_to_delete = [int(id_str) for id_str in called_function_arguments_dict.get('ids').split('_')]
     deleted_note_ids = []  # to store the note ids for which tweets have been successfully deleted
-
-    oauth = get_oauth_session()
 
     for note_id in note_ids_to_delete:
         # Fetch the corresponding tweet_id(s) from the database
@@ -545,8 +638,6 @@ def fn_delete_spaced_tweets_by_ids(called_function_arguments_dict):
     ids_to_delete = called_function_arguments_dict.get('ids').split('_')
     deleted_ids = []  # to store the successfully deleted tweet ids
 
-    oauth = get_oauth_session()
-
     for table_id in ids_to_delete:
         # Fetch the corresponding tweet_id from the database
         select_cmd = "SELECT id FROM spaced_tweets WHERE id = %s"
@@ -570,8 +661,6 @@ def fn_delete_spaced_tweets_by_note_ids(called_function_arguments_dict):
     cursor = conn.cursor()
     note_ids_to_delete = [int(id_str) for id_str in called_function_arguments_dict.get('ids').split('_')]
     deleted_note_ids = []  # to store the note ids for which tweets have been successfully deleted
-
-    oauth = get_oauth_session()
 
     for note_id in note_ids_to_delete:
         # Fetch the corresponding tweet_id(s) from the database
