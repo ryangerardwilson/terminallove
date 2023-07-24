@@ -48,7 +48,7 @@ conn = mysql.connector.connect(
 def improvise_tweets():
 
     cursor = conn.cursor()
-
+    print('AOAOAOAO', datetime.datetime.now(tz))
     error_logs = []
     # Log the start of the job
     cursor.execute(
@@ -60,7 +60,7 @@ def improvise_tweets():
     log_id = cursor.lastrowid
     conn.commit()
 
-
+    rate_limit_hit = False
 
     # Step 1 - Check the following conditions:
     # (a) No tweets have been published in the last hour.

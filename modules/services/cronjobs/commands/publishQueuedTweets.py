@@ -39,6 +39,8 @@ def publish_queued_tweets():
     # Create a new Cursor
     cursor = conn.cursor()
 
+
+    print('AOAOAO',datetime.datetime.now(tz))
     # Log the start of the job
     cursor.execute(
         "INSERT INTO cronjob_logs (job_description, executed_at, error_logs) VALUES (%s, %s, %s)",

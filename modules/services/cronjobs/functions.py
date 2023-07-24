@@ -162,11 +162,6 @@ def fn_list_cronjob_logs(called_function_arguments_dict):
     if 'value' in df.columns:
         df['value'] = df['value'].astype(int)
 
-    # Convert executed_at to IST
-    if 'executed_at' in df.columns:
-        ist = pytz.timezone('Asia/Kolkata')
-        df['executed_at'] = df['executed_at'].apply(lambda x: x.replace(tzinfo=pytz.utc).astimezone(ist))
-
     # Truncate error_logs column to 30 characters and add "...." if it exceeds that limit
     if 'error_logs' in df.columns:
         df['error_logs'] = df['error_logs'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
