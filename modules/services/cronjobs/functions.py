@@ -166,6 +166,9 @@ def fn_list_cronjob_logs(called_function_arguments_dict):
     if 'error_logs' in df.columns:
         df['error_logs'] = df['error_logs'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
 
+    for row in result:
+        row['executed_at'] = row['executed_at'].replace(tzinfo=pytz.utc).astimezone(tz)
+
     # Close the cursor but keep the connection open if it's needed elsewhere
     cursor.close()
 
