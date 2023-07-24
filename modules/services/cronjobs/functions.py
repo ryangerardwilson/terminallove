@@ -101,7 +101,6 @@ def fn_inspect_cronjob_logs_by_id(called_function_arguments_dict):
             result['value'] = int(result['value'])
 
         # Convert executed_at to IST
-        print(result)
         if 'executed_at' in result:
             print(result)
             result['executed_at'] = result['executed_at'].replace(tzinfo=pytz.utc).astimezone(tz)
