@@ -101,9 +101,10 @@ def fn_inspect_cronjob_logs_by_id(called_function_arguments_dict):
             result['value'] = int(result['value'])
 
         # Convert executed_at to IST
+        print(result)
         if 'executed_at' in result:
-            ist = pytz.timezone('Asia/Kolkata')
-            result['executed_at'] = result['executed_at'].replace(tzinfo=pytz.utc).astimezone(ist)
+            print(result)
+            result['executed_at'] = result['executed_at'].replace(tzinfo=pytz.utc).astimezone(tz)
 
         # If error_logs is present and is JSON, parse it and pretty print it
         if 'error_logs' in result:
@@ -159,16 +160,18 @@ def fn_list_cronjob_logs(called_function_arguments_dict):
     pd.options.display.float_format = lambda x: '{:.2f}'.format(x) if abs(x) < 1000000 else '{:.0f}'.format(x)
     df = pd.DataFrame(result)
 
+    # Convert executed_at to datetime if not already
+    df['executed_at'] = pd.to_datetime(df['executed_at'])
+
+    # Alter timezone
+    df['executed_at_tz'] = df['executed_at'].apply(lambda x: x.replace(tzinfo=pytz.utc).astimezone(tz))
+
     if 'value' in df.columns:
         df['value'] = df['value'].astype(int)
 
-    # Truncate error_logs column to 30 characters and add "...." if it exceeds that limit
+	# Truncate error_logs column to 30 characters and add "...." if it exceeds that limit
     if 'error_logs' in df.columns:
         df['error_logs'] = df['error_logs'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
-
-    for row in result:
-        utc_executed_at = row['executed_at'].replace(tzinfo=pytz.utc)  # make it timezone-aware
-        row['executed_at'] = utc_executed_at.astimezone(tz)
 
     # Close the cursor but keep the connection open if it's needed elsewhere
     cursor.close()
@@ -178,6 +181,8 @@ def fn_list_cronjob_logs(called_function_arguments_dict):
     print()
     print(colored(heading, 'cyan'))
     print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
+
+
 
 
 def fn_clear_cronjob_logs():
