@@ -25,7 +25,7 @@ conn = mysql.connector.connect(
 PRIMARY_CREDIT_CARD_INTEREST_COEFFICIENT_AGAINST_NEW_EXPENSES = os.getenv('PRIMARY_CREDIT_CARD_INTEREST_COEFFICIENT_AGAINST_NEW_EXPENSES')
 DEFAULT_DEBT_ID_FOR_PRIMARY_CREDIT_CARD = os.getenv('DEFAULT_DEBT_ID_FOR_PRIMARY_CREDIT_CARD')
 
-def fn_list_functions():
+def fn_list_finance_module_functions():
 
     functions = [
         {

@@ -44,7 +44,7 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
-def fn_list_functions():
+def fn_list_twitter_module_functions():
 
     functions = [
             {

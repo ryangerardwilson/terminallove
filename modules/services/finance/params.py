@@ -22,8 +22,8 @@ days_left_in_current_month = days_in_current_month - now.day
 last_day_of_current_year = datetime.datetime(now.year, 12, 31, tzinfo=tz)
 days_left_in_current_year = (last_day_of_current_year - now).days
 
-list_functions = {
-    "name": "list_functions",
+list_finance_module_functions = {
+    "name": "list_finance_module_functions",
     "description": "Lists functions in the module",
     "parameters": {
         "type": "object",

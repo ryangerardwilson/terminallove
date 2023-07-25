@@ -108,7 +108,7 @@ async def main(
         
         if preliminary_classification_function_info['function_name'] == 'invoke_cronjobs_module':
             functions =[
-                list_functions,
+                list_cronjobs_module_functions,
                 inspect_cronjob_logs_by_id,
                 list_cronjobs,
                 list_cronjob_logs,
@@ -119,7 +119,7 @@ async def main(
 
         if preliminary_classification_function_info['function_name'] == 'invoke_finance_module':
             functions =[
-                list_functions,
+                list_finance_module_functions,
                 list_expense_logging_params,
                 log_expenses,
                 log_debt_repayment,
@@ -200,7 +200,7 @@ async def main(
 
         if preliminary_classification_function_info['function_name'] == 'invoke_twitter_module':
             functions = [
-                list_functions,
+                list_twitter_module_functions,
                 list_rate_limits,
                 list_tweets,
                 list_queued_tweets,
@@ -214,7 +214,6 @@ async def main(
                 delete_queued_tweets_by_note_ids,
                 delete_spaced_tweets_by_ids,
                 delete_spaced_tweets_by_note_ids,
- 
             ]
 
         if preliminary_classification_function_info['function_name'] == 'invoke_blogposts_module':
@@ -301,10 +300,9 @@ async def main(
 
             # Mapping functions that do not require arguments
             functions_without_args = {
-                # Functions with common names across multiple modules
-                'list_functions': fn_list_functions,
-
-                # Functions with module specific names
+                'list_finance_module_functions': fn_list_finance_module_functions,
+                'list_cronjobs_module_functions': fn_list_cronjobs_module_functions,
+                'list_twitter_module_functions': fn_list_twitter_module_functions,
                 'list_expense_logging_params': fn_list_expense_logging_params,
                 'recalculate_debts': fn_recalculate_debts,
                 'list_debts': fn_list_debts,

@@ -13,15 +13,15 @@ tz=pytz.timezone(TIMEZONE)
 now = datetime.datetime.now(tz)
 today = now.strftime('%Y-%m-%d %H:%M:%S')
 
-list_functions = {
-    "name": "list_functions",
-    "description": "Lists functions in the module",
+list_cronjobs_module_functions = {
+    "name": "list_cronjobs_module_functions",
+    "description": "Lists functions in the Cronjobs module",
     "parameters": {
         "type": "object",
         "properties": {
             "connection": {
                 "type": "string",
-                "enum": ["Listing functions from Twitter module"]
+                "enum": ["Listing functions from Cronjobs module"]
             },
         },
         "required": []

@@ -13,9 +13,9 @@ tz=pytz.timezone(TIMEZONE)
 now = datetime.datetime.now(tz)
 today = now.strftime('%Y-%m-%d %H:%M:%S')
 
-list_functions = {
-    "name": "list_functions",
-    "description": "Lists functions in the module",
+list_twitter_module_functions = {
+    "name": "list_twitter_module_functions",
+    "description": "Lists functions in the Twitter module",
     "parameters": {
         "type": "object",
         "properties": {

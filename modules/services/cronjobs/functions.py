@@ -33,7 +33,7 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
-def fn_list_functions():
+def fn_list_cronjobs_module_functions():
     functions = [
             {
                 "function": "inspect_cronjob_logs_by_id",
