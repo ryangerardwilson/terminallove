@@ -146,8 +146,6 @@ def improvise_tweets():
                 "UPDATE cronjob_logs SET job_description = %s WHERE id = %s",
                 ("improviseTweets.py", log_id)
             )
-            update_cmd = ("UPDATE notes SET is_published = 1 WHERE id = %s")
-            cursor.execute(update_cmd, (note_id,))
         except Exception as e:
             e_str = str(e)
             # Assume error_logs is a dictionary, add "Something went wrong" into error_logs
@@ -198,7 +196,6 @@ def get_completion(prompt):
     else:
         return f"API call failed with status code {response.status_code} and error: {response.text}"
 
-
 def reformat_text(text, min_paragraphs):
     # Remove existing paragraph numbering
     text = re.sub(r'\{\d+/\d+\} ', '', text)
@@ -207,10 +204,10 @@ def reformat_text(text, min_paragraphs):
     combined_text = text.replace("\n\n", " ").replace("\n", " ")
 
     # Split the combined text into sentences
-    sentences = combined_text.split('. ')
+    sentences = re.split(r'\. |\? ', combined_text)
 
-    # Add the '.' back into each sentence except for the last one
-    sentences = [sentence + '.' for sentence in sentences[:-1]] + [sentences[-1]]
+    # Add the '.' or '?' back into each sentence except for the last one
+    sentences = [sentence + ('.' if not sentence.endswith('?') else '?') for sentence in sentences[:-1]] + [sentences[-1]]
 
     # Combine sentences into new paragraphs of less than 280 characters
     formatted_paragraphs = []
@@ -419,6 +416,7 @@ def tweet_out_ai_note(note_id, error_logs):
             latest_different_note_scheduled_time = result[0]
 
         rate_limit_hit = False
+        any_tweet_queued = False
         
         for i, paragraph in enumerate(paragraphs, 1):
             print('i: ', i)
@@ -448,6 +446,7 @@ def tweet_out_ai_note(note_id, error_logs):
                 queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
                 cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
                 conn.commit()
+                any_tweet_queued = True
                 print(colored(f"Paragraph {i} has been queued due to rate limit hit.", 'yellow'))
                 continue
             
@@ -515,7 +514,9 @@ def tweet_out_ai_note(note_id, error_logs):
                     'media_id':media_id,
                 })
 
-        if inserted_tweets:
+        print('any_tweet_qued', any_tweet_queued)
+        if inserted_tweets != [] and any_tweet_queued == False:
+            print('any_tweet_qued', any_tweet_queued)
             published_at = datetime.datetime.now(tz)
             print(published_at)
             print(media_url)
