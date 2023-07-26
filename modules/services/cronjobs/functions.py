@@ -160,7 +160,7 @@ def fn_list_cronjob_logs(called_function_arguments_dict):
     df = pd.DataFrame(result)
 
     # Convert executed_at to datetime if not already
-    df['executed_at'] = pd.to_datetime(df['executed_at'])
+    df['executed_at_utc'] = pd.to_datetime(df['executed_at'])
 
     # Alter timezone
     df['executed_at_tz'] = df['executed_at'].apply(lambda x: x.replace(tzinfo=pytz.utc).astimezone(tz))
@@ -180,9 +180,6 @@ def fn_list_cronjob_logs(called_function_arguments_dict):
     print()
     print(colored(heading, 'cyan'))
     print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
-
-
-
 
 def fn_clear_cronjob_logs():
     cursor = conn.cursor()
