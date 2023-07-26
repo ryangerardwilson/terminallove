@@ -144,10 +144,10 @@ def fn_list_rate_limits():
 def fn_list_tweets(called_function_arguments_dict):
 
     cursor = conn.cursor()
-    limit = int(called_function_arguments_dict.get('limit', 10))
+    limit = int(called_function_arguments_dict.get('limit', 20))
 
-    if limit < 10:
-        limit = 10
+    if limit < 20:
+        limit = 20
 
     query = "SELECT * FROM tweets ORDER BY id DESC LIMIT %s"
     cursor.execute(query, (limit,))
@@ -191,7 +191,10 @@ def fn_list_tweets(called_function_arguments_dict):
 def fn_list_queued_tweets(called_function_arguments_dict):
 
     cursor = conn.cursor()
-    limit = int(called_function_arguments_dict.get('limit', 10))
+    limit = int(called_function_arguments_dict.get('limit', 20))
+
+    if limit < 20:
+        limit = 20
 
     query = "SELECT * FROM queued_tweets ORDER BY id DESC LIMIT %s"
     cursor.execute(query, (limit,))
@@ -234,7 +237,10 @@ def fn_list_queued_tweets(called_function_arguments_dict):
 
 def fn_list_spaced_tweets(called_function_arguments_dict):
     cursor = conn.cursor()
-    limit = int(called_function_arguments_dict.get('limit', 10))
+    limit = int(called_function_arguments_dict.get('limit', 20))
+
+    if limit < 20:
+        limit = 20
 
     query = "SELECT * FROM spaced_tweets ORDER BY id DESC LIMIT %s"
     cursor.execute(query, (limit,))
