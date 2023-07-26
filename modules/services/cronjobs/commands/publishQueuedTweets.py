@@ -168,6 +168,18 @@ def publish_queued_tweets():
 
             print(f"Tweeted and removed from queue: {tweet_text}")
 
+            # Now check if there are any more queued tweets for this note:
+            cursor.execute("SELECT id FROM queued_tweets WHERE note_id = %s", (note_id,))
+            remaining_tweets = cursor.fetchall()
+
+            # If there are no more queued tweets for this note:
+            if not remaining_tweets:
+                # Update the note as published
+                published_at = datetime.datetime.now(tz)
+                update_cmd = ("UPDATE notes SET is_published = 1, published_at = %s WHERE id = %s")
+                cursor.execute(update_cmd, (published_at, note_id,))
+                conn.commit()
+
     # Update the job log entry with the final status
     if rate_limit_hit:
         cursor.execute(
@@ -179,10 +191,7 @@ def publish_queued_tweets():
             "UPDATE cronjob_logs SET job_description = %s WHERE id = %s",
             ("publishQueuedTweets.py", log_id)
         )
-        published_at = datetime.datetime.now(tz)
-        update_cmd = ("UPDATE notes SET is_published = 1, published_at = %s WHERE id = %s")
-        cursor.execute(update_cmd, (published_at, note_id,))
-    conn.commit()
+   conn.commit()
 
 def get_oauth_session():
 

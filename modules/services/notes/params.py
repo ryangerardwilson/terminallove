@@ -34,9 +34,9 @@ open_most_recent_note = {
   "parameters": {
     "type": "object",
     "properties": {
-      "connection": {
-        "type": "string",
-        "enum": ["Opening most recent note"]
+      "is_organic": {
+        "type": "boolean",
+        "description": "If user wants his organic note, then true. Else, false. Default is false."
        },
      },
     "required": []
@@ -50,9 +50,9 @@ open_most_recently_edited_note = {
   "parameters": {
     "type": "object",
     "properties": {
-      "connection": {
-        "type": "string",
-        "enum": ["Opening most recently edited note"]
+      "is_organic": {
+        "type": "boolean",
+        "description": "If user wants his organic note, then true. Else, false. Default is false."
        },
      },
     "required": []
@@ -124,12 +124,16 @@ list_notes = {
     "name": "list_notes",
     "description": "Lists the user's notes",
     "parameters": {
-        "type": "object",
-        "properties": {
-            "limit": {
-                "type": "integer",
-                "description": "The number of notes to be listed"
-            },
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "description": "The number of notes to be listed"
+          },
+        "is_organic": {
+          "type": "boolean",
+          "description": "If user wants his organic note, then true. Else, false. Default is false."
+           },
         },
         "required": []
     }

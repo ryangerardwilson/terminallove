@@ -80,7 +80,13 @@ def fn_open_note(called_function_arguments_dict):
     cursor.close()
     subprocess.call(["vim", file_path])
 
-def fn_open_most_recent_note():
+def fn_open_most_recent_note(called_functions_argument_dict):
+    is_organic_str = called_function_arguments_dict.get('is_organic', "false")
+    if is_organic_str == "false":
+        is_organic = 0
+    else:
+        is_organic = 1
+
     cursor = conn.cursor()
     dir_path = os.path.join(parent_dir, "files")
 
@@ -89,9 +95,14 @@ def fn_open_most_recent_note():
 
     try:
         # Get the most recent note
-        select_cmd = (
-            "SELECT id, note, created_at, updated_at FROM notes ORDER BY id DESC LIMIT 1"
-        )
+        if is_organic == 0:
+            select_cmd = (
+                "SELECT id, note, created_at, updated_at FROM notes ORDER BY id DESC LIMIT 1"
+            )
+        else:
+            select_cmd = (
+                "SELECT id, note, created_at, updated_at FROM notes WHERE is_organic = 1 ORDER BY id DESC LIMIT 1"
+            )
         cursor.execute(select_cmd)
         note_id, note, created_at, updated_at = cursor.fetchone()
         if note_id is None:
@@ -111,7 +122,13 @@ def fn_open_most_recent_note():
     cursor.close()
     subprocess.call(["vim", file_path])
 
-def fn_open_most_recently_edited_note():
+def fn_open_most_recently_edited_note(called_function_arguments_dict):
+    is_organic_str = called_function_arguments_dict.get('is_organic', "false")
+    if is_organic_str == "false":
+        is_organic = 0
+    else:
+        is_organic = 1
+
     cursor = conn.cursor()
     dir_path = os.path.join(parent_dir, "files")
 
@@ -119,9 +136,14 @@ def fn_open_most_recently_edited_note():
         os.makedirs(dir_path)
 
     try:
-        select_cmd = (
-            "SELECT id, note, created_at, updated_at FROM notes ORDER BY updated_at DESC LIMIT 1"
-        )
+        if is_organic == 0:
+            select_cmd = (
+                "SELECT id, note, created_at, updated_at FROM notes ORDER BY updated_at DESC LIMIT 1"
+            )
+        else:
+            select_cmd = (
+                "SELECT id, note, created_at, updated_at FROM notes WHERE is_organic = 1 ORDER BY updated_at DESC LIMIT 1"
+            )
         cursor.execute(select_cmd)
         note_id, note, created_at, updated_at = cursor.fetchone()
         if note_id is None:
@@ -225,14 +247,22 @@ def fn_delete_local_note_cache():
         print(colored('No notes to delete','cyan'))
 
 def fn_list_notes(called_function_arguments_dict):
+    is_organic_str = called_function_arguments_dict.get('is_organic', "false")
+    if is_organic_str == "false":
+        is_organic = 0
+        query = "SELECT * FROM notes ORDER BY created_at DESC LIMIT %s"
+
+    else:
+        is_organic = 1
+        query = "SELECT * FROM notes WHERE is_organic = 1 ORDER BY created_at DESC LIMIT %s"
+
 
     cursor = conn.cursor()
-    limit = int(called_function_arguments_dict.get('limit', 10))
+    limit = int(called_function_arguments_dict.get('limit', 20))
 
-    if limit < 10:
-        limit = 10
+    if limit < 20:
+        limit = 20
 
-    query = "SELECT * FROM notes ORDER BY created_at DESC LIMIT %s"
     cursor.execute(query, (limit,))
 
     # Fetch all columns

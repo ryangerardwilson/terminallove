@@ -296,6 +296,8 @@ async def main(
                 'add_or_update_media_to_notes_by_ids': fn_add_or_update_media_to_notes_by_ids,
                 'list_cronjob_logs': fn_list_cronjob_logs,
                 'inspect_cronjob_logs_by_id': fn_inspect_cronjob_logs_by_id,
+                'open_most_recent_note': fn_open_most_recent_note,
+                'open_most_recently_edited_note': fn_open_most_recently_edited_note,
             }
 
             # Mapping functions that do not require arguments
@@ -312,8 +314,6 @@ async def main(
                 'list_run_logging_params': fn_list_run_logging_params,
                 'list_run_logs': fn_list_run_logs,
                 'list_available_running_charts': fn_list_available_running_charts,
-                'open_most_recent_note': fn_open_most_recent_note,
-                'open_most_recently_edited_note': fn_open_most_recently_edited_note,
                 'save_and_close_notes': fn_save_and_close_notes,
                 'delete_local_note_cache': fn_delete_local_note_cache,
                 'list_rate_limits': fn_list_rate_limits,

@@ -59,6 +59,7 @@ def publish_spaced_tweets():
 
     i = 0
     note_id = 0
+    any_queued_tweet = False
     for tweet in spaced_tweets:
         i += 1
         tweet_id, tweet_text, note_id, scheduled_at, media_id = tweet
@@ -97,6 +98,7 @@ def publish_spaced_tweets():
                 (tweet_text, datetime.datetime.now(tz), note_id, media_id)
             )
             conn.commit()
+            any_queued_tweet = True
 
             # If the tweet is queued, delete it from the spaced_tweets table
             cursor.execute("DELETE FROM spaced_tweets WHERE id = %s", (tweet_id,))
@@ -144,9 +146,10 @@ def publish_spaced_tweets():
             "UPDATE cronjob_logs SET job_description = %s WHERE id = %s",
             ("publishSpacedTweets.py", log_id)
         )
-        published_at = datetime.datetime.now(tz)
-        update_cmd = ("UPDATE notes SET is_published = 1, published_at = %s WHERE id = %s")
-        cursor.execute(update_cmd, (published_at, note_id,))
+        if any_queued_tweet == False:
+            published_at = datetime.datetime.now(tz)
+            update_cmd = ("UPDATE notes SET is_published = 1, published_at = %s WHERE id = %s")
+            cursor.execute(update_cmd, (published_at, note_id,))
     conn.commit()
 
 def get_oauth_session():
