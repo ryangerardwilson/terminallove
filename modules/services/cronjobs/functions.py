@@ -140,7 +140,10 @@ def fn_list_cronjobs():
 
 def fn_list_cronjob_logs(called_function_arguments_dict):
     cursor = conn.cursor()
-    limit = int(called_function_arguments_dict.get('limit', 10))
+    limit = int(called_function_arguments_dict.get('limit', 20))
+
+    if limit < 20:
+        limit = 20
 
     query = "SELECT * FROM cronjob_logs ORDER BY id DESC LIMIT %s"
     cursor.execute(query, (limit,))
