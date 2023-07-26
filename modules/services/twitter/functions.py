@@ -371,7 +371,7 @@ def fn_tweet_out_note(called_function_arguments_dict):
                     latest_different_note_scheduled_time = latest_different_note_scheduled_time.astimezone(tz)
             
             if i == 1:
-                media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "256x256", note_id, media_url)
+                media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "512x512", note_id, media_url)
 
                 # Access the image URL and media ID
                 media_url = media_info["media_url"]

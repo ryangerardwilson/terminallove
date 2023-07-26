@@ -301,7 +301,7 @@ def generate_ai_image_for_ai_note(note_id):
         paragraphs = note_text.split("\n\n")
         first_paragraph = paragraphs[0]
         print('291')
-        media_url = get_media_url_after_generating_image_and_uploading_to_cloud_storage(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {first_paragraph}", "256x256", note_id)
+        media_url = get_media_url_after_generating_image_and_uploading_to_cloud_storage(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {first_paragraph}", "512x512", note_id)
         print()
         print(colored(f"New media_url for note id {note_id} is: {media_url}", 'cyan'))
         print()
@@ -431,7 +431,7 @@ def tweet_out_ai_note(note_id):
         print('418')
         if i == 1:
             print('421') 
-            media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "256x256", note_id)
+            media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "512x512", note_id)
             print('423')
             # Access the image URL and media ID
             media_url = media_info["media_url"]
