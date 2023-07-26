@@ -144,6 +144,7 @@ def improvise_tweets():
             e_str = str(e)
             # Assume error_logs is a dictionary, add "Something went wrong" into error_logs
             message = f"Something went wrong: {e_str}"
+            print(message)
             error_logs.append(message)
 
             cursor.execute(
