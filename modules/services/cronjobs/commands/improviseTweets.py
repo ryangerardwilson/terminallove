@@ -140,9 +140,10 @@ def improvise_tweets():
             )
             update_cmd = ("UPDATE notes SET is_published = 1 WHERE id = %s")
             cursor.execute(update_cmd, (note_id,))
-        except:
+        except Exception as e:
+            e_str = str(e)
             # Assume error_logs is a dictionary, add "Something went wrong" into error_logs
-            message = "Something went wrong"
+            message = f"Something went wrong: {e_str}"
             error_logs.append(message)
 
             cursor.execute(
