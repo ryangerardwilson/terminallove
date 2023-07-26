@@ -3,6 +3,7 @@ import datetime
 import pandas as pd
 from termcolor import colored
 import os
+import re
 import subprocess
 from tabulate import tabulate
 from dotenv import load_dotenv
@@ -114,7 +115,7 @@ def improvise_tweets():
             print()
 
             formatted_text = reformat_text(ai_generated_note_text, 3)
-            print(formatted_text)
+            print('ccc', formatted_text)
 
             # Step 3 - Inset it into notes, and set the is_organic value of the note to false
             insert_cmd = (
@@ -130,9 +131,16 @@ def improvise_tweets():
 
             # Step 4 - Use the tweet out note pipeline to tweet it out
             print('124')
-            generate_ai_image_for_ai_note(note_id)
+            try: 
+                generate_ai_image_for_ai_note(note_id, error_logs)
+            except Exception as e1:
+                print('e1: ', e1)
+                
             print('125')
-            tweet_out_ai_note(note_id)
+            try:
+                tweet_out_ai_note(note_id, error_logs)
+            except Exception as e2:
+                print('e2: ', e2)
 
             cursor.execute(
                 "UPDATE cronjob_logs SET job_description = %s WHERE id = %s",
@@ -190,17 +198,21 @@ def get_completion(prompt):
     else:
         return f"API call failed with status code {response.status_code} and error: {response.text}"
 
+
 def reformat_text(text, min_paragraphs):
-    # combine all text into one paragraph
+    # Remove existing paragraph numbering
+    text = re.sub(r'\{\d+/\d+\} ', '', text)
+
+    # Combine all text into one paragraph
     combined_text = text.replace("\n\n", " ").replace("\n", " ")
 
-    # split the combined text into sentences
+    # Split the combined text into sentences
     sentences = combined_text.split('. ')
 
     # Add the '.' back into each sentence except for the last one
     sentences = [sentence + '.' for sentence in sentences[:-1]] + [sentences[-1]]
 
-    # combine sentences into new paragraphs of less than 280 characters
+    # Combine sentences into new paragraphs of less than 280 characters
     formatted_paragraphs = []
     current_paragraph = ""
     for sentence in sentences:
@@ -210,11 +222,11 @@ def reformat_text(text, min_paragraphs):
         else:
             current_paragraph += " " + sentence
 
-    # don't forget the last paragraph
+    # Don't forget the last paragraph
     if current_paragraph:
         formatted_paragraphs.append(current_paragraph.strip())
 
-    # if not enough paragraphs, split the longest one
+    # If not enough paragraphs, split the longest one
     while len(formatted_paragraphs) < min_paragraphs:
         max_len_idx = max(range(len(formatted_paragraphs)), key=lambda index: len(formatted_paragraphs[index]))
         long_paragraph = formatted_paragraphs.pop(max_len_idx)
@@ -224,7 +236,7 @@ def reformat_text(text, min_paragraphs):
         formatted_paragraphs.extend([first_half, second_half])
 
     total = len(formatted_paragraphs)
-    # add the prefix
+    # Add the prefix
     formatted_paragraphs = ["{" + f"{i+1}/{total}" + "} " + para for i, para in enumerate(formatted_paragraphs)]
 
     return '\n\n'.join(formatted_paragraphs)
@@ -286,30 +298,44 @@ def get_oauth_session():
 
     return oauth
 
-def generate_ai_image_for_ai_note(note_id):
+def generate_ai_image_for_ai_note(note_id, error_logs):
     
     cursor = conn.cursor()
     print('279')
     # Get the media_url before updating the note
-    cursor.execute("SELECT note, is_published, media_url FROM notes WHERE id = %s", (note_id,))
-    result = cursor.fetchone()
-    print('283')
-    if result is not None:
-        note_text, is_published, old_media_url = result
-        if is_published == 1:
-            print(colored(f"Note id {note_id} not deleted. Please delete publications of note id {note_id} before adding/ updating media", 'red'))
-            return
-        paragraphs = note_text.split("\n\n")
-        first_paragraph = paragraphs[0]
-        print('291')
-        media_url = get_media_url_after_generating_image_and_uploading_to_cloud_storage(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {first_paragraph}", "512x512", note_id)
-        print()
-        print(colored(f"New media_url for note id {note_id} is: {media_url}", 'cyan'))
-        print()
-        # Update the media_url column of the row with new media_url
-        cursor.execute("UPDATE notes SET media_url = %s WHERE id = %s", (media_url, note_id))
+    try:
+        cursor.execute("SELECT note, is_published, media_url FROM notes WHERE id = %s", (note_id,))
+        result = cursor.fetchone()
+        print('283')
+        if result is not None:
+            note_text, is_published, old_media_url = result
+            if is_published == 1:
+                print(colored(f"Note id {note_id} not deleted. Please delete publications of note id {note_id} before adding/ updating media", 'red'))
+                return
+            paragraphs = note_text.split("\n\n")
+            first_paragraph = paragraphs[0]
+            print('291')
+            media_url = get_media_url_after_generating_image_and_uploading_to_cloud_storage(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {first_paragraph}", "512x512", note_id)
+            print()
+            print(colored(f"New media_url for note id {note_id} is: {media_url}", 'cyan'))
+            print()
+            # Update the media_url column of the row with new media_url
+            cursor.execute("UPDATE notes SET media_url = %s WHERE id = %s", (media_url, note_id))
+            conn.commit()
 
-    conn.commit()
+    except Exception as e:
+        e_str = str(e)
+        # Assume error_logs is a dictionary, add "Something went wrong" into error_logs
+        message = f"Something went wrong: {e_str}"
+        print(message)
+        error_logs.append(message)
+
+        cursor.execute(
+            "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
+            ("improviseTweets.py", json.dumps(error_logs), log_id)
+        )
+        conn.commit()
+
     cursor.close()
 
 def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, size, note_id):
@@ -354,153 +380,168 @@ def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, 
 
     return media_url
 
-def tweet_out_ai_note(note_id):
+def tweet_out_ai_note(note_id, error_logs):
     print('359')
     cursor = conn.cursor()
-    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
 
-    inserted_tweets = []
-    media_url = None
-    media_id = None
+    try:
+        default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
 
-    select_cmd = ("SELECT note, media_url FROM notes WHERE id = %s")
-    cursor.execute(select_cmd, (note_id,))
-    note_result = cursor.fetchone()
-    note_text, media_url = note_result
+        inserted_tweets = []
+        media_url = None
+        media_id = None
 
-    paragraphs = note_text.split("\n\n")
+        select_cmd = ("SELECT note, media_url FROM notes WHERE id = %s")
+        cursor.execute(select_cmd, (note_id,))
+        note_result = cursor.fetchone()
+        note_text, media_url = note_result
 
-    cursor.execute("SELECT tweet FROM tweets")
-    previous_tweets = {row[0] for row in cursor.fetchall()}
+        paragraphs = note_text.split("\n\n")
 
-    cursor.execute("SELECT tweet FROM queued_tweets")
-    queued_tweets = {row[0] for row in cursor.fetchall()}
+        cursor.execute("SELECT tweet FROM tweets")
+        previous_tweets = {row[0] for row in cursor.fetchall()}
 
-    previous_tweet_id = None
+        cursor.execute("SELECT tweet FROM queued_tweets")
+        queued_tweets = {row[0] for row in cursor.fetchall()}
 
-    latest_tweet_time = None
-    cursor.execute("SELECT MAX(posted_at) FROM tweets")
-    result = cursor.fetchone()
-    if result is not None and result[0] is not None:
-        latest_tweet_time = result[0]
+        previous_tweet_id = None
 
-    latest_different_note_scheduled_time = None
-    cursor.execute("SELECT MAX(scheduled_at) FROM spaced_tweets WHERE note_id != %s", (note_id,))
-    result = cursor.fetchone()
-    if result is not None and result[0] is not None:
-        latest_different_note_scheduled_time = result[0]
+        latest_tweet_time = None
+        cursor.execute("SELECT MAX(posted_at) FROM tweets")
+        result = cursor.fetchone()
+        if result is not None and result[0] is not None:
+            latest_tweet_time = result[0]
 
-    rate_limit_hit = False
-    
-    for i, paragraph in enumerate(paragraphs, 1):
-        print('i: ', i)
-        print('397')
-        if not paragraph.strip():
-            print(colored(f"Skipping empty paragraph {i}", 'red'))
-            if i == 1:
-                print(colored('You may have forgotten to save the note', 'red'))
-            continue
+        latest_different_note_scheduled_time = None
+        cursor.execute("SELECT MAX(scheduled_at) FROM spaced_tweets WHERE note_id != %s", (note_id,))
+        result = cursor.fetchone()
+        if result is not None and result[0] is not None:
+            latest_different_note_scheduled_time = result[0]
 
-        if len(paragraph) > 280:
-            print(colored(f"Paragraph {i} is longer than 280 characters by {len(paragraph) - 280} characters. Not tweeting anything", 'red'))
-            return
-
-        if paragraph in previous_tweets:
-            print(colored(f"Paragraph {i} has already been posted. Not tweeting anything", 'red'))
-            return
-        print('411')
-        check_cmd = ("SELECT tweet FROM tweets WHERE tweet = %s")
-        cursor.execute(check_cmd, (paragraph,))
-        if cursor.fetchone() is not None:
-            print(colored(f"Paragraph {i} has already been posted", 'red'))
-            continue
-
-        if rate_limit_hit:
-            tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
-            queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
-            cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
-            conn.commit()
-            print(colored(f"Paragraph {i} has been queued due to rate limit hit.", 'yellow'))
-            continue
+        rate_limit_hit = False
         
-        payload = {"text": paragraph}
-        print('413')
-        if previous_tweet_id is not None:
-            payload["reply"] = {"in_reply_to_tweet_id": previous_tweet_id}
+        for i, paragraph in enumerate(paragraphs, 1):
+            print('i: ', i)
+            print('397')
+            if not paragraph.strip():
+                print(colored(f"Skipping empty paragraph {i}", 'red'))
+                if i == 1:
+                    print(colored('You may have forgotten to save the note', 'red'))
+                continue
 
-        oauth = get_oauth_session()
-        print('418')
-        if i == 1:
-            print('421') 
-            media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "512x512", note_id)
-            print('423')
-            # Access the image URL and media ID
-            media_url = media_info["media_url"]
-            media_id = media_info["media_id"]
-            payload["media"] = {"media_ids": [media_id]}
-            print('428')
-            update_cmd = ("UPDATE notes SET media_url = %s WHERE id = %s")
-            cursor.execute(update_cmd, (media_url, note_id))
+            if len(paragraph) > 280:
+                print(colored(f"Paragraph {i} is longer than 280 characters by {len(paragraph) - 280} characters. Not tweeting anything", 'red'))
+                return
+
+            if paragraph in previous_tweets:
+                print(colored(f"Paragraph {i} has already been posted. Not tweeting anything", 'red'))
+                return
+            print('411')
+            check_cmd = ("SELECT tweet FROM tweets WHERE tweet = %s")
+            cursor.execute(check_cmd, (paragraph,))
+            if cursor.fetchone() is not None:
+                print(colored(f"Paragraph {i} has already been posted", 'red'))
+                continue
+
+            if rate_limit_hit:
+                tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+                queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
+                cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
+                conn.commit()
+                print(colored(f"Paragraph {i} has been queued due to rate limit hit.", 'yellow'))
+                continue
+            
+            payload = {"text": paragraph}
+            print('413')
+            if previous_tweet_id is not None:
+                payload["reply"] = {"in_reply_to_tweet_id": previous_tweet_id}
+
+            oauth = get_oauth_session()
+            print('418')
+            if i == 1:
+                print('421') 
+                media_info = get_media_id_after_generating_image_and_uploading_to_twitter(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {paragraph}", "512x512", note_id)
+                print('423')
+                # Access the image URL and media ID
+                media_url = media_info["media_url"]
+                media_id = media_info["media_id"]
+                payload["media"] = {"media_ids": [media_id]}
+                print('428')
+                update_cmd = ("UPDATE notes SET media_url = %s WHERE id = %s")
+                cursor.execute(update_cmd, (media_url, note_id))
+                conn.commit()
+            else:
+                media_url = None
+                media_id = None
+            print('433')
+            response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
+            if response.status_code == 429:  # Rate limit exceeded
+                rate_limit_limit = response.headers.get('x-rate-limit-limit')
+                rate_limit_remaining = response.headers.get('x-rate-limit-remaining')
+                rate_limit_reset = response.headers.get('x-rate-limit-reset')
+
+                rate_limit_reset_date = datetime.datetime.utcfromtimestamp(int(rate_limit_reset))
+                rate_limit_reset_date = rate_limit_reset_date.replace(tzinfo=pytz.utc).astimezone(tz)
+
+                error_message = f"Rate limit exceeded. Improvised tweets have been queued. Rate limit ceiling: {rate_limit_limit}, rate limit remaining: {rate_limit_remaining}, rate limit reset: {rate_limit_reset_date}"
+                rate_limit_hit = True
+                error_logs.append(error_message)
+                tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+                queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at, media_id) VALUES (%s, %s, %s, %s)")
+                cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at, media_id))
+                conn.commit()
+                rate_limit_hit = True
+                continue
+
+            if response.status_code != 201:
+                raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
+
+            json_response = response.json()
+            print('449')
+            if 'data' in json_response:
+                print('451')
+                tweet_id = json_response['data']['id']
+                previous_tweet_id = tweet_id
+                posted_at = datetime.datetime.now(tz)
+                insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id, media_id) VALUES (%s, %s, %s, %s, %s)")
+                cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id, media_id))
+                conn.commit()
+
+                inserted_tweets.append({
+                    'tweet': paragraph,
+                    'tweet_id': tweet_id,
+                    'posted_at': posted_at,
+                    'note_id': note_id,
+                    'media_id':media_id,
+                })
+
+        if inserted_tweets:
+            published_at = datetime.datetime.now(tz)
+            print(published_at)
+            print(media_url)
+            print(note_id)
+
+            # Mark the note as published after all its paragraphs have been successfully tweeted
+            update_cmd = ("UPDATE notes SET is_published = 1, published_at = %s, media_url = %s WHERE id = %s")
+            cursor.execute(update_cmd, (published_at, media_url, note_id,))
             conn.commit()
-        else:
-            media_url = None
-            media_id = None
-        print('433')
-        response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
-        if response.status_code == 429:  # Rate limit exceeded
-            rate_limit_limit = response.headers.get('x-rate-limit-limit')
-            rate_limit_remaining = response.headers.get('x-rate-limit-remaining')
-            rate_limit_reset = response.headers.get('x-rate-limit-reset')
+            df = pd.DataFrame(inserted_tweets)
+            df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
 
-            rate_limit_reset_date = datetime.datetime.utcfromtimestamp(int(rate_limit_reset))
-            rate_limit_reset_date = rate_limit_reset_date.replace(tzinfo=pytz.utc).astimezone(tz)
+            print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
-            error_message = f"Rate limit exceeded. Improvised tweets have been queued. Rate limit ceiling: {rate_limit_limit}, rate limit remaining: {rate_limit_remaining}, rate limit reset: {rate_limit_reset_date}"
-            rate_limit_hit = True
-            error_logs.append(error_message)
-            tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
-            queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at, media_id) VALUES (%s, %s, %s, %s)")
-            cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at, media_id))
-            conn.commit()
-            rate_limit_hit = True
-            continue
+    except Exception as e:
+        e_str = str(e)
+        # Assume error_logs is a dictionary, add "Something went wrong" into error_logs
+        message = f"Something went wrong: {e_str}"
+        print(message)
+        error_logs.append(message)
 
-        if response.status_code != 201:
-            raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
-
-        json_response = response.json()
-        print('449')
-        if 'data' in json_response:
-            print('451')
-            tweet_id = json_response['data']['id']
-            previous_tweet_id = tweet_id
-            posted_at = datetime.datetime.now(tz)
-            insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id, media_id) VALUES (%s, %s, %s, %s, %s)")
-            cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id, media_id))
-            conn.commit()
-
-            inserted_tweets.append({
-                'tweet': paragraph,
-                'tweet_id': tweet_id,
-                'posted_at': posted_at,
-                'note_id': note_id,
-                'media_id':media_id,
-            })
-
-    if inserted_tweets:
-        published_at = datetime.datetime.now(tz)
-        print(published_at)
-        print(media_url)
-        print(note_id)
-
-        # Mark the note as published after all its paragraphs have been successfully tweeted
-        update_cmd = ("UPDATE notes SET is_published = 1, published_at = %s, media_url = %s WHERE id = %s")
-        cursor.execute(update_cmd, (published_at, media_url, note_id,))
+        cursor.execute(
+            "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
+            ("improviseTweets.py", json.dumps(error_logs), log_id)
+        )
         conn.commit()
-        df = pd.DataFrame(inserted_tweets)
-        df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
-
-        print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
     cursor.close()
 
