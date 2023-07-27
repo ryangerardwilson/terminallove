@@ -24,7 +24,9 @@ CRONJOBS = {
         "publishQueuedTweets": os.path.join(script_dir, "commands", "publishQueuedTweets.py"),
         "publishSpacedTweets": os.path.join(script_dir, "commands", "publishSpacedTweets.py"),
         "improviseTweets": os.path.join(script_dir, "commands", "improviseTweets.py"),
+        "cleanGoogleCloudStorage": os.path.join(script_dir, "commands", "cleanGoogleCloudStorage.py"),
         }
+
 
 conn = mysql.connector.connect(
     user=os.getenv('DB_USER'),
