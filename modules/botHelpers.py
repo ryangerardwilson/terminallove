@@ -379,7 +379,7 @@ invoke_runs_module = {
 
 invoke_time_module = {
     "name": "invoke_time_module",
-    "description": "Invokes a library of functions that manage the user's time, calender and events",
+    "description": "Invokes a library of functions that manage the user's calender and events",
     "parameters": {
         "type": "object",
         "properties": {

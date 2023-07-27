@@ -286,7 +286,7 @@ add_timesheet_logs = {
 
 list_timesheet_logs = {
   "name": "list_timesheet_logs",
-  "description": "Lists logs of actions a user has taken on a particular day",
+  "description": "Lists logs of actions a user has taken on a particular day, or shows the user his timesheet for a particular day",
   "parameters": {
     "type": "object",
     "properties": {
