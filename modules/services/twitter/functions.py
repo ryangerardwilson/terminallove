@@ -384,7 +384,7 @@ def fn_tweet_out_note(called_function_arguments_dict):
                 media_id = media_info["media_id"]
                 payload["media"] = {"media_ids": [media_id]}
 
-                update_cmd = ("UPDATE notes SET media_url = %s WHERE id = %s")
+                update_cmd = ("UPDATE notes SET media_url = '%s' WHERE id = %s")
                 cursor.execute(update_cmd, (media_url, note_id))
                 conn.commit()
             else:
