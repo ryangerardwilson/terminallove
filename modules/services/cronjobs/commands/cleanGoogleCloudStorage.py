@@ -74,7 +74,10 @@ def clean_google_cloud_storage():
                 bucket_name, delimiter=delimiter
             )
 
-            days_ago = datetime.datetime.now(tz) - timedelta(days=30)
+
+            # We are excluding the preceeding 24 hours to avoid a situation where is cronjob deletes a URL that has just been created but hasnt been set to the notes table yet, at the time when improviseTweets.py executes
+            x_days_ago = datetime.datetime.now(tz) - timedelta(days=10)
+            one_day_ago = datetime.datetime.now(tz) - timedelta(days=1)
             blob_urls = []
 
             for blob in blobs:
@@ -83,7 +86,7 @@ def clean_google_cloud_storage():
                 date_str = blob.name.split('_')[1].split('.')[0]  # split on underscore and then on dot
                 blob_date = datetime.datetime.strptime(date_str, '%Y%m%d').replace(tzinfo=tz)
 
-                if blob_date >= days_ago:
+                if x_days_ago <= blob_date <= one_day_ago:
                     blob_urls.append(blob.public_url)
             
             return blob_urls
