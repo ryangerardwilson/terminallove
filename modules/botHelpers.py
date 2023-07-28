@@ -423,6 +423,21 @@ invoke_twitter_module = {
     }
 }
 
+invoke_linkedin_module = {
+    "name": "invoke_linkedin_module",
+    "description": "Invokes a library of functions that manage the user's linkedin activity, including posting out notes on linkedin, and deleting linkedin posts by their note ids",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "connection": {
+                "type": "string",
+                "enum": ["LinkedIn module invoked"]
+            },
+        },
+        "required": []
+    }
+}
+
 invoke_cronjobs_module = {
     "name": "invoke_cronjobs_module",
     "description": "Invokes a library of functions that manage the user's cronjobs",

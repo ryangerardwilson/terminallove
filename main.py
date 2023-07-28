@@ -10,6 +10,7 @@ from modules.services.time.params import *
 from modules.services.goals.params import *
 from modules.services.runs.params import *
 from modules.services.twitter.params import *
+from modules.services.linkedin.params import *
 from modules.services.notes.params import *
 from modules.services.cronjobs.params import *
 
@@ -18,6 +19,7 @@ from modules.services.time.functions import *
 from modules.services.goals.functions import *
 from modules.services.runs.functions import *
 from modules.services.twitter.functions import *
+from modules.services.linkedin.functions import *
 from modules.services.notes.functions import *
 from modules.services.cronjobs.functions import *
 
@@ -56,6 +58,7 @@ async def main(
         invoke_time_module,
         invoke_notes_module,
         invoke_twitter_module,
+        invoke_linkedin_module,
     ]
 
     # Define the URL
@@ -213,6 +216,23 @@ async def main(
                 delete_spaced_tweets_by_note_ids,
             ]
 
+        if preliminary_classification_function_info['function_name'] == 'invoke_linkedin_module':
+            functions = [
+                list_linkedin_module_functions,
+                list_rate_limits,
+                list_linkedin_posts,
+                list_queued_linkedin_posts,
+                list_spaced_linkedin_posts,
+                linkedin_post_out_note,
+                schedule_linkedin_post,
+                delete_linkedin_posts_by_ids,
+                delete_linkedin_posts_by_note_ids,
+                delete_queued_linkedin_posts_by_ids,
+                delete_queued_linkedin_posts_by_note_ids,
+                delete_spaced_linkedin_posts_by_ids,
+                delete_spaced_linkedin_posts_by_note_ids,
+            ]
+
         classification_data = {
             "model": gpt_model,
             "messages": interaction_history,
@@ -282,6 +302,19 @@ async def main(
                 'delete_queued_tweets_by_note_ids': fn_delete_queued_tweets_by_note_ids,
                 'delete_spaced_tweets_by_ids': fn_delete_spaced_tweets_by_ids,
                 'delete_spaced_tweets_by_note_ids': fn_delete_spaced_tweets_by_note_ids,
+
+                'linkedin_post_out_note': fn_linkedin_post_out_note,
+                'list_linkedin_posts': fn_list_linkedin_posts,
+                'list_queued_linkedin_posts': fn_list_queued_linkedin_posts,
+                'list_spaced_linkedin_posts': fn_list_spaced_linkedin_posts,
+                'schedule_linkedin_post': fn_schedule_linkedin_post,
+                'delete_linkedin_posts_by_ids': fn_delete_linkedin_posts_by_ids,
+                'delete_linkedin_posts_by_note_ids': fn_delete_linkedin_posts_by_note_ids,
+                'delete_queued_linkedin_posts_by_ids': fn_delete_queued_linkedin_posts_by_ids,
+                'delete_queued_linkedin_posts_by_note_ids': fn_delete_queued_linkedin_posts_by_note_ids,
+                'delete_spaced_linkedin_posts_by_ids': fn_delete_spaced_linkedin_posts_by_ids,
+                'delete_spaced_linkedin_posts_by_note_ids': fn_delete_spaced_linkedin_posts_by_note_ids,
+ 
                 'add_or_update_media_to_notes_by_ids': fn_add_or_update_media_to_notes_by_ids,
                 'list_cronjob_logs': fn_list_cronjob_logs,
                 'inspect_cronjob_logs_by_id': fn_inspect_cronjob_logs_by_id,
@@ -294,6 +327,7 @@ async def main(
                 'list_finance_module_functions': fn_list_finance_module_functions,
                 'list_cronjobs_module_functions': fn_list_cronjobs_module_functions,
                 'list_twitter_module_functions': fn_list_twitter_module_functions,
+                'list_linkedin_module_functions': fn_list_linkedin_module_functions,
                 'list_expense_logging_params': fn_list_expense_logging_params,
                 'recalculate_debts': fn_recalculate_debts,
                 'list_debts': fn_list_debts,
