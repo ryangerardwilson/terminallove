@@ -351,7 +351,7 @@ def fn_list_spaced_linkedin_posts(called_function_arguments_dict):
     print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
 
-def fn_linkedin_post_out_note(called_function_arguments_dict):
+def fn_publish_note(called_function_arguments_dict):
     cursor = conn.cursor()
 
     default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
@@ -368,14 +368,10 @@ def fn_linkedin_post_out_note(called_function_arguments_dict):
         note_result = cursor.fetchone()
         note_text, media_url = note_result
 
-        select_cmd = ("SELECT note FROM notes WHERE id = %s")
-        cursor.execute(select_cmd, (note_id,))
-        note_text = cursor.fetchone()
-
         if note_text is not None:
             note_text = note_text[0]
         else:
-            print(colored("You can't tweet an empty note", 'red'))
+            print(colored("You can't post an empty note", 'red'))
             return
 
         paragraphs = note_text.split("\n\n")
@@ -401,7 +397,9 @@ def fn_linkedin_post_out_note(called_function_arguments_dict):
             latest_different_note_scheduled_time = result[0]
 
         rate_limit_hit = False
-
+        
+        any_tweet_queued = False
+	any_tweet_spaced = False
         for i, paragraph in enumerate(paragraphs, 1):
 
             if not paragraph.strip():
@@ -425,6 +423,7 @@ def fn_linkedin_post_out_note(called_function_arguments_dict):
                 continue
 
             if rate_limit_hit:
+		any_tweet_queued = True
                 tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
                 queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
                 cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
@@ -491,53 +490,34 @@ def fn_linkedin_post_out_note(called_function_arguments_dict):
             hours_since_latest_tweet = (datetime.datetime.now(tz) - latest_tweet_time).total_seconds() / 3600
             if ((datetime.datetime.now(tz) < scheduled_at and latest_different_note_scheduled_time is not None) or
                (latest_different_note_scheduled_time is None and hours_since_latest_tweet < TWITTER_NOTE_SPACING)):
+		any_tweet_spaced = True
                 cursor.execute("INSERT INTO spaced_tweets (note_id, tweet, scheduled_at, media_id) VALUES (%s, %s, %s, %s)", (note_id, paragraph, scheduled_at, media_id))
                 conn.commit()
                 print(colored(f"Paragraph {i} has been scheduled for a future tweet.", 'yellow'))
                 continue
-            else:
-                response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
-                if response.status_code == 429:  # Rate limit exceeded
-                    print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow'))
-                    tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
-                    queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at, media_id) VALUES (%s, %s, %s, %s)")
-                    cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at, media_id))
-                    conn.commit()
-                    rate_limit_hit = True
-                    continue
 
                 if response.status_code != 201:
                     raise Exception("Request returned an error: {} {}".format(response.status_code, response.text))
 
-                json_response = response.json()
+        inserted_tweets.append({
+            'tweet': paragraph,
+            'tweet_id': tweet_id,
+            'posted_at': posted_at,
+            'note_id': note_id,
+            'media_id':media_id,
+        })
 
-                if 'data' in json_response:
-                    tweet_id = json_response['data']['id']
-                    previous_tweet_id = tweet_id
-                    posted_at = datetime.datetime.now(tz)
-                    insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id, media_id) VALUES (%s, %s, %s, %s, %s)")
-                    cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id, media_id))
-                    conn.commit()
+    if inserted_tweets and any_tweet_queued == False and any_tweet_spaced == False:
+        post_note_to_linkedin(note_id, note_text, media_url)
+        published_at = datetime.datetime.now(tz)
+        # Mark the note as published after all its paragraphs have been successfully tweeted
+        update_cmd = ("UPDATE notes SET is_published = 1, published_at = %s, media_url = %s WHERE id = %s")
+        cursor.execute(update_cmd, (published_at, media_url, note_id,))
+        conn.commit() 
+        df = pd.DataFrame(inserted_tweets)
+        df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
 
-                    inserted_tweets.append({
-                        'tweet': paragraph,
-                        'tweet_id': tweet_id,
-                        'posted_at': posted_at,
-                        'note_id': note_id,
-                        'media_id':media_id,
-                    })
-
-        if inserted_tweets:
-            published_at = datetime.datetime.now(tz)
-
-            # Mark the note as published after all its paragraphs have been successfully tweeted
-            update_cmd = ("UPDATE notes SET is_published = 1, published_at = %s, media_url = %s WHERE id = %s")
-            cursor.execute(update_cmd, (published_at, media_url, note_id,))
-            conn.commit() 
-            df = pd.DataFrame(inserted_tweets)
-            df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
- 
-            print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
+        print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
     cursor.close()
 
@@ -846,6 +826,40 @@ def get_active_access_token_and_linkedin_id():
         return
 
     return access_token, linkedin_id
+
+def post_note_to_linkedin(note_id, note_text, media_url):
+
+    access_token, linkedin_id = get_active_access_token_and_linkedin_id()
+
+    headers = {
+	'Authorization': 'Bearer ' + access_token,
+	'Content-Type': 'application/json',
+	'X-Restli-Protocol-Version': '2.0.0'
+    }
+
+    data = {
+	'author': f"urn:li:person:{linkedin_id}",  # replace with your LinkedIn ID
+	'lifecycleState': 'PUBLISHED',
+	'specificContent': {
+	    'com.linkedin.ugc.ShareContent': {
+		'shareCommentary': {
+		    'text': ''
+		},
+		'shareMediaCategory': 'NONE'
+	    }
+	},
+	'visibility': {
+	    'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
+	}
+    }
+
+    response = requests.post('https://api.linkedin.com/v2/ugcPosts', headers=headers, data=json.dumps(data))
+
+
+    if response.status_code != 429:
+	print(colored("Rate limit is not exceeded yet", 'cyan'))
+
+    return
 
 def get_media_id_after_generating_image_and_uploading_to_linkedin(prompt, size, note_id, media_url: str = None):
 
