@@ -131,24 +131,27 @@ def fn_list_rate_limits():
         'X-Restli-Protocol-Version': '2.0.0'
     }
 
-    response = requests.post('https://api.linkedin.com/v2/ugcPosts', headers=headers)
+    data = {
+        'author': f"urn:li:person:{linkedin_id}",  # replace with your LinkedIn ID
+        'lifecycleState': 'PUBLISHED',
+        'specificContent': {
+            'com.linkedin.ugc.ShareContent': {
+                'shareCommentary': {
+                    'text': ''
+                },
+                'shareMediaCategory': 'NONE'
+            }
+        },
+        'visibility': {
+            'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
+        }
+    }
 
-    rate_limit_limit = response.headers.get('x-rate-limit-limit')
-    rate_limit_remaining = response.headers.get('x-rate-limit-remaining')
-    rate_limit_reset = response.headers.get('x-rate-limit-reset')
+    response = requests.post('https://api.linkedin.com/v2/ugcPosts', headers=headers, data=json.dumps(data))
 
-    rate_limit_reset_date = datetime.datetime.utcfromtimestamp(int(rate_limit_reset))
-    rate_limit_reset_date = rate_limit_reset_date.replace(tzinfo=pytz.utc).astimezone(tz)
 
-    print(colored(f"rate limit ceiling: {rate_limit_limit}",'cyan'))
-    print(colored(f"rate limit remaining: {rate_limit_remaining}",'cyan'))
-    print(colored(f"rate limit reset: {rate_limit_reset_date}",'cyan'))
-	
-    post_id = response.headers.get('X-RestLi-Id')
-    print(response)
-    print(response.content)
-    print(post_id)
-
+    if response.status_code != 429:
+        print(colored("Rate limit is not exceeded yet", 'cyan'))
 
     return
 
@@ -204,16 +207,13 @@ def fn_list_rate_limits():
 
     print(colored(f"https://api.twitter.com/2/tweets/ endpoint response status code for blank tweet: {response.status_code}",'cyan'))
 
-    rate_limit_limit = response.headers.get('x-rate-limit-limit')
-    rate_limit_remaining = response.headers.get('x-rate-limit-remaining')
-    rate_limit_reset = response.headers.get('x-rate-limit-reset')
-
-    rate_limit_reset_date = datetime.datetime.utcfromtimestamp(int(rate_limit_reset))
-    rate_limit_reset_date = rate_limit_reset_date.replace(tzinfo=pytz.utc).astimezone(tz)
+    rate_limit_limit = response.headers.get('X-RateLimit-Limit')
+    rate_limit_remaining = response.headers.get('X-RateLimit-Remaining')
+    rate_limit_reset = response.headers.get('X-RateLimit-Reset')
 
     print(colored(f"rate limit ceiling: {rate_limit_limit}",'cyan'))
     print(colored(f"rate limit remaining: {rate_limit_remaining}",'cyan'))
-    print(colored(f"rate limit reset: {rate_limit_reset_date}",'cyan'))
+    print(colored(f"rate limit reset: {rate_limit_reset}",'cyan'))
 
 
 def fn_list_linkedin_posts(called_function_arguments_dict):
@@ -816,7 +816,6 @@ def get_active_access_token_and_linkedin_id():
         response = requests.get('https://api.linkedin.com/v2/me', headers=headers)
         if response.status_code == 200:
             linkedin_id = response.json().get('id')
-            print(f"Access token works for LinkedIn id: {linkedin_id}")
             return True, linkedin_id
         else:
             print("Invalid or expired token. Please generate a new one.")
