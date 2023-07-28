@@ -123,7 +123,76 @@ def fn_list_linkedin_module_functions():
     print()
 
 def fn_list_rate_limits():
-    oauth = get_oauth_session() # this function should return an OAuth1Session or OAuth2Session instance
+    access_token, linkedin_id = get_active_access_token_and_linkedin_id() # this function should return an OAuth1Session or OAuth2Session instance
+   
+    headers = {
+        'Authorization': 'Bearer ' + access_token,
+        'Content-Type': 'application/json',
+        'X-Restli-Protocol-Version': '2.0.0'
+    }
+
+    response = requests.post('https://api.linkedin.com/v2/ugcPosts', headers=headers)
+
+    rate_limit_limit = response.headers.get('x-rate-limit-limit')
+    rate_limit_remaining = response.headers.get('x-rate-limit-remaining')
+    rate_limit_reset = response.headers.get('x-rate-limit-reset')
+
+    rate_limit_reset_date = datetime.datetime.utcfromtimestamp(int(rate_limit_reset))
+    rate_limit_reset_date = rate_limit_reset_date.replace(tzinfo=pytz.utc).astimezone(tz)
+
+    print(colored(f"rate limit ceiling: {rate_limit_limit}",'cyan'))
+    print(colored(f"rate limit remaining: {rate_limit_remaining}",'cyan'))
+    print(colored(f"rate limit reset: {rate_limit_reset_date}",'cyan'))
+	
+    post_id = response.headers.get('X-RestLi-Id')
+    print(response)
+    print(response.content)
+    print(post_id)
+
+
+    return
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+    headers = {
+        'Authorization': 'Bearer ' + access_token,
+        'Content-Type': 'application/json',
+        'X-Restli-Protocol-Version': '2.0.0'
+    }
+
+    data = {
+        'author': f"urn:li:person:{linkedin_id}",  # replace with your LinkedIn ID
+        'lifecycleState': 'PUBLISHED',
+        'specificContent': {
+            'com.linkedin.ugc.ShareContent': {
+                'shareCommentary': {
+                    'text': 'Hello World! This is my first Share on LinkedIn!'
+                },
+                'shareMediaCategory': 'NONE'
+            }
+        },
+        'visibility': {
+            'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
+        }
+    }
+
+    response = requests.post('https://api.linkedin.com/v2/ugcPosts', headers=headers, data=json.dumps(data)) 
+    post_id = response.headers.get('X-RestLi-Id') 
+    print(response) 
+    print(response.content) 
+    print(post_id) 
+
+
     return
 
 
@@ -696,7 +765,7 @@ def fn_delete_spaced_linkedin_posts_by_note_ids(called_function_arguments_dict):
     print(colored(f"SPACED TWEETS FOR NOTE IDS {deleted_note_ids} SUCCESSFULLY DELETED", 'cyan'))
 
 
-def get_oauth_session():
+def get_active_access_token_and_linkedin_id():
 
     def get_access_code_from_db():
         cursor = conn.cursor()
@@ -777,90 +846,7 @@ def get_oauth_session():
         print("Failed to generate access token.")
         return
 
-    headers = {
-        'Authorization': 'Bearer ' + access_token,
-        'Content-Type': 'application/json',
-        'X-Restli-Protocol-Version': '2.0.0'
-    }
-
-    data = {
-        'author': f"urn:li:person:{linkedin_id}",  # replace with your LinkedIn ID
-        'lifecycleState': 'PUBLISHED',
-        'specificContent': {
-            'com.linkedin.ugc.ShareContent': {
-                'shareCommentary': {
-                    'text': 'Hello World! This is my first Share on LinkedIn!'
-                },
-                'shareMediaCategory': 'NONE'
-            }
-        },
-        'visibility': {
-            'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
-        }
-    }
-
-    response = requests.post('https://api.linkedin.com/v2/ugcPosts', headers=headers, data=json.dumps(data))
-    post_id = response.headers.get('X-RestLi-Id')
-    print(response)
-    print(response.content)
-    print(post_id)
-
-    return
-
-    oauth = OAuth1Session(
-        TWITTER_CONSUMER_KEY,
-        TWITTER_CONSUMER_SECRET,
-        TWITTER_ACCESS_TOKEN,
-        TWITTER_ACCESS_TOKEN_SECRET,
-    )
-
-    response = oauth.post("https://api.twitter.com/2/tweets")
-    if response.status_code != 201:
-        # Load existing tokens from file, if available
-        tokens_file = f"{parent_dir}/files/tokens/{TWITTER_AUTHENTICATION_KEY}"
-        try:
-            with open(tokens_file, 'r') as f:
-                tokens = json.load(f)
-            access_token = tokens['access_token']
-            access_token_secret = tokens['access_token_secret']
-        except FileNotFoundError:
-            # Get new tokens and save them to file
-            request_token_url = "https://api.twitter.com/oauth/request_token?oauth_callback=oob&x_auth_access_type=write"
-            oauth = OAuth1Session(TWITTER_CONSUMER_KEY, client_secret=TWITTER_CONSUMER_SECRET)
-            try:
-                fetch_response = oauth.fetch_request_token(request_token_url)
-            except ValueError:
-                print("There may have been an issue with the consumer_key or consumer_secret you entered.")
-            resource_owner_key = fetch_response.get("oauth_token")
-            resource_owner_secret = fetch_response.get("oauth_token_secret")
-            print("Got OAuth token: %s" % resource_owner_key)
-            base_authorization_url = "https://api.twitter.com/oauth/authorize"
-            authorization_url = oauth.authorization_url(base_authorization_url)
-            print("Please go here and authorize: %s" % authorization_url)
-            verifier = input("Paste the PIN here: ")
-            access_token_url = "https://api.twitter.com/oauth/access_token"
-            oauth = OAuth1Session(
-                TWITTER_CONSUMER_KEY,
-                client_secret=TWITTER_CONSUMER_SECRET,
-                resource_owner_key=resource_owner_key,
-                resource_owner_secret=resource_owner_secret,
-                verifier=verifier,
-            )
-            oauth_tokens = oauth.fetch_access_token(access_token_url)
-            access_token = oauth_tokens["oauth_token"]
-            access_token_secret = oauth_tokens["oauth_token_secret"]
-            # Save tokens to file
-            with open(tokens_file, 'w') as f:
-                json.dump({'access_token': access_token, 'access_token_secret': access_token_secret}, f)
-        # Use the tokens for the API call
-        oauth = OAuth1Session(
-            TWITTER_CONSUMER_KEY,
-            client_secret=TWITTER_CONSUMER_SECRET,
-            resource_owner_key=access_token,
-            resource_owner_secret=access_token_secret,
-        )
-
-    return oauth
+    return access_token, linkedin_id
 
 def get_media_id_after_generating_image_and_uploading_to_linkedin(prompt, size, note_id, media_url: str = None):
 
