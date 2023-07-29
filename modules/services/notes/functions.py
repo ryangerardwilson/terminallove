@@ -479,6 +479,12 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
                 image_content,
                 content_type='image/jpeg'
             )
+
+            # Access the image URL and media ID
+            media_url = blob.public_url
+            update_cmd = ("UPDATE notes SET media_url = %s WHERE id = %s")
+            cursor.execute(update_cmd, (media_url, note_id))
+            conn.commit()
             return True
         except Exception as e:
             print(colored(f"FAILED TO GENERATE MEDIA FOR NOTE {note_id}: ","cyan"), e)
@@ -498,23 +504,17 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             print(colored(f"FAILED TO GENERATE MEDIA FOR NOTE {note_id}: ","cyan"), e)
             return False
 
-
-
-
-    
-
-
-
-
     for note_id in ids_to_publish:
         cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
         media_url, = cursor.fetchone()
 
+        print(media_url)
         try:
-            if media_url != None:
-                has_media = True
-            else:
+            has_media = False
+            if media_url == None:
                 has_media = generate_media_for_note(note_id)
+            else:
+                has_media = True
             print("LEG 1 SUCCESSFUL")
             return
 
