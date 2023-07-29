@@ -196,6 +196,8 @@ async def main(
                 list_notes,
                 delete_notes_by_ids,
                 add_or_update_media_to_notes_by_ids,
+                publish_notes_by_ids,
+                unpublish_notes_by_ids,
             ]
 
         if preliminary_classification_function_info['function_name'] == 'invoke_twitter_module':
@@ -289,6 +291,8 @@ async def main(
                 'display_runs_distance_line_chart': fn_display_runs_distance_line_chart,
                 'open_note': fn_open_note,
                 'delete_notes_by_ids': fn_delete_notes_by_ids,
+                'publish_notes_by_ids': fn_publish_notes_by_ids,
+                'unpublish_notes_by_ids': fn_unpublish_notes_by_ids,
                 'list_notes': fn_list_notes,
                 'tweet_out_note': fn_tweet_out_note,
                 'list_tweets': fn_list_tweets,
@@ -303,7 +307,6 @@ async def main(
                 'delete_spaced_tweets_by_ids': fn_delete_spaced_tweets_by_ids,
                 'delete_spaced_tweets_by_note_ids': fn_delete_spaced_tweets_by_note_ids,
 
-                'linkedin_post_out_note': fn_linkedin_post_out_note,
                 'list_linkedin_posts': fn_list_linkedin_posts,
                 'list_queued_linkedin_posts': fn_list_queued_linkedin_posts,
                 'list_spaced_linkedin_posts': fn_list_spaced_linkedin_posts,

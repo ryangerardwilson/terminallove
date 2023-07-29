@@ -429,3 +429,114 @@ def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, 
 
     return media_url
 
+def fn_publish_notes_by_ids(called_function_arguments_dict):
+
+    cursor = conn.cursor()
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
+    date = called_function_arguments_dict.get('date', default_date)
+    ids_to_publish = called_function_arguments_dict.get('ids').split('_')
+
+    def generate_media_for_note(note_id):
+        try:
+            select_cmd = (
+                "SELECT note FROM notes WHERE id = %s"
+            )
+            cursor.execute(select_cmd, (note_id,))
+            note_text, = cursor.fetchone()
+
+            paragraphs = note_text.split("\n\n")
+            first_paragraph = paragraphs[0]
+
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {OPEN_AI_API_KEY}"
+            }
+            data = {
+                "prompt": f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {first_paragraph}",
+                "n": 1,
+                "size": "512x512"
+            }
+
+            response = requests.post("https://api.openai.com/v1/images/generations", headers=headers, data=json.dumps(data))
+            response_data = response.json()
+
+            open_ai_media_url = response_data['data'][0]['url']
+            downloaded_image = requests.get(open_ai_media_url)
+
+            if downloaded_image.status_code != 200:
+                raise Exception("Failed to download image from URL: {} {}".format(downloaded_image.status_code, downloaded_image.text))
+
+            image_content = downloaded_image.content
+
+            # Upload the media to Google Cloud Storage
+            storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
+            bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
+
+            filename = f"{note_id}_{datetime.datetime.now(tz).strftime('%Y%m%d_%H%M%S')}"
+
+            blob = bucket.blob(f"{filename}.jpg")
+            blob.upload_from_string(
+                image_content,
+                content_type='image/jpeg'
+            )
+            return True
+        except Exception as e:
+            print(colored(f"FAILED TO GENERATE MEDIA FOR NOTE {note_id}: ","cyan"), e)
+            return False
+
+    def tweet_out_note(note_id):
+        try:
+            return True
+        except Exception as e:
+            print(colored(f"FAILED TO TWEET OUT NOTE {note_id}: ","cyan"), e)
+            return False
+
+    def post_note_to_linkedin(note_id):
+        try:
+            return True
+        except Exception as e:
+            print(colored(f"FAILED TO GENERATE MEDIA FOR NOTE {note_id}: ","cyan"), e)
+            return False
+
+
+
+
+    
+
+
+
+
+    for note_id in ids_to_publish:
+        cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
+        media_url, = cursor.fetchone()
+
+        try:
+            if media_url != None:
+                has_media = True
+            else:
+                has_media = generate_media_for_note(note_id)
+            print("LEG 1 SUCCESSFUL")
+            return
+
+            if has_media == True:
+                all_tweets_related_to_note_published = False
+                all_tweets_related_to_note_published = tweet_out_note(note_id)
+                
+                note_posted_to_linkedin = False
+                if all_tweets_related_to_note_published == True:
+                    note_posted_to_linkedin = post_note_to_linkedin(note_id)
+    
+            if has_media == True and all_tweets_related_to_note_published == True and note_posted_to_linkedin == True:
+                set_is_published_to_true()
+                print(colored(f"Note id {note_id} successfully published", "cyan"))
+       
+        except Exception as e:
+            print('line 535 error ', e)
+
+
+    return
+
+
+def fn_unpublish_notes_by_ids(called_function_arguments_dict):
+    print('HUHUHAHAHA')
+

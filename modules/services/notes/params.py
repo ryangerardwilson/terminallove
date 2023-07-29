@@ -139,8 +139,35 @@ list_notes = {
     }
 }
 
+publish_notes_by_ids = {
+    "name": "publish_notes_by_ids",
+    "description": "Publish notes by their ids",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "ids": {
+                "type": "string",
+                "description": "The ids to be published separated by camel case. For instance ids 4 and 5 would be 4_5"
+            },
+        },
+        "required": ["ids"]
+    }
+}
 
-
+unpublish_notes_by_ids = {
+    "name": "unpublish_notes_by_ids",
+    "description": "Unpublish notes by their ids",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "ids": {
+                "type": "string",
+                "description": "The ids to be unpublished separated by camel case. For instance ids 4 and 5 would be 4_5"
+            },
+        },
+        "required": ["ids"]
+    }
+}
 
 
 

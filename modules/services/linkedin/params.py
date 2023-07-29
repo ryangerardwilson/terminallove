@@ -88,21 +88,6 @@ list_spaced_linkedin_posts = {
   }
 }
 
-linkedin_post_out_note = {
-  "name": "linkedin_post_out_note",
-  "description": "Posts to LinkedIn the note prepared by the user by its id",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "id": {
-        "type": "integer",
-        "description": "The id of the note"
-       },
-     },
-    "required": []
-  }
-}
-
 schedule_linkedin_post = {
   "name": "schedule_linkedin_post",
   "description": "Schedules the LinkedIn posting of the note prepared by the user to a late date",
