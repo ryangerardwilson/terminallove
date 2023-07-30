@@ -9,10 +9,12 @@ from dotenv import load_dotenv
 import plotext as plt
 import time
 import pytz
+from requests_oauthlib import OAuth1Session
 from google.cloud import storage
 import urllib.parse
 import requests
 import json
+import base64
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -26,6 +28,13 @@ path_to_service_account_file=os.path.join(parent_dir,'files/tokens/',GOOGLE_SERV
 
 TIMEZONE=os.getenv('TIMEZONE')
 tz=pytz.timezone(TIMEZONE)
+
+TWITTER_AUTHENTICATION_KEY=os.getenv('TWITTER_AUTHENTICATION_KEY')
+TWITTER_NOTE_SPACING=int(os.getenv('TWITTER_NOTE_SPACING'))
+TWITTER_CONSUMER_KEY=os.getenv('TWITTER_CONSUMER_KEY')
+TWITTER_CONSUMER_SECRET=os.getenv('TWITTER_CONSUMER_SECRET')
+TWITTER_ACCESS_TOKEN=os.getenv('TWITTER_ACCESS_TOKEN')
+TWITTER_ACCESS_TOKEN_SECRET=os.getenv('TWITTER_ACCESS_TOKEN_SECRET')
 
 conn = mysql.connector.connect(
     user=os.getenv('DB_USER'),
@@ -492,7 +501,165 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
 
     def tweet_out_note(note_id):
         try:
-            return True
+            inserted_tweets = []
+            media_url = None
+            media_id = None
+
+            select_cmd = ("SELECT note, media_url FROM notes WHERE id = %s")
+            cursor.execute(select_cmd, (note_id,))
+            note_result = cursor.fetchone()
+            note_text, media_url = note_result
+
+            if note_text == None:
+                print(colored("You can't tweet an empty note", 'red'))
+                return False
+
+            paragraphs = note_text.split("\n\n")
+
+            cursor.execute("SELECT tweet FROM tweets")
+            previous_tweets = {row[0] for row in cursor.fetchall()}
+
+            cursor.execute("SELECT tweet FROM queued_tweets")
+            queued_tweets = {row[0] for row in cursor.fetchall()}
+
+            previous_tweet_id = None
+
+            latest_tweet_time = None
+            cursor.execute("SELECT MAX(posted_at) FROM tweets")
+            result = cursor.fetchone()
+            if result is not None and result[0] is not None:
+                latest_tweet_time = result[0]
+
+            latest_different_note_scheduled_time = None
+            cursor.execute("SELECT MAX(scheduled_at) FROM spaced_tweets WHERE note_id != %s", (note_id,))
+            result = cursor.fetchone()
+            if result is not None and result[0] is not None:
+                latest_different_note_scheduled_time = result[0]
+
+            rate_limit_hit = False
+
+            for i, paragraph in enumerate(paragraphs, 1):
+                
+                if not paragraph.strip():
+                    print(colored(f"Skipping empty paragraph {i}", 'red'))
+                    if i == 1:
+                        print(colored('You may have forgotten to save the note', 'red'))
+                    continue
+
+                if len(paragraph) > 280:
+                    print(colored(f"Paragraph {i} is longer than 280 characters by {len(paragraph) - 280} characters. Not tweeting anything", 'red'))
+                    return False
+
+                if paragraph in previous_tweets:
+                    print(colored(f"Paragraph {i} has already been posted. Not tweeting anything", 'red'))
+                    return False
+
+                if rate_limit_hit:
+                    tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+                    queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
+                    cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
+                    conn.commit()
+                    print(colored(f"Paragraph {i} has been queued due to rate limit hit.", 'yellow'))
+                    continue
+
+                payload = {"text": paragraph} 
+     
+                if previous_tweet_id is not None: 
+                    payload["reply"] = {"in_reply_to_tweet_id": previous_tweet_id} 
+     
+                time.sleep(1) 
+                oauth = get_oauth_session() 
+     
+                if latest_tweet_time is not None: 
+                    if latest_tweet_time.tzinfo is None or latest_tweet_time.tzinfo.utcoffset(latest_tweet_time) is None: 
+                        latest_tweet_time = tz.localize(latest_tweet_time) 
+                    else: 
+                        latest_tweet_time = latest_tweet_time.astimezone(tz) 
+     
+                if latest_different_note_scheduled_time is not None: 
+                    if latest_different_note_scheduled_time.tzinfo is None or latest_different_note_scheduled_time.tzinfo.utcoffset(latest_different_note_scheduled_time) is None: 
+                        latest_different_note_scheduled_time = tz.localize(latest_different_note_scheduled_time) 
+                    else: 
+                        latest_different_note_scheduled_time = latest_different_note_scheduled_time.astimezone(tz) 
+                 
+                latest_time = max(filter(None, [datetime.datetime.now(tz), latest_tweet_time, latest_different_note_scheduled_time])) 
+                latest_same_note_scheduling_time = None 
+                cursor.execute("SELECT MAX(scheduled_at) FROM spaced_tweets WHERE note_id = %s", (note_id,)) 
+                result = cursor.fetchone() 
+                if result is not None and result[0] is not None: 
+                    latest_same_note_scheduling_time = result[0] 
+     
+                if latest_same_note_scheduling_time is not None: 
+                    if latest_same_note_scheduling_time.tzinfo is None or latest_same_note_scheduling_time.tzinfo.utcoffset(latest_same_note_scheduling_time) is None: 
+                        latest_same_note_scheduling_time = tz.localize(latest_same_note_scheduling_time) 
+                    else: 
+                        latest_same_note_scheduling_time = latest_same_note_scheduling_time.astimezone(tz) 
+     
+                if latest_different_note_scheduled_time is None and latest_same_note_scheduling_time is None: 
+                    scheduled_at = latest_tweet_time + datetime.timedelta(hours=TWITTER_NOTE_SPACING) 
+                elif latest_same_note_scheduling_time is not None: 
+                    scheduled_at = latest_same_note_scheduling_time + datetime.timedelta(seconds=1) 
+                elif latest_different_note_scheduled_time is not None: 
+                    scheduled_at = latest_different_note_scheduled_time + datetime.timedelta(hours=TWITTER_NOTE_SPACING) 
+     
+                # Insert into spaced_tweets only if (a) there are scheduled tweets for the same note_id; or (b) there are no scheduled tweets for the same note_id but there are tweets posted with the last TWITTER_NOTE_SPACING hours: 
+                hours_since_latest_tweet = (datetime.datetime.now(tz) - latest_tweet_time).total_seconds() / 3600 
+                if ((datetime.datetime.now(tz) < scheduled_at and latest_different_note_scheduled_time is not None) or 
+                   (latest_different_note_scheduled_time is None and hours_since_latest_tweet < TWITTER_NOTE_SPACING)): 
+                    cursor.execute("INSERT INTO spaced_tweets (note_id, tweet, scheduled_at, media_id) VALUES (%s, %s, %s, %s)", (note_id, paragraph, scheduled_at, media_id)) 
+                    conn.commit() 
+                    print(colored(f"Paragraph {i} has been scheduled for a future tweet.", 'yellow')) 
+                    continue 
+                else:
+
+                    if i == 1 and media_url != None:
+                        media_id = get_media_id_after_uploading_image_to_twitter(media_url)
+
+                    if i == 1 and media_id != 0:
+                        payload["media"] = {"media_ids": [media_id]}
+
+                    response = oauth.post("https://api.twitter.com/2/tweets", json=payload) 
+                    if response.status_code == 429: 
+                        print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow')) 
+                        tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S') 
+                        queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at, media_id) VALUES (%s, %s, %s, %s)") 
+                        cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at, media_id)) 
+                        conn.commit() 
+                        rate_limit_hit = True 
+                        continue 
+     
+                    if response.status_code != 201: 
+                        raise Exception("Request returned an error: {} {}".format(response.status_code, response.text)) 
+     
+                    json_response = response.json() 
+     
+                    if 'data' in json_response: 
+                        tweet_id = json_response['data']['id'] 
+                        previous_tweet_id = tweet_id 
+                        posted_at = datetime.datetime.now(tz) 
+                        insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id, media_id) VALUES (%s, %s, %s, %s, %s)") 
+                        cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id, media_id)) 
+                        conn.commit() 
+     
+                        inserted_tweets.append({
+                            'para': i,
+                            'tweet': paragraph, 
+                            'tweet_id': tweet_id, 
+                            'posted_at': posted_at,
+                            'note_id': note_id,
+                            'media_id':media_id,
+                        })
+
+            if inserted_tweets:
+                df = pd.DataFrame(inserted_tweets)
+                df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
+                print(colored("\nSUCCESSFULLY POSTED TWEETS FOR NOTE {note_id}\n", "cyan"))
+                print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
+        
+            if rate_limit_hit:
+                return False
+            else:
+                return True
         except Exception as e:
             print(colored(f"FAILED TO TWEET OUT NOTE {note_id}: ","cyan"), e)
             return False
@@ -516,7 +683,6 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             else:
                 has_media = True
             print("LEG 1 SUCCESSFUL")
-            return
 
             if has_media == True:
                 all_tweets_related_to_note_published = False
@@ -524,6 +690,9 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
                 
                 note_posted_to_linkedin = False
                 if all_tweets_related_to_note_published == True:
+                    print("LEG 2 SUCCESSFUL")
+                    return
+
                     note_posted_to_linkedin = post_note_to_linkedin(note_id)
     
             if has_media == True and all_tweets_related_to_note_published == True and note_posted_to_linkedin == True:
@@ -539,4 +708,90 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
 
 def fn_unpublish_notes_by_ids(called_function_arguments_dict):
     print('HUHUHAHAHA')
+
+def get_oauth_session():
+
+    oauth = OAuth1Session(
+        TWITTER_CONSUMER_KEY,
+        TWITTER_CONSUMER_SECRET,
+        TWITTER_ACCESS_TOKEN,
+        TWITTER_ACCESS_TOKEN_SECRET,
+    )
+
+    response = oauth.post("https://api.twitter.com/2/tweets")
+    if response.status_code != 201:
+        # Load existing tokens from file, if available
+        tokens_file = f"{parent_dir}/files/tokens/{TWITTER_AUTHENTICATION_KEY}"
+        try:
+            with open(tokens_file, 'r') as f:
+                tokens = json.load(f)
+            access_token = tokens['access_token']
+            access_token_secret = tokens['access_token_secret']
+        except FileNotFoundError:
+            # Get new tokens and save them to file
+            request_token_url = "https://api.twitter.com/oauth/request_token?oauth_callback=oob&x_auth_access_type=write"
+            oauth = OAuth1Session(TWITTER_CONSUMER_KEY, client_secret=TWITTER_CONSUMER_SECRET)
+            try:
+                fetch_response = oauth.fetch_request_token(request_token_url)
+            except ValueError:
+                print("There may have been an issue with the consumer_key or consumer_secret you entered.")
+            resource_owner_key = fetch_response.get("oauth_token")
+            resource_owner_secret = fetch_response.get("oauth_token_secret")
+            print("Got OAuth token: %s" % resource_owner_key)
+            base_authorization_url = "https://api.twitter.com/oauth/authorize"
+            authorization_url = oauth.authorization_url(base_authorization_url)
+            print("Please go here and authorize: %s" % authorization_url)
+            verifier = input("Paste the PIN here: ")
+            access_token_url = "https://api.twitter.com/oauth/access_token"
+            oauth = OAuth1Session(
+                TWITTER_CONSUMER_KEY,
+                client_secret=TWITTER_CONSUMER_SECRET,
+                resource_owner_key=resource_owner_key,
+                resource_owner_secret=resource_owner_secret,
+                verifier=verifier,
+            )
+            oauth_tokens = oauth.fetch_access_token(access_token_url)
+            access_token = oauth_tokens["oauth_token"]
+            access_token_secret = oauth_tokens["oauth_token_secret"]
+            # Save tokens to file
+            with open(tokens_file, 'w') as f:
+                json.dump({'access_token': access_token, 'access_token_secret': access_token_secret}, f)
+        # Use the tokens for the API call
+        oauth = OAuth1Session(
+            TWITTER_CONSUMER_KEY,
+            client_secret=TWITTER_CONSUMER_SECRET,
+            resource_owner_key=access_token,
+            resource_owner_secret=access_token_secret,
+        )
+
+    return oauth
+
+def get_media_id_after_uploading_image_to_twitter(media_url):
+
+    # Download the image from the URL
+    downloaded_image = requests.get(media_url)
+
+    if downloaded_image.status_code != 200:
+        raise Exception("Failed to download image from URL: {} {}".format(downloaded_image.status_code, downloaded_image.text))
+
+    image_content = downloaded_image.content
+    base64_image_content = base64.b64encode(image_content).decode('utf-8')
+
+    # Upload the media to Twitter
+    media_upload_url = "https://upload.twitter.com/1.1/media/upload.json"
+
+    oauth = get_oauth_session()
+    image_upload_response = oauth.post(media_upload_url, data={"media_data": base64_image_content})
+
+    if image_upload_response.status_code == 200:
+        json_image_upload_response = image_upload_response.json()
+        print(json_image_upload_response)
+        media_id = json_image_upload_response["media_id_string"]
+    else:
+        print(colored('Image upload to twitter failed','red'))
+        media_id = 0
+    
+    return media_id
+
+
 
