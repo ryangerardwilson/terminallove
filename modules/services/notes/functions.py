@@ -29,6 +29,8 @@ path_to_service_account_file=os.path.join(parent_dir,'files/tokens/',GOOGLE_SERV
 TIMEZONE=os.getenv('TIMEZONE')
 tz=pytz.timezone(TIMEZONE)
 
+PUBLISHED_NOTE_SPACING=int(os.getenv('PUBLISHED_NOTE_SPACING'))
+
 TWITTER_AUTHENTICATION_KEY=os.getenv('TWITTER_AUTHENTICATION_KEY')
 TWITTER_NOTE_SPACING=int(os.getenv('TWITTER_NOTE_SPACING'))
 TWITTER_CONSUMER_KEY=os.getenv('TWITTER_CONSUMER_KEY')
@@ -510,32 +512,17 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             note_result = cursor.fetchone()
             note_text, media_url = note_result
 
+            previous_tweet_id = None
+
             if note_text == None:
                 print(colored("You can't tweet an empty note", 'red'))
                 return False
 
-            paragraphs = note_text.split("\n\n")
-
             cursor.execute("SELECT tweet FROM tweets")
             previous_tweets = {row[0] for row in cursor.fetchall()}
 
-            cursor.execute("SELECT tweet FROM queued_tweets")
-            queued_tweets = {row[0] for row in cursor.fetchall()}
 
-            previous_tweet_id = None
-
-            latest_tweet_time = None
-            cursor.execute("SELECT MAX(posted_at) FROM tweets")
-            result = cursor.fetchone()
-            if result is not None and result[0] is not None:
-                latest_tweet_time = result[0]
-
-            latest_different_note_scheduled_time = None
-            cursor.execute("SELECT MAX(scheduled_at) FROM spaced_tweets WHERE note_id != %s", (note_id,))
-            result = cursor.fetchone()
-            if result is not None and result[0] is not None:
-                latest_different_note_scheduled_time = result[0]
-
+            paragraphs = note_text.split("\n\n")
             rate_limit_hit = False
 
             for i, paragraph in enumerate(paragraphs, 1):
@@ -555,12 +542,31 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
                     return False
 
                 if rate_limit_hit:
-                    tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
-                    queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at) VALUES (%s, %s, %s)")
-                    cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at))
+                    select_cmd = "SELECT id, tweet_id FROM tweets WHERE note_id = %s"
+                    cursor.execute(select_cmd, (note_id,))
+                    results = cursor.fetchall()
+                    if not results:
+                        print(colored(f"No published tweets to delete for note id {note_id}", 'cyan'))
+                    else:
+                        for result in results:
+                            table_id, tweet_id = result
+                            time.sleep(1)
+                            # Delete the tweet on Twitter
+                            url = f"https://api.twitter.com/2/tweets/{tweet_id}"
+                            response = oauth.delete(url)
+                            # Check for a successful response
+                            if response.status_code == 200:
+                                # If the deletion was successful on Twitter, delete the record from the tweets table
+                                sql = "DELETE FROM tweets WHERE id = %s"
+                                cursor.execute(sql, (table_id,))
+                            else:
+                                print(colored(f"Failed to delete tweet with {tweet_id} for note id {note_id}", 'cyan'))
+                                print(response.text)
+                        queue_insert_cmd = ("INSERT INTO queued_publications (note_id) VALUES (%s)")
+                    cursor.execute(queue_insert_cmd, (note_id,))
                     conn.commit()
-                    print(colored(f"Paragraph {i} has been queued due to rate limit hit.", 'yellow'))
-                    continue
+                    print(colored(f"Note id {note_id} has been queued due to rate limit hit.", "cyan"))
+                    return False
 
                 payload = {"text": paragraph} 
      
@@ -569,99 +575,78 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
      
                 time.sleep(1) 
                 oauth = get_oauth_session() 
-     
-                if latest_tweet_time is not None: 
-                    if latest_tweet_time.tzinfo is None or latest_tweet_time.tzinfo.utcoffset(latest_tweet_time) is None: 
-                        latest_tweet_time = tz.localize(latest_tweet_time) 
-                    else: 
-                        latest_tweet_time = latest_tweet_time.astimezone(tz) 
-     
-                if latest_different_note_scheduled_time is not None: 
-                    if latest_different_note_scheduled_time.tzinfo is None or latest_different_note_scheduled_time.tzinfo.utcoffset(latest_different_note_scheduled_time) is None: 
-                        latest_different_note_scheduled_time = tz.localize(latest_different_note_scheduled_time) 
-                    else: 
-                        latest_different_note_scheduled_time = latest_different_note_scheduled_time.astimezone(tz) 
-                 
-                latest_time = max(filter(None, [datetime.datetime.now(tz), latest_tweet_time, latest_different_note_scheduled_time])) 
-                latest_same_note_scheduling_time = None 
-                cursor.execute("SELECT MAX(scheduled_at) FROM spaced_tweets WHERE note_id = %s", (note_id,)) 
-                result = cursor.fetchone() 
-                if result is not None and result[0] is not None: 
-                    latest_same_note_scheduling_time = result[0] 
-     
-                if latest_same_note_scheduling_time is not None: 
-                    if latest_same_note_scheduling_time.tzinfo is None or latest_same_note_scheduling_time.tzinfo.utcoffset(latest_same_note_scheduling_time) is None: 
-                        latest_same_note_scheduling_time = tz.localize(latest_same_note_scheduling_time) 
-                    else: 
-                        latest_same_note_scheduling_time = latest_same_note_scheduling_time.astimezone(tz) 
-     
-                if latest_different_note_scheduled_time is None and latest_same_note_scheduling_time is None: 
-                    scheduled_at = latest_tweet_time + datetime.timedelta(hours=TWITTER_NOTE_SPACING) 
-                elif latest_same_note_scheduling_time is not None: 
-                    scheduled_at = latest_same_note_scheduling_time + datetime.timedelta(seconds=1) 
-                elif latest_different_note_scheduled_time is not None: 
-                    scheduled_at = latest_different_note_scheduled_time + datetime.timedelta(hours=TWITTER_NOTE_SPACING) 
-     
-                # Insert into spaced_tweets only if (a) there are scheduled tweets for the same note_id; or (b) there are no scheduled tweets for the same note_id but there are tweets posted with the last TWITTER_NOTE_SPACING hours: 
-                hours_since_latest_tweet = (datetime.datetime.now(tz) - latest_tweet_time).total_seconds() / 3600 
-                if ((datetime.datetime.now(tz) < scheduled_at and latest_different_note_scheduled_time is not None) or 
-                   (latest_different_note_scheduled_time is None and hours_since_latest_tweet < TWITTER_NOTE_SPACING)): 
-                    cursor.execute("INSERT INTO spaced_tweets (note_id, tweet, scheduled_at, media_id) VALUES (%s, %s, %s, %s)", (note_id, paragraph, scheduled_at, media_id)) 
-                    conn.commit() 
-                    print(colored(f"Paragraph {i} has been scheduled for a future tweet.", 'yellow')) 
-                    continue 
+    
+                if i == 1 and media_url != None:
+                    media_id = get_media_id_after_uploading_image_to_twitter(media_url)
+
+                if i == 1 and media_id != 0:
+                    payload["media"] = {"media_ids": [media_id]}
                 else:
+                    media_url = None
+                    media_id = None
 
-                    if i == 1 and media_url != None:
-                        media_id = get_media_id_after_uploading_image_to_twitter(media_url)
+                response = oauth.post("https://api.twitter.com/2/tweets", json=payload) 
+                if response.status_code == 429:
+                    rate_limit_hit = True
+                    print(colored(f"Rate limit exceeded. Note is being queued", "cyan"))
 
-                    if i == 1 and media_id != 0:
-                        payload["media"] = {"media_ids": [media_id]}
-
-                    response = oauth.post("https://api.twitter.com/2/tweets", json=payload) 
-                    if response.status_code == 429: 
-                        print(colored(f"Rate limit exceeded. Tweet is being queued.", 'yellow')) 
-                        tweet_failed_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S') 
-                        queue_insert_cmd = ("INSERT INTO queued_tweets (note_id, tweet, tweet_failed_at, media_id) VALUES (%s, %s, %s, %s)") 
-                        cursor.execute(queue_insert_cmd, (note_id, paragraph, tweet_failed_at, media_id)) 
-                        conn.commit() 
-                        rate_limit_hit = True 
-                        continue 
-     
-                    if response.status_code != 201: 
-                        raise Exception("Request returned an error: {} {}".format(response.status_code, response.text)) 
-     
-                    json_response = response.json() 
-     
-                    if 'data' in json_response: 
-                        tweet_id = json_response['data']['id'] 
-                        previous_tweet_id = tweet_id 
-                        posted_at = datetime.datetime.now(tz) 
-                        insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id, media_id) VALUES (%s, %s, %s, %s, %s)") 
-                        cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id, media_id)) 
-                        conn.commit() 
-     
-                        inserted_tweets.append({
-                            'para': i,
-                            'tweet': paragraph, 
-                            'tweet_id': tweet_id, 
-                            'posted_at': posted_at,
-                            'note_id': note_id,
-                            'media_id':media_id,
-                        })
+                    select_cmd = "SELECT id, tweet_id FROM tweets WHERE note_id = %s"
+                    cursor.execute(select_cmd, (note_id,))
+                    results = cursor.fetchall()
+                    if not results:
+                        print(colored(f"No published tweets to delete for note id {note_id}", 'cyan'))
+                    else:
+                        for result in results:
+                            table_id, tweet_id = result
+                            time.sleep(1)
+                            # Delete the tweet on Twitter
+                            url = f"https://api.twitter.com/2/tweets/{tweet_id}"
+                            response = oauth.delete(url)
+                            # Check for a successful response
+                            if response.status_code == 200:
+                            # If the deletion was successful on Twitter, delete the record from the tweets table
+                                sql = "DELETE FROM tweets WHERE id = %s"
+                                cursor.execute(sql, (table_id,))
+                            else:
+                                print(colored(f"Failed to delete tweet with {tweet_id} for note id {note_id}", 'cyan'))
+                                print(response.text)
+                    queue_insert_cmd = ("INSERT INTO queued_publications (note_id) VALUES (%s)")
+                    cursor.execute(queue_insert_cmd, (note_id,))
+                    conn.commit()
+                    print(colored(f"Note id {note_id} has been queued due to rate limit hit.", "cyan"))
+                    return False
+ 
+                if response.status_code != 201: 
+                    raise Exception("Request returned an error: {} {}".format(response.status_code, response.text)) 
+ 
+                json_response = response.json() 
+ 
+                if 'data' in json_response: 
+                    tweet_id = json_response['data']['id'] 
+                    previous_tweet_id = tweet_id 
+                    posted_at = datetime.datetime.now(tz) 
+                    insert_cmd = ("INSERT INTO tweets (tweet, tweet_id, posted_at, note_id, media_id) VALUES (%s, %s, %s, %s, %s)") 
+                    cursor.execute(insert_cmd, (paragraph, tweet_id, posted_at, note_id, media_id)) 
+                    conn.commit() 
+ 
+                    inserted_tweets.append({
+                        'para': i,
+                        'tweet': paragraph, 
+                        'tweet_id': tweet_id, 
+                        'posted_at': posted_at,
+                        'note_id': note_id,
+                        'media_id':media_id,
+                    })
 
             if inserted_tweets:
                 df = pd.DataFrame(inserted_tweets)
                 df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
-                print(colored("\nSUCCESSFULLY POSTED TWEETS FOR NOTE {note_id}\n", "cyan"))
+                print(colored("\nSuccessfully tweeted out note id {note_id}\n", "cyan"))
                 print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
-        
-            if rate_limit_hit:
-                return False
-            else:
                 return True
+        
         except Exception as e:
-            print(colored(f"FAILED TO TWEET OUT NOTE {note_id}: ","cyan"), e)
+            print(colored(f"Failed to tweet out note id {note_id}: ","cyan"), e)
             return False
 
     def post_note_to_linkedin(note_id):
@@ -675,8 +660,25 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
         cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
         media_url, = cursor.fetchone()
 
-        print(media_url)
         try:
+
+            # SQL query to fetch the most recent published note
+            query = "SELECT published_at FROM notes WHERE is_published = 1 ORDER BY published_at DESC LIMIT 1"
+            cursor.execute(query)
+            result = cursor.fetchone()
+            if result:
+                published_at = result[0]
+                published_at = published_at.replace(tzinfo=tz)
+                now = datetime.datetime.now(tz)
+                hours_since_last_published_note = (now - published_at).total_seconds() / 3600
+            else:
+                hours_since_last_published_note = PUBLISHED_NOTE_SPACING + 1
+            if (hours_since_last_published_note < PUBLISHED_NOTE_SPACING):
+                cursor.execute("INSERT INTO spaced_publications (note_id) VALUES (%s)", (note_id))
+                conn.commit()
+                print(colored(f"Note id {note_id} has been scheduled", 'cyan'))
+                return
+
             has_media = False
             if media_url == None:
                 has_media = generate_media_for_note(note_id)
@@ -700,7 +702,7 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
                 print(colored(f"Note id {note_id} successfully published", "cyan"))
        
         except Exception as e:
-            print('line 535 error ', e)
+            print('line 686 error ', e)
 
 
     return
