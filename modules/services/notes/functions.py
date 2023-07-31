@@ -656,6 +656,10 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             print(colored(f"FAILED TO GENERATE MEDIA FOR NOTE {note_id}: ","cyan"), e)
             return False
 
+    def set_is_published_to_true(note_id):
+        print(colored(f"Setting note id {note_id} as published", "cyan"))
+        return True
+
     for note_id in ids_to_publish:
         cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
         media_url, = cursor.fetchone()
