@@ -527,7 +527,6 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             previous_tweets = {row[0] for row in cursor.fetchall()}
 
             paragraphs = note_text.split("\n\n")
-            rate_limit_hit = False
 
             for i, paragraph in enumerate(paragraphs, 1):
                 
@@ -543,14 +542,6 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
 
                 if paragraph in previous_tweets:
                     print(colored(f"Paragraph {i} has already been posted. Not tweeting anything", 'red'))
-                    return False
-
-                if rate_limit_hit:
-                    delete_tweets_by_note_id(note_id)
-                    queue_insert_cmd = ("INSERT INTO queued_publications (note_id) VALUES (%s)")
-                    cursor.execute(queue_insert_cmd, (note_id,))
-                    conn.commit()
-                    print(colored(f"Note id {note_id} has been queued due to rate limit hit.", "cyan"))
                     return False
 
                 payload = {"text": paragraph} 
@@ -571,19 +562,14 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
                     media_id = None
 
                 response = oauth.post("https://api.twitter.com/2/tweets", json=payload) 
-                if response.status_code == 429:
-                    rate_limit_hit = True
-                    print(colored(f"Rate limit exceeded. Note is being queued", "cyan"))
+                if response.status_code != 201:
                     delete_tweets_by_note_id(note_id)
+                    print(colored(f"Request returned an error with status code {response.status_code}", "cyan"))
                     queue_insert_cmd = ("INSERT INTO queued_publications (note_id) VALUES (%s)")
                     cursor.execute(queue_insert_cmd, (note_id,))
                     conn.commit()
-                    print(colored(f"Note id {note_id} has been queued due to rate limit hit.", "cyan"))
                     return False
- 
-                if response.status_code != 201: 
-                    raise Exception("Request returned an error: {} {}".format(response.status_code, response.text)) 
- 
+
                 json_response = response.json() 
  
                 if 'data' in json_response: 
@@ -621,6 +607,7 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
         if not results:
             print(colored(f"No published tweets to delete for note id {note_id}", 'cyan'))
         else:
+            oauth = get_oauth_session()
             for result in results:
                 table_id, tweet_id = result
                 time.sleep(1)
@@ -642,17 +629,16 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             cursor.execute(select_cmd, (note_id,))
             note_result = cursor.fetchone()
             note_text, media_url = note_result
-
+            print('645')
             access_token, linkedin_id = get_active_access_token_and_linkedin_id()
-
+            print('647')
             if note_text == None:
                 print(colored("You can't post an empty note", 'red'))
                 return False
 
             cursor.execute("SELECT post FROM linkedin_posts")
             previous_published_posts = {row[0] for row in cursor.fetchall()}
-            
-            rate_limit_hit = False
+            print('654')
 
             if not note_text.strip():
                 print(colored(f"Note is empty, and, therefore, not posted. You may have forgotten to save the note", "cyan"))
@@ -661,7 +647,7 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             if note_text in previous_published_posts:
                 print(colored(f"Note id {i} has already been posted to linkedin. Not posting anything to linkedin", 'red'))
                 return False
-
+            print('664')
             media_asset_urn = get_asset_urn_after_uploading_image_to_linkedin(media_url)
 
             headers = {
@@ -696,9 +682,17 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             }
 
             response = requests.post('https://api.linkedin.com/v2/ugcPosts', headers=headers, data=json.dumps(data))
-            json_response = response.json()
 
-            if 'data' in json_response:
+            if response.status_code != 201:
+                delete_linkedin_posts_by_note_id(note_id)
+                print(colored(f"Request returned an error with status code {response.status_code}", "cyan"))
+                print(colored(response.text, "cyan"))
+                return False
+            else:
+                json_response = response.json()
+                print('700')
+                print(json_response)
+                print('IDDD: ', json_response['id'])
                 post_id = response.headers.get('X-RestLi-Id')
                 posted_at = datetime.datetime.now(tz)
                 insert_cmd = ("INSERT INTO linkedin_posts (post, post_id, posted_at, note_id, media_asset_urn) VALUES (%s, %s, %s, %s, %s)")
@@ -709,8 +703,45 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             print(colored(f"FAILED TO GENERATE MEDIA FOR NOTE {note_id}: ","cyan"), e)
             return False
 
+    def delete_linkedin_post_by_note_id(note_id):
+        select_cmd = "SELECT id, note_id, post_id FROM linkedin_posts WHERE note_id = %s"
+        cursor.execute(select_cmd, (note_id,))
+        result = cursor.fetchone()
+        if not result:
+            print(colored(f"No published linkedin posts to delete for note id {note_id}", 'cyan'))
+        else:
+            table_id, note_id, post_id = result
+            time.sleep(1)
+            url = f"https://api.linkedin.com/v2/ugcPosts/{post_id}"
+    
+            access_token, linkedin_id = get_active_access_token_and_linkedin_id()
+
+            headers = {
+                'Authorization': 'Bearer ' + access_token,
+                'Content-Type': 'application/json',
+                'X-Restli-Protocol-Version': '2.0.0'
+            }   
+            response = requests.delete(url, headers=headers)
+
+            if response.status_code == 200:
+                # If the deletion was successful, delete the record from the tweets table
+                sql = "DELETE FROM linkedin_posts WHERE id = %s"
+                cursor.execute(sql, (table_id,))
+
+            if response.status_code != 200:
+                print('726')
+                print(colored(f"Request returned an error with status code {response.status_code}", "cyan"))
+                print(colored(response.text, "cyan"))
+                return False
+            else:
+                print(f"Deleted note id {note_id} from LinkedIn")
+
     def set_is_published_to_true(note_id):
+        published_at = datetime.datetime.now(tz)
         print(colored(f"Setting note id {note_id} as published", "cyan"))
+        update_cmd = ("UPDATE notes SET is_published = 1, published_at = %s WHERE id = %s")
+        cursor.execute(update_cmd, (published_at, note_id,))
+        conn.commit()
         return True
 
     for note_id in ids_to_publish:
@@ -762,9 +793,87 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
 
     return
 
-
 def fn_unpublish_notes_by_ids(called_function_arguments_dict):
-    print('HUHUHAHAHA')
+
+    cursor = conn.cursor()
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
+    date = called_function_arguments_dict.get('date', default_date)
+    ids_to_unpublish = called_function_arguments_dict.get('ids').split('_')
+
+    def delete_tweets_by_note_id(note_id):
+        select_cmd = "SELECT id, tweet_id FROM tweets WHERE note_id = %s"
+        cursor.execute(select_cmd, (note_id,))
+        results = cursor.fetchall()
+        if not results:
+            print(colored(f"No published tweets to delete for note id {note_id}", 'cyan'))
+        else:
+            oauth = get_oauth_session()
+            for result in results:
+                table_id, tweet_id = result
+                time.sleep(1)
+                # Delete the tweet on Twitter
+                url = f"https://api.twitter.com/2/tweets/{tweet_id}"
+                response = oauth.delete(url)
+                # Check for a successful response
+                if response.status_code == 200:
+                # If the deletion was successful on Twitter, delete the record from the tweets table
+                    sql = "DELETE FROM tweets WHERE id = %s"
+                    cursor.execute(sql, (table_id,))
+                else:
+                    print(colored(f"Failed to delete tweet with {tweet_id} for note id {note_id}", 'cyan'))
+                    print(response.text)
+
+    def delete_linkedin_post_by_note_id(note_id):
+        select_cmd = "SELECT id, note_id, post_id FROM linkedin_posts WHERE note_id = %s"
+        cursor.execute(select_cmd, (note_id,))
+        result = cursor.fetchone()
+        if not result:
+            print(colored(f"No published linkedin posts to delete for note id {note_id}", 'cyan'))
+        else:
+            table_id, note_id, post_id = result
+            time.sleep(1)
+            url = f"https://api.linkedin.com/v2/ugcPosts/{post_id}"
+    
+            access_token, linkedin_id = get_active_access_token_and_linkedin_id()
+
+            headers = {
+                'Authorization': 'Bearer ' + access_token,
+                'Content-Type': 'application/json',
+                'X-Restli-Protocol-Version': '2.0.0'
+            }   
+            response = requests.delete(url, headers=headers)
+
+            if response.status_code == 200:
+                # If the deletion was successful, delete the record from the tweets table
+                sql = "DELETE FROM linkedin_posts WHERE id = %s"
+                cursor.execute(sql, (table_id,))
+
+
+            if response.status_code != 201:
+                print('726')
+                print(colored(f"Request returned an error with status code {response.status_code}", "cyan"))
+                print(colored(response.text, "cyan"))
+                return False
+            else:
+                print(f"Deleted note id {note_id} from LinkedIn")
+
+
+    def set_is_published_to_false(note_id):
+        print(colored(f"Setting note id {note_id} as unpublished", "cyan"))
+        update_cmd = "UPDATE notes SET is_published = 0, published_at = NULL WHERE id = %s"
+        cursor.execute(update_cmd, (note_id,))
+        conn.commit()
+        return True
+
+
+    for note_id in ids_to_unpublish:
+
+        try:
+            delete_tweets_by_note_id(note_id)
+            delete_linkedin_post_by_note_id(note_id)
+            set_is_published_to_false(note_id)
+        except Exception as e:
+            print('line 809 error', e)
 
 def get_oauth_session():
 
@@ -889,6 +998,7 @@ def get_active_access_token_and_linkedin_id():
         response = requests.post('https://www.linkedin.com/oauth/v2/accessToken', data=data)
         if response.status_code == 200:
             access_token = response.json().get('access_token')
+            print('919: NEW ACCESS TOKEN: ', access_token)
             tokens_file = f"{parent_dir}/files/tokens/linkedin_access_token.txt"
             with open(tokens_file, 'w') as file:
                 file.write(access_token)
@@ -897,8 +1007,13 @@ def get_active_access_token_and_linkedin_id():
             return None
 
     def check_if_access_token_works(access_token):
+        print('927')
+        print('Access token: ', access_token)
         headers = {'Authorization': f'Bearer {access_token}'}
         response = requests.get('https://api.linkedin.com/v2/me', headers=headers)
+        print('Status code: ', response.status_code)
+        print('Response content: ', response.content)
+        
         if response.status_code == 200:
             linkedin_id = response.json().get('id')
             return True, linkedin_id
@@ -906,7 +1021,10 @@ def get_active_access_token_and_linkedin_id():
             print("Invalid or expired token. Please generate a new one.")
             return False, None
 
+
+
     tokens_file = f"{parent_dir}/files/tokens/linkedin_access_token.txt"
+    print('934: ', tokens_file)
     linkedin_id = None
     access_token = None
     if os.path.exists(tokens_file):
@@ -927,12 +1045,12 @@ def get_active_access_token_and_linkedin_id():
                     return
 
     if access_token is None:
-        print("Failed to generate access token.")
-        return
+        print("Failed to generate access_token.")
+        return None, None
 
     return access_token, linkedin_id
 
-def get_media_id_after_uploading_image_to_linkedin(media_url):
+def get_asset_urn_after_uploading_image_to_linkedin(media_url):
     
     access_token, linkedin_id = get_active_access_token_and_linkedin_id()
 
