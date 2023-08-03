@@ -784,7 +784,7 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
                     note_posted_to_linkedin = post_note_to_linkedin(note_id)
     
             if has_media == True and all_tweets_related_to_note_published == True and note_posted_to_linkedin == True:
-                set_is_published_to_true()
+                set_is_published_to_true(note_id)
                 print(colored(f"Note id {note_id} successfully published", "cyan"))
        
         except Exception as e:
@@ -831,10 +831,14 @@ def fn_unpublish_notes_by_ids(called_function_arguments_dict):
             print(colored(f"No published linkedin posts to delete for note id {note_id}", 'cyan'))
         else:
             table_id, note_id, post_id = result
-            time.sleep(1)
-            url = f"https://api.linkedin.com/v2/ugcPosts/{post_id}"
-    
             access_token, linkedin_id = get_active_access_token_and_linkedin_id()
+            time.sleep(1)
+
+            # Note that URNs included in the URL params must be URL encoded. For example, urn:li:ugcPost:12345 would become urn%3Ali%3AugcPost%3A12345.
+            encoded_post_id = urllib.parse.quote(post_id, safe='')
+            url = f"https://api.linkedin.com/v2/ugcPosts/{encoded_post_id}"
+            print(url)
+    
 
             headers = {
                 'Authorization': 'Bearer ' + access_token,
@@ -843,13 +847,13 @@ def fn_unpublish_notes_by_ids(called_function_arguments_dict):
             }   
             response = requests.delete(url, headers=headers)
 
-            if response.status_code == 200:
+            if response.status_code == 200 or response.status_code == 204:
                 # If the deletion was successful, delete the record from the tweets table
                 sql = "DELETE FROM linkedin_posts WHERE id = %s"
                 cursor.execute(sql, (table_id,))
 
-
-            if response.status_code != 201:
+            print('852', response, response.status_code, response.content)
+            if response.status_code != 201 and response.status_code != 204:
                 print('726')
                 print(colored(f"Request returned an error with status code {response.status_code}", "cyan"))
                 print(colored(response.text, "cyan"))
