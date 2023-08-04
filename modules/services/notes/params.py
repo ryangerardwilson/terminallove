@@ -169,5 +169,19 @@ unpublish_notes_by_ids = {
     }
 }
 
+list_spaced_publications = {
+  "name": "list_spaced_publications",
+  "description": "Lists the user's scheduled publications, also known as spaced publications, spaced notes, queued publications, or queued notes",
+  "parameters": {
+    "type": "object",
+    "properties": {
+        "limit": {
+        "type": "integer",
+        "description": "The number of spaced publications to list out"
+      },
+     },
+    "required": []
+  }
+}
 
 

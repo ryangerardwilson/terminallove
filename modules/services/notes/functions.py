@@ -198,7 +198,6 @@ def fn_save_and_close_notes():
             file_path = os.path.join(dir_path, filename)
             with open(file_path, 'r') as fp:
                 note_content = fp.read()
-                print(note_content)
 
             # Get the modified time of the file
             mod_time = os.path.getmtime(file_path)
@@ -215,8 +214,6 @@ def fn_save_and_close_notes():
             db_updated_at, = cursor.fetchone()  # Unpack the tuple here
 
             # Only perform the update if the file's modified time is newer than the db_updated_at time
-            print('mod_time', mod_time)
-            print('db_updated_at', db_updated_at)
             mod_time = mod_time.replace(tzinfo=None)
 
             media_url = None
@@ -565,9 +562,6 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
                 if response.status_code != 201:
                     delete_tweets_by_note_id(note_id)
                     print(colored(f"Request returned an error with status code {response.status_code}", "cyan"))
-                    queue_insert_cmd = ("INSERT INTO queued_publications (note_id) VALUES (%s)")
-                    cursor.execute(queue_insert_cmd, (note_id,))
-                    conn.commit()
                     return False
 
                 json_response = response.json() 
@@ -782,7 +776,17 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
                 if all_tweets_related_to_note_published == True:
                     print("LEG 2 SUCCESSFUL")
                     note_posted_to_linkedin = post_note_to_linkedin(note_id)
-    
+
+            if all_tweets_related_to_note_published == False or note_posted_to_linkedin == False:
+                # first check if note_id already exists in spaced_publications
+                cursor.execute("SELECT EXISTS(SELECT 1 FROM spaced_publications WHERE note_id=%s)", (note_id,))
+                if cursor.fetchone()[0]:  # it will return True if exists
+                    print(f"note_id {note_id} already exists in spaced_publications.")
+                else:
+                    queue_insert_cmd = ("INSERT INTO spaced_publications (note_id) VALUES (%s)")
+                    cursor.execute(queue_insert_cmd, (note_id,))
+                    conn.commit()
+
             if has_media == True and all_tweets_related_to_note_published == True and note_posted_to_linkedin == True:
                 set_is_published_to_true(note_id)
                 print(colored(f"Note id {note_id} successfully published", "cyan"))
@@ -878,6 +882,40 @@ def fn_unpublish_notes_by_ids(called_function_arguments_dict):
             set_is_published_to_false(note_id)
         except Exception as e:
             print('line 809 error', e)
+
+def fn_list_spaced_publications(called_function_arguments_dict):
+    cursor = conn.cursor()
+    limit = int(called_function_arguments_dict.get('limit', 20))
+
+    if limit < 20:
+        limit = 20
+
+    query = "SELECT * FROM spaced_publications ORDER BY id DESC LIMIT %s"
+    cursor.execute(query, (limit,))
+
+    # Fetch all columns
+    columns = [col[0] for col in cursor.description]
+
+    # Fetch all rows
+    result = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    if not result:
+        print("No result found")
+        return
+
+    # Convert the result to DataFrame
+    pd.options.display.float_format = lambda x: '{:.2f}'.format(x) if abs(x) < 1000000 else '{:.0f}'.format(x)
+    df = pd.DataFrame(result)
+
+    # Close the cursor but keep the connection open if it's needed elsewhere
+    cursor.close()
+
+    # Construct and print the heading
+    heading = f"SPACED PUBLICATIONS (Most recent {limit} records)"
+    print()
+    print(colored(heading, 'cyan'))
+    print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
+
 
 def get_oauth_session():
 
