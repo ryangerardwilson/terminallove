@@ -623,16 +623,13 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             cursor.execute(select_cmd, (note_id,))
             note_result = cursor.fetchone()
             note_text, media_url = note_result
-            print('645')
             access_token, linkedin_id = get_active_access_token_and_linkedin_id()
-            print('647')
             if note_text == None:
                 print(colored("You can't post an empty note", 'red'))
                 return False
 
             cursor.execute("SELECT post FROM linkedin_posts")
             previous_published_posts = {row[0] for row in cursor.fetchall()}
-            print('654')
 
             if not note_text.strip():
                 print(colored(f"Note is empty, and, therefore, not posted. You may have forgotten to save the note", "cyan"))
@@ -641,7 +638,6 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             if note_text in previous_published_posts:
                 print(colored(f"Note id {i} has already been posted to linkedin. Not posting anything to linkedin", 'red'))
                 return False
-            print('664')
             media_asset_urn = get_asset_urn_after_uploading_image_to_linkedin(media_url)
 
             headers = {
@@ -685,8 +681,6 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             else:
                 json_response = response.json()
                 print('700')
-                print(json_response)
-                print('IDDD: ', json_response['id'])
                 post_id = response.headers.get('X-RestLi-Id')
                 posted_at = datetime.datetime.now(tz)
                 insert_cmd = ("INSERT INTO linkedin_posts (post, post_id, posted_at, note_id, media_asset_urn) VALUES (%s, %s, %s, %s, %s)")
@@ -739,6 +733,7 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
         return True
 
     for note_id in ids_to_publish:
+        print('742', note_id)
         cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
         media_url, = cursor.fetchone()
 
@@ -756,10 +751,11 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             else:
                 hours_since_last_published_note = PUBLISHED_NOTE_SPACING + 1
             if (hours_since_last_published_note < PUBLISHED_NOTE_SPACING):
-                cursor.execute("INSERT INTO spaced_publications (note_id) VALUES (%s)", (note_id))
+                cursor.execute("INSERT INTO spaced_publications (note_id) VALUES (%s)", (note_id,))
                 conn.commit()
                 print(colored(f"Note id {note_id} has been scheduled", 'cyan'))
                 return
+
 
             has_media = False
             if media_url == None:
