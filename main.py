@@ -252,6 +252,8 @@ async def main(
 
             # Mapping functions that require arguments
             functions_with_args = {
+                
+                # finances module 
                 'log_expenses': fn_log_expenses,
                 'log_debt_repayment': fn_log_debt_repayment,
                 'list_expenses': fn_list_expenses,
@@ -266,9 +268,13 @@ async def main(
                 'delete_debts_by_ids': fn_delete_debts_by_ids,
                 'delete_debt_status_logs_by_ids': fn_delete_debt_status_logs_by_ids,
                 'display_debt_status_logs_line_chart': fn_display_debt_status_logs_line_chart,
+                
+                # time module
                 'schedule_event': fn_schedule_event,
                 'update_event_by_id': fn_update_event_by_id,
                 'delete_events_by_ids': fn_delete_events_by_ids,
+
+                # goals module
                 'add_goal': fn_add_goal,
                 'update_goal_by_id': fn_update_goal_by_id,
                 'delete_goals_by_ids': fn_delete_goals_by_ids,
@@ -284,18 +290,30 @@ async def main(
                 'list_timesheet_logs': fn_list_timesheet_logs,
                 'delete_timesheet_logs': fn_delete_timesheet_logs,
                 'display_timesheets_line_chart': fn_display_timesheets_line_chart,
+                
+                # runs module
                 'add_run_logs': fn_add_run_logs,
                 'update_run_by_id': fn_update_run_by_id,
                 'delete_runs_by_ids': fn_delete_runs_by_ids,
                 'display_running_weight_line_chart': fn_display_running_weight_line_chart,
                 'display_runs_fat_burn_line_chart': fn_display_runs_fat_burn_line_chart,
                 'display_runs_distance_line_chart': fn_display_runs_distance_line_chart,
+
+                # notes module
                 'open_note': fn_open_note,
+                'open_most_recent_note': fn_open_most_recent_note,
+                'open_most_recently_edited_note': fn_open_most_recently_edited_note,
+                'save_and_close_notes': fn_save_and_close_notes,
                 'delete_notes_by_ids': fn_delete_notes_by_ids,
+                'add_or_update_media_to_notes_by_ids': fn_add_or_update_media_to_notes_by_ids,
                 'publish_notes_by_ids': fn_publish_notes_by_ids,
                 'unpublish_notes_by_ids': fn_unpublish_notes_by_ids,
                 'list_notes': fn_list_notes,
                 'list_spaced_publications': fn_list_spaced_publications,
+                'delete_spaced_publications_by_ids': fn_delete_spaced_publications_by_ids,
+                'delete_spaced_publications_by_note_ids': fn_delete_spaced_publications_by_note_ids,
+
+                # twitter module
                 'tweet_out_note': fn_tweet_out_note,
                 'list_tweets': fn_list_tweets,
                 'list_queued_tweets': fn_list_queued_tweets,
@@ -309,6 +327,7 @@ async def main(
                 'delete_spaced_tweets_by_ids': fn_delete_spaced_tweets_by_ids,
                 'delete_spaced_tweets_by_note_ids': fn_delete_spaced_tweets_by_note_ids,
 
+                # linkedin module
                 'list_linkedin_posts': fn_list_linkedin_posts,
                 'list_queued_linkedin_posts': fn_list_queued_linkedin_posts,
                 'list_spaced_linkedin_posts': fn_list_spaced_linkedin_posts,
@@ -320,31 +339,44 @@ async def main(
                 'delete_spaced_linkedin_posts_by_ids': fn_delete_spaced_linkedin_posts_by_ids,
                 'delete_spaced_linkedin_posts_by_note_ids': fn_delete_spaced_linkedin_posts_by_note_ids,
  
-                'add_or_update_media_to_notes_by_ids': fn_add_or_update_media_to_notes_by_ids,
+                # cronjobs module
                 'list_cronjob_logs': fn_list_cronjob_logs,
                 'inspect_cronjob_logs_by_id': fn_inspect_cronjob_logs_by_id,
-                'open_most_recent_note': fn_open_most_recent_note,
-                'open_most_recently_edited_note': fn_open_most_recently_edited_note,
             }
 
             # Mapping functions that do not require arguments
             functions_without_args = {
+
+                # finances module
                 'list_finance_module_functions': fn_list_finance_module_functions,
-                'list_cronjobs_module_functions': fn_list_cronjobs_module_functions,
-                'list_twitter_module_functions': fn_list_twitter_module_functions,
-                'list_linkedin_module_functions': fn_list_linkedin_module_functions,
                 'list_expense_logging_params': fn_list_expense_logging_params,
                 'recalculate_debts': fn_recalculate_debts,
                 'list_debts': fn_list_debts,
-                'list_events': fn_list_events,
+ 
+                # goals module
                 'list_goals': fn_list_goals,
                 'list_actions': fn_list_actions,
+
+                # time module
+                'list_events': fn_list_events,
+
+                # runs module
                 'list_run_logging_params': fn_list_run_logging_params,
                 'list_run_logs': fn_list_run_logs,
                 'list_available_running_charts': fn_list_available_running_charts,
-                'save_and_close_notes': fn_save_and_close_notes,
+
+                # notes module
                 'delete_local_note_cache': fn_delete_local_note_cache,
+
+                # twitter module
+                'list_twitter_module_functions': fn_list_twitter_module_functions,
                 'list_rate_limits': fn_list_rate_limits,
+ 
+                # linkedin module
+                'list_linkedin_module_functions': fn_list_linkedin_module_functions,
+
+                # cronjobs module
+                'list_cronjobs_module_functions': fn_list_cronjobs_module_functions,
                 'activate_cronjobs': fn_activate_cronjobs,
                 'deactivate_cronjobs': fn_deactivate_cronjobs,
                 'list_cronjobs': fn_list_cronjobs,

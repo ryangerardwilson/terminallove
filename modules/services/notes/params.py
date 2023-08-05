@@ -62,13 +62,13 @@ open_most_recently_edited_note = {
 
 save_and_close_notes = {
   "name": "save_and_close_notes",
-  "description": "Saves the user's notes",
+  "description": "Saves the user's notes, and publishes them if the user desires",
   "parameters": {
     "type": "object",
     "properties": {
-      "connection": {
-        "type": "string",
-        "enum": ["Syncing notes"]
+      "to_publish": {
+        "type": "boolean",
+        "description": "Whether to publish the user's note. Default is false"
        },
      },
     "required": []
@@ -183,5 +183,37 @@ list_spaced_publications = {
     "required": []
   }
 }
+
+delete_spaced_publications_by_ids = {
+  "name": "delete_spaced_publications_by_ids",
+  "description": "Deletes spaced publications by their ids",
+  "parameters": {
+    "type": "object",
+    "properties": {
+        "ids": {
+            "type": "string",
+            "description": "The ids to be deleted separated by camel case. For instance ids 4 and 5 would be 4_5"
+        },
+    },
+    "required": []
+  }
+}
+
+
+delete_spaced_publications_by_note_ids = {
+  "name": "delete_spaced_publications_by_note_ids",
+  "description": "Deletes spaced publications by their note ids",
+  "parameters": {
+    "type": "object",
+    "properties": {
+        "ids": {
+            "type": "string",
+            "description": "The ids to be deleted separated by camel case. For instance ids 4 and 5 would be 4_5"
+        },
+    },
+    "required": []
+  }
+}
+
 
 

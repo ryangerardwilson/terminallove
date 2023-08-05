@@ -179,7 +179,13 @@ def fn_open_most_recently_edited_note(called_function_arguments_dict):
     cursor.close()
     subprocess.call(["vim", file_path])
 
-def fn_save_and_close_notes():
+def fn_save_and_close_notes(called_function_arguments_dict):
+    to_publish_str = called_function_arguments_dict.get('to_publish', "false")
+    if to_publish_str == "false":
+        to_publish = 0
+    else:
+        to_publish = 1
+
     default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
 
     dir_path = os.path.join(parent_dir, "files")
@@ -187,6 +193,9 @@ def fn_save_and_close_notes():
 
     # Flag to check if there are any files to save
     is_any_file_saved = False
+
+    # Create an empty list to hold note_ids
+    note_id_list = []
 
     for filename in os.listdir(dir_path):
         if filename.startswith("note_") and filename.endswith(".txt"):
@@ -202,7 +211,6 @@ def fn_save_and_close_notes():
             # Get the modified time of the file
             mod_time = os.path.getmtime(file_path)
             # Convert it to a datetime object
-
             utc_time = datetime.datetime.utcfromtimestamp(mod_time)
             mod_time = utc_time.replace(tzinfo=pytz.UTC).astimezone(tz)
 
@@ -221,11 +229,15 @@ def fn_save_and_close_notes():
 
                 try:
                     update_cmd = (
-                         "UPDATE notes SET note = %s, updated_at = %s, media_url = %s WHERE id = %s"
-                        )
+                        "UPDATE notes SET note = %s, updated_at = %s, media_url = %s WHERE id = %s"
+                    )
                     updated_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
                     cursor.execute(update_cmd, (note_content, updated_at, media_url, note_id))
-                    conn.commit() # Move this inside the loop
+                    conn.commit()
+
+                    # Add the note_id to the list if it was successfully updated
+                    note_id_list.append(str(note_id))
+                    
                 except Exception as e:
                     print(f"Error updating note: {e}")
 
@@ -235,10 +247,18 @@ def fn_save_and_close_notes():
 
     cursor.close()
 
-    if is_any_file_saved:
+    if is_any_file_saved and to_publish == 1:
+        # Join the note_id_list into a string with '_' as the separator
+        note_id_str = '_'.join(note_id_list)
         print(colored('Notes synced to database', 'cyan'))
+        print(colored(f'Note IDs prepared for publication: {note_id_str}', 'cyan'))
+        called_function_arguments_dict = {'ids': note_id_str}
+        fn_publish_notes_by_ids(called_function_arguments_dict)
+    elif is_any_file_saved:
+        print(colored('Notes synced to database, and none were published', 'cyan'))
     else:
         print(colored('No notes to sync', 'cyan'))
+
 
 def fn_delete_local_note_cache():
    
@@ -733,7 +753,6 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
         return True
 
     for note_id in ids_to_publish:
-        print('742', note_id)
         cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
         media_url, = cursor.fetchone()
 
@@ -751,11 +770,13 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             else:
                 hours_since_last_published_note = PUBLISHED_NOTE_SPACING + 1
             if (hours_since_last_published_note < PUBLISHED_NOTE_SPACING):
+                cursor.execute("SELECT COUNT(*) FROM spaced_publications")
+                count = cursor.fetchone()[0]
+                x = count + 1
                 cursor.execute("INSERT INTO spaced_publications (note_id) VALUES (%s)", (note_id,))
                 conn.commit()
-                print(colored(f"Note id {note_id} has been scheduled", 'cyan'))
+                print(colored(f"Note id {note_id} has been spaced out, and will be published {x} in line", 'cyan'))
                 return
-
 
             has_media = False
             if media_url == None:
@@ -912,6 +933,52 @@ def fn_list_spaced_publications(called_function_arguments_dict):
     print(colored(heading, 'cyan'))
     print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
+def fn_delete_spaced_publications_by_ids(called_function_arguments_dict):
+    cursor = conn.cursor()
+    ids_to_delete = called_function_arguments_dict.get('ids').split('_')
+    deleted_ids = []  # to store the successfully deleted tweet ids
+
+    for table_id in ids_to_delete:
+        select_cmd = "SELECT id FROM spaced_publications WHERE id = %s"
+        cursor.execute(select_cmd, (table_id,))
+        result = cursor.fetchone()
+
+        if result is None:
+            print(colored(f"No spaced publication found with ID {table_id}", 'red'))
+            continue
+
+        sql = "DELETE FROM spaced_publications WHERE id = %s"
+        cursor.execute(sql, (table_id,))
+        deleted_ids.append(table_id)  # adding the id to the deleted_ids list
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print(colored(f"SPACED PUBLICATIONS WITH IDS {deleted_ids} SUCCESSFULLY DELETED", 'cyan'))
+
+def fn_delete_spaced_publications_by_note_ids(called_function_arguments_dict):
+    cursor = conn.cursor()
+    note_ids_to_delete = [int(id_str) for id_str in called_function_arguments_dict.get('ids').split('_')]
+    deleted_note_ids = []  # to store the note ids for which tweets have been successfully deleted
+
+    for note_id in note_ids_to_delete:
+        select_cmd = "SELECT id FROM spaced_publications WHERE note_id = %s"
+        cursor.execute(select_cmd, (note_id,))
+        results = cursor.fetchall()
+
+        if not results:
+            print(colored(f"No spaced publication found for note ID {note_id}", 'red'))
+            continue
+
+        sql = "DELETE FROM spaced_publications WHERE note_id = %s"
+        cursor.execute(sql, (note_id,))
+        deleted_note_ids.append(note_id)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    print(colored(f"SPACED PUBLICATIONS FOR NOTE IDS {deleted_note_ids} SUCCESSFULLY DELETED", 'cyan'))
 
 def get_oauth_session():
 
