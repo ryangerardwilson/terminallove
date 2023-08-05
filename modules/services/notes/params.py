@@ -122,22 +122,27 @@ add_or_update_media_to_notes_by_ids = {
 
 list_notes = {
     "name": "list_notes",
-    "description": "Lists the user's notes",
+    "description": "Lists all the user's notes, including unpublished notes",
     "parameters": {
       "type": "object",
       "properties": {
         "limit": {
           "type": "integer",
-          "description": "The number of notes to be listed"
+          "description": "The number of notes to be listed. Default is 20."
           },
         "is_organic": {
           "type": "boolean",
-          "description": "If user wants his organic note, then true. Else, false. Default is false."
+          "description": "If user wants his organic notes, then true. Else, false."
            },
+        "is_published": {
+          "type": "boolean",
+          "description": "If user wants his published notes, then true."
+          },
         },
         "required": []
     }
 }
+
 
 publish_notes_by_ids = {
     "name": "publish_notes_by_ids",

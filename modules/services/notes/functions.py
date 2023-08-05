@@ -281,13 +281,19 @@ def fn_delete_local_note_cache():
 
 def fn_list_notes(called_function_arguments_dict):
     is_organic_str = called_function_arguments_dict.get('is_organic', "false")
+    is_published_str = called_function_arguments_dict.get('is_published', "false")
     if is_organic_str == "false":
         is_organic = 0
-        query = "SELECT * FROM notes ORDER BY created_at DESC LIMIT %s"
-
+        if is_published_str == "true":
+            query = "SELECT * FROM notes WHERE is_published = 1 ORDER BY created_at DESC LIMIT %s"
+        else:
+            query = "SELECT * FROM notes ORDER BY created_at DESC LIMIT %s"
     else:
         is_organic = 1
-        query = "SELECT * FROM notes WHERE is_organic = 1 ORDER BY created_at DESC LIMIT %s"
+        if is_published_str == "true":
+            query = "SELECT * FROM notes WHERE is_published = 1 AND is_organic = 1 ORDER BY created_at DESC LIMIT %s"
+        else:
+            query = "SELECT * FROM notes WHERE is_organic = 1 ORDER BY created_at DESC LIMIT %s"
 
 
     cursor = conn.cursor()
