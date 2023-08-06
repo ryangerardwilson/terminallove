@@ -3,6 +3,8 @@ import datetime
 import pandas as pd
 from termcolor import colored
 import os
+import re
+import textwrap
 import subprocess
 from tabulate import tabulate
 from dotenv import load_dotenv
@@ -20,6 +22,7 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.
 load_dotenv(os.path.join(parent_dir, '.env'))
 
 OPEN_AI_API_KEY=os.getenv('OPEN_AI_API_KEY')
+GPT_MODEL=os.getenv('GPT_MODEL')
 
 NOTE_IMAGE_STORAGE_BUCKET_NAME=os.getenv('NOTE_IMAGE_STORAGE_BUCKET_NAME')
 GOOGLE_SERVICE_ACCOUNT_KEY=os.getenv('GOOGLE_SERVICE_ACCOUNT_KEY')
@@ -111,7 +114,7 @@ def publish_or_improvise_notes():
     conn.commit()
 
     def improvise_note():
-        def improvise_from_themes():
+        def improvise_note_text_from_themes():
             selected_theme = random.choice(NOTE_TEXT_IMPROVISATION_CONCEPT_THEMES)
             # Randomly select a prompt and embed the theme
             selected_prompt = random.choice(NOTE_TEXT_IMPROVISATION_PROMPTS)
@@ -121,7 +124,7 @@ def publish_or_improvise_notes():
             randomized_prompt = formatted_prompt
             return randomized_prompt
 
-        def improvise_from_previous_organic_notes():
+        def improvise_note_text_from_previous_organic_notes():
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT * FROM ("
@@ -142,12 +145,94 @@ def publish_or_improvise_notes():
             randomized_prompt = f"Paraphrase this in less than 200 words: {random_note_text}"
             return randomized_prompt
 
+        def get_completion(prompt):
+            url = "https://api.openai.com/v1/chat/completions"
+            messages = [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ]
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {OPEN_AI_API_KEY}",
+            }
+            data = {
+                "model": GPT_MODEL,
+                "messages": messages,
+            }
+            response = requests.post(url, headers=headers, data=json.dumps(data))
+            if response.status_code == 200:  # Check if the request was successful
+                response_content = response.json()
+                assistant_message = response_content['choices'][0]['message']['content']
+                return assistant_message  # Returns the content of the assistant's message
+            else:
+                return None
+
+        def format_text(text):
+            # Remove existing paragraph numbering
+            text = re.sub(r'\{\d+/\d+\} ', '', text)
+            # Combine all text into one paragraph
+            combined_text = text.replace("\n\n", " ").replace("\n", " ")
+
+            # Split the combined text into sentences
+            sentences = re.split(r'\. |\? ', combined_text)
+
+            # Add the '.' or '?' back into each sentence except for the last one
+            sentences = [sentence + ('.' if not sentence.endswith('?') else '?') for sentence in sentences[:-1]] + [sentences[-1]]
+
+            # Combine sentences into new paragraphs of less than 280 characters
+            formatted_paragraphs = []
+            current_paragraph = ""
+            for sentence in sentences:
+                if len(current_paragraph) + len(sentence) > 270:  # +10 for prefix
+                    formatted_paragraphs.append(current_paragraph.strip())
+                    current_paragraph = sentence
+                else:
+                    current_paragraph += " " + sentence
+
+            # Don't forget the last paragraph   
+            if current_paragraph:
+                formatted_paragraphs.append(current_paragraph.strip())
+            
+            min_paragraphs = 3
+
+            # If not enough paragraphs, split the longest one
+            while len(formatted_paragraphs) < min_paragraphs:
+                max_len_idx = max(range(len(formatted_paragraphs)), key=lambda index: len(formatted_paragraphs[index]))
+                long_paragraph = formatted_paragraphs.pop(max_len_idx)
+                half = len(long_paragraph) // 2
+                first_half = long_paragraph[:half].rsplit('. ', 1)[0] + '.'
+                second_half = long_paragraph[half:].lstrip()
+                formatted_paragraphs.extend([first_half, second_half])
+
+            result = '\n\n'.join(formatted_paragraphs)
+            return result
+
+
         # Decide which function to call based on the probability
         if random.random() < 0.6:
-            prompt = improvise_from_previous_organic_notes()
+            prompt = improvise_note_text_from_previous_organic_notes()
         else:
-            prompt = improvise_from_themes()
-        print(prompt)
+            prompt = improvise_note_text_from_themes()
+
+        ai_generated_note_text = get_completion(prompt)
+        print('218', ai_generated_note_text)
+        if ai_generated_note_text != None:
+            formatted_text = format_text(ai_generated_note_text)
+
+            insert_cmd = (
+                "INSERT INTO notes (note, is_published, is_organic, created_at, updated_at) "
+                "VALUES (%s, %s, %s, %s, %s)"
+                )
+            is_organic = False
+            is_published = False
+            created_at = updated_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute(insert_cmd, (formatted_text, is_published, is_organic, created_at, updated_at))
+            conn.commit()
+            new_id = cursor.lastrowid
+            return new_id
+        else:
+            return None
+
 
 
         """
@@ -176,9 +261,6 @@ def publish_or_improvise_notes():
 
 
     try:
-
-        improvise_note()
-        return
 
         # STEP 1: Check if there are any notes to publish for which SPACING has lapsed
         note_id = None
