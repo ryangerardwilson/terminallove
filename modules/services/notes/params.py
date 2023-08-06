@@ -13,6 +13,21 @@ tz=pytz.timezone(TIMEZONE)
 now = datetime.datetime.now(tz)
 today = now.strftime('%Y-%m-%d %H:%M:%S')
 
+list_notes_module_functions = {
+    "name": "list_notes_module_functions",
+    "description": "Lists functions in the notes module",
+    "parameters": {
+    ¦   "type": "object",
+    ¦   "properties": {
+    ¦   ¦   "connection": {
+    ¦   ¦   ¦   "type": "string",
+    ¦   ¦   ¦   "enum": ["Listing functions from notes module"]
+    ¦   ¦   },
+    ¦   },
+    ¦   "required": []
+    }
+}
+
 open_note = {
   "name": "open_note",
   "description": "Opens/creates a new note in vim, or opens/gets an existing note if an id is specified",
@@ -122,7 +137,7 @@ add_or_update_media_to_notes_by_ids = {
 
 list_notes = {
     "name": "list_notes",
-    "description": "Lists all the user's notes, including unpublished notes",
+    "description": "Lists all the user's notes",
     "parameters": {
       "type": "object",
       "properties": {

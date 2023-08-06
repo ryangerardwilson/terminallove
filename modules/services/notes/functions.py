@@ -50,6 +50,81 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
+def fn_list_notes_module_functions(called_function_arguments_dict):
+
+    functions = [
+        {
+            "function": "oepn_note",
+            "description": "Opens/creates a new note in vim, or opens/gets an existing note if an id is specified",
+        },
+        {
+            "function": "open_most_recent_note",
+            "description": "Opens the user's most recent note in vim",
+        },
+
+        {
+            "function": "open_most_recently_edited_note",
+            "description": "Opens the user's most recently edited note in vim",
+        },
+        {
+            "function": "save_and_close_notes",
+            "description": "Saves the user's notes, and publishes them if the user desires",
+        },
+        {
+            "function": "delete_local_note_cache",
+            "description": "Deletes local notes",
+        },
+        {
+            "function": "delete_notes_by_ids",
+            "description": "Deletes notes by their ids",
+        },
+        {
+            "function": "add_or_update_media_to_note_by_their_ids",
+            "description": "Adds/ updates/ replaces media to notes by their ids",
+        },
+        {
+            "function": "list_notes",
+            "description": "Lists all the user's notes",
+        },
+        {
+            "function": "publish_notes_by_ids",
+            "description": "Publishes notes by their ids",
+        },
+        {
+            "function": "unpublish_notes_by_ids",
+            "description": "Unpublishes notes by their ids",
+        },
+        {
+            "function": "list_spaced_publications",
+            "description": "Lists the user's scheduled publications, also known as spaced publications, spaced notes, queued publications, or queued notes ",
+        },
+        {
+            "function": "delete_spaced_publications_by_ids",
+            "description": "Deletes spaced publications by their ids",
+        },
+        {
+            "function": "delets_spaced_publications_by_their_note_ids",
+            "description": "Deletes spaced publications by their note ids",
+        },
+
+    ]
+    
+    # Convert the passwords to a list of lists
+    rows = [
+        [index + 1, entry["function"], entry["description"]]
+        for index, entry in enumerate(functions)
+    ]
+
+    # Column names
+    column_names = ["", "function", "description"]
+
+    # Print the passwords in tabular form
+    print()
+    print(colored('NOTES MODULE FUNCTIONS', 'red'))
+    print()
+    print(colored(tabulate(rows, headers=column_names), 'cyan'))
+    print()
+
 def fn_open_note(called_function_arguments_dict):
     note_id = int(called_function_arguments_dict.get('id', 0))
     cursor = conn.cursor()
@@ -260,7 +335,7 @@ def fn_save_and_close_notes(called_function_arguments_dict):
         print(colored('No notes to sync', 'cyan'))
 
 
-def fn_delete_local_note_cache():
+def fn_delete_local_note_cache(called_function_arguments_dict):
    
     dir_path = os.path.join(parent_dir, "files")
 
@@ -382,6 +457,50 @@ def fn_add_or_update_media_to_notes_by_ids(called_function_arguments_dict):
     cursor = conn.cursor()
     ids_to_add_media_to = called_function_arguments_dict.get('ids').split('_')
 
+
+    def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, size, note_id):
+
+        url = "https://api.openai.com/v1/images/generations"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPEN_AI_API_KEY}"
+        }
+        data = {
+            "prompt": prompt,
+            "n": 1,
+            "size": size
+        }
+
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+
+        # Return the response data as JSON
+        response_data = response.json()
+
+        open_ai_media_url = response_data['data'][0]['url']
+
+        # Download the image from the URL
+        downloaded_image = requests.get(open_ai_media_url)
+
+        if downloaded_image.status_code != 200:
+            raise Exception("Failed to download image from URL: {} {}".format(downloaded_image.status_code, downloaded_image.text))
+
+        image_content = downloaded_image.content
+
+        # Upload the media to Google Cloud Storage
+        storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
+        bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
+
+        filename = f"{note_id}_{datetime.datetime.now(tz).strftime('%Y%m%d_%H%M%S')}"
+
+        blob = bucket.blob(f"{filename}.jpg")
+        blob.upload_from_string(
+            image_content,
+            content_type='image/jpeg'
+        )
+        media_url = blob.public_url
+
+        return media_url
+
     for note_id in ids_to_add_media_to:
         # Get the media_url before updating the note
         cursor.execute("SELECT note, is_published, media_url FROM notes WHERE id = %s", (note_id,))
@@ -424,49 +543,6 @@ def fn_add_or_update_media_to_notes_by_ids(called_function_arguments_dict):
     conn.close()
     print(colored(f"NOTES UPDATED", 'cyan'))
 
-
-def get_media_url_after_generating_image_and_uploading_to_cloud_storage(prompt, size, note_id):
-
-    url = "https://api.openai.com/v1/images/generations"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {OPEN_AI_API_KEY}"
-    }
-    data = {
-        "prompt": prompt,
-        "n": 1,
-        "size": size
-    }
-
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-
-    # Return the response data as JSON
-    response_data = response.json()
-
-    open_ai_media_url = response_data['data'][0]['url']
-
-    # Download the image from the URL
-    downloaded_image = requests.get(open_ai_media_url)
-
-    if downloaded_image.status_code != 200:
-        raise Exception("Failed to download image from URL: {} {}".format(downloaded_image.status_code, downloaded_image.text))
-
-    image_content = downloaded_image.content
-
-    # Upload the media to Google Cloud Storage
-    storage_client = storage.Client.from_service_account_json(path_to_service_account_file)
-    bucket = storage_client.get_bucket(NOTE_IMAGE_STORAGE_BUCKET_NAME)
-
-    filename = f"{note_id}_{datetime.datetime.now(tz).strftime('%Y%m%d_%H%M%S')}"
-
-    blob = bucket.blob(f"{filename}.jpg")
-    blob.upload_from_string(
-        image_content,
-        content_type='image/jpeg'
-    )
-    media_url = blob.public_url
-
-    return media_url
 
 def fn_publish_notes_by_ids(called_function_arguments_dict):
 

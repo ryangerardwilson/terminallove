@@ -300,6 +300,7 @@ async def main(
                 'display_runs_distance_line_chart': fn_display_runs_distance_line_chart,
 
                 # notes module
+                'list_notes_module_functions': fn_list_notes_module_functions,
                 'open_note': fn_open_note,
                 'open_most_recent_note': fn_open_most_recent_note,
                 'open_most_recently_edited_note': fn_open_most_recently_edited_note,
@@ -312,32 +313,17 @@ async def main(
                 'list_spaced_publications': fn_list_spaced_publications,
                 'delete_spaced_publications_by_ids': fn_delete_spaced_publications_by_ids,
                 'delete_spaced_publications_by_note_ids': fn_delete_spaced_publications_by_note_ids,
+                'delete_local_note_cache': fn_delete_local_note_cache,
 
                 # twitter module
-                'tweet_out_note': fn_tweet_out_note,
+                'list_twitter_module_functions': fn_list_twitter_module_functions,
                 'list_tweets': fn_list_tweets,
-                'list_queued_tweets': fn_list_queued_tweets,
-                'list_spaced_tweets': fn_list_spaced_tweets,
-                'schedule_tweet': fn_schedule_tweet,
-                'edit_tweet': fn_edit_tweet,
-                'delete_tweets_by_ids': fn_delete_tweets_by_ids,
-                'delete_tweets_by_note_ids': fn_delete_tweets_by_note_ids,
-                'delete_queued_tweets_by_ids': fn_delete_queued_tweets_by_ids,
-                'delete_queued_tweets_by_note_ids': fn_delete_queued_tweets_by_note_ids,
-                'delete_spaced_tweets_by_ids': fn_delete_spaced_tweets_by_ids,
-                'delete_spaced_tweets_by_note_ids': fn_delete_spaced_tweets_by_note_ids,
+                'list_twitter_rate_limits': fn_list_twitter_rate_limits,
 
                 # linkedin module
+                'list_linkedin_module_functions': fn_list_linkedin_module_functions,
                 'list_linkedin_posts': fn_list_linkedin_posts,
-                'list_queued_linkedin_posts': fn_list_queued_linkedin_posts,
-                'list_spaced_linkedin_posts': fn_list_spaced_linkedin_posts,
-                'schedule_linkedin_post': fn_schedule_linkedin_post,
-                'delete_linkedin_posts_by_ids': fn_delete_linkedin_posts_by_ids,
-                'delete_linkedin_posts_by_note_ids': fn_delete_linkedin_posts_by_note_ids,
-                'delete_queued_linkedin_posts_by_ids': fn_delete_queued_linkedin_posts_by_ids,
-                'delete_queued_linkedin_posts_by_note_ids': fn_delete_queued_linkedin_posts_by_note_ids,
-                'delete_spaced_linkedin_posts_by_ids': fn_delete_spaced_linkedin_posts_by_ids,
-                'delete_spaced_linkedin_posts_by_note_ids': fn_delete_spaced_linkedin_posts_by_note_ids,
+                'list_linkedin_rate_limits': fn_list_linkedin_rate_limits,
  
                 # cronjobs module
                 'list_cronjob_logs': fn_list_cronjob_logs,
@@ -364,16 +350,6 @@ async def main(
                 'list_run_logging_params': fn_list_run_logging_params,
                 'list_run_logs': fn_list_run_logs,
                 'list_available_running_charts': fn_list_available_running_charts,
-
-                # notes module
-                'delete_local_note_cache': fn_delete_local_note_cache,
-
-                # twitter module
-                'list_twitter_module_functions': fn_list_twitter_module_functions,
-                'list_rate_limits': fn_list_rate_limits,
- 
-                # linkedin module
-                'list_linkedin_module_functions': fn_list_linkedin_module_functions,
 
                 # cronjobs module
                 'list_cronjobs_module_functions': fn_list_cronjobs_module_functions,

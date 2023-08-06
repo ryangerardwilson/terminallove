@@ -48,65 +48,20 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
-def fn_list_linkedin_module_functions():
+def fn_list_linkedin_module_functions(called_function_arguments_dict):
 
     functions = [
-            {
-                "function": "list_linkedin_posts",
-                "description": "Lists the user's LinkedIn posts",
-            },
-            {
-                "function": "list_rate_limits",
-                "description": "Lists LinkedIn rate limits",
-            },
-
-            {
-                "function": "list_queued_tweets",
-                "description": "Lists the user's queued LinkedIn posts",
-            },
-            {
-                "function": "list_spaced_tweets",
-                "description": "Lists the user's scheduled LinkedIn posts, also known as spaced LinkedIn posts",
-            },
-            {
-                "function": "linkedin_post_out_note",
-                "description": "Posts to LinkedIn the note prepared by the user by its ids",
-            },
-            {
-                "function": "schedule_linkedin_post",
-                "description": "Schedules the LinkedIn posting of the note prepared by the user to a later date",
-            },
-            {
-                "function": "edit_linkedin_post",
-                "description": "Edits the user's LinkedIn post",
-            },
-            {
-                "function": "delete_linkedin_posts_by_ids",
-                "description": "Deletes LinkedIn posts by their ids",
-            },
-            {
-                "function": "delete_linkedin_posts_by_note_ids",
-                "description": "Deletes LinkedIn posts by their note ids",
-            },
-            {
-                "function": "delete_queued_linkedin_posts_by_ids",
-                "description": "Deletes queued LinkedIn posts by their ids",
-            },
-            {
-                "function": "delete_queued_linkedin_posts_by_note_ids",
-                "description": "Deletes queued LinkedIn posts by their note ids",
-            },
-            {
-                "function": "delete_spaced_linkedin_posts_by_ids",
-                "description": "Deletes spaced/ scheduled LinkedIn posts by their ids",
-            },        
-            {
-                "function": "delets_spaced_linkedin_posts_by_their_note_ids",
-                "description": "Deletes spaced/ scheduled LinkedIn posts by their note ids",
-            },
-            
+        {
+            "function": "list_linkedin_posts",
+            "description": "Lists the user's LinkedIn posts",
+        },
+        {
+            "function": "list_rate_limits",
+            "description": "Lists LinkedIn rate limits",
+        },
+       
         ]
-        # Convert the passwords to a list of lists
+    # Convert the passwords to a list of lists
     rows = [
         [index + 1, entry["function"], entry["description"]]
         for index, entry in enumerate(functions)
@@ -122,7 +77,7 @@ def fn_list_linkedin_module_functions():
     print(colored(tabulate(rows, headers=column_names), 'cyan'))
     print()
 
-def fn_list_rate_limits():
+def fn_list_linkedin_rate_limits(called_function_arguments_dict):
     access_token, linkedin_id = get_active_access_token_and_linkedin_id() # this function should return an OAuth1Session or OAuth2Session instance
    
     headers = {
@@ -152,69 +107,10 @@ def fn_list_rate_limits():
 
     if response.status_code != 429:
         print(colored("Rate limit is not exceeded yet", 'cyan'))
+    else:
+        print(colored("Rate limit exceeded","red"))
 
     return
-
-
-
-
-
-
-
-
-
-
-
-
- 
-    headers = {
-        'Authorization': 'Bearer ' + access_token,
-        'Content-Type': 'application/json',
-        'X-Restli-Protocol-Version': '2.0.0'
-    }
-
-    data = {
-        'author': f"urn:li:person:{linkedin_id}",  # replace with your LinkedIn ID
-        'lifecycleState': 'PUBLISHED',
-        'specificContent': {
-            'com.linkedin.ugc.ShareContent': {
-                'shareCommentary': {
-                    'text': 'Hello World! This is my first Share on LinkedIn!'
-                },
-                'shareMediaCategory': 'NONE'
-            }
-        },
-        'visibility': {
-            'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
-        }
-    }
-
-    response = requests.post('https://api.linkedin.com/v2/ugcPosts', headers=headers, data=json.dumps(data)) 
-    post_id = response.headers.get('X-RestLi-Id') 
-    print(response) 
-    print(response.content) 
-    print(post_id) 
-
-
-    return
-
-
-    url = "https://api.twitter.com/2/tweets/"
-
-    paragraph = ''
-    payload = {"text": paragraph}
-    response = oauth.post(url, json=payload)
-
-    print(colored(f"https://api.twitter.com/2/tweets/ endpoint response status code for blank tweet: {response.status_code}",'cyan'))
-
-    rate_limit_limit = response.headers.get('X-RateLimit-Limit')
-    rate_limit_remaining = response.headers.get('X-RateLimit-Remaining')
-    rate_limit_reset = response.headers.get('X-RateLimit-Reset')
-
-    print(colored(f"rate limit ceiling: {rate_limit_limit}",'cyan'))
-    print(colored(f"rate limit remaining: {rate_limit_remaining}",'cyan'))
-    print(colored(f"rate limit reset: {rate_limit_reset}",'cyan'))
-
 
 def fn_list_linkedin_posts(called_function_arguments_dict):
 
@@ -224,7 +120,7 @@ def fn_list_linkedin_posts(called_function_arguments_dict):
     if limit < 20:
         limit = 20
 
-    query = "SELECT * FROM tweets ORDER BY id DESC LIMIT %s"
+    query = "SELECT * FROM linkedin_posts ORDER BY id DESC LIMIT %s"
     cursor.execute(query, (limit,))
 
     # Fetch all columns
@@ -241,338 +137,23 @@ def fn_list_linkedin_posts(called_function_arguments_dict):
     pd.options.display.float_format = lambda x: '{:.2f}'.format(x) if abs(x) < 1000000 else '{:.0f}'.format(x)
     df = pd.DataFrame(result)
 
-    if 'value' in df.columns:
-        df['value'] = df['value'].astype(int)
-
     # Truncate note column to 300 characters and add "...." if it exceeds that limit
-    if 'tweet' in df.columns:
-        df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
+    if 'post' in df.columns:
+        df['post'] = df['post'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
 
     # Convert posted_at to IST
     if 'posted_at' in df.columns:
         ist = pytz.timezone('Asia/Kolkata')
         df['posted_at'] = df['posted_at'].apply(lambda x: x.replace(tzinfo=pytz.utc).astimezone(ist))
 
-
     # Close the cursor but keep the connection open if it's needed elsewhere
     cursor.close()
 
     # Construct and print the heading
-    heading = f"TWEETS (Most recent {limit} records)"
+    heading = f"LINKEDIN POSTS (Most recent {limit} records)"
     print()
     print(colored(heading, 'cyan'))
     print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
-
-def fn_list_queued_linkedin_posts(called_function_arguments_dict):
-
-    cursor = conn.cursor()
-    limit = int(called_function_arguments_dict.get('limit', 20))
-
-    if limit < 20:
-        limit = 20
-
-    query = "SELECT * FROM queued_tweets ORDER BY id DESC LIMIT %s"
-    cursor.execute(query, (limit,))
-
-    # Fetch all columns
-    columns = [col[0] for col in cursor.description]
-
-    # Fetch all rows
-    result = [dict(zip(columns, row)) for row in cursor.fetchall()]
-
-    if not result:
-        print("No result found")
-        return
-
-    # Convert the result to DataFrame
-    pd.options.display.float_format = lambda x: '{:.2f}'.format(x) if abs(x) < 1000000 else '{:.0f}'.format(x)
-    df = pd.DataFrame(result)
-
-    if 'value' in df.columns:
-        df['value'] = df['value'].astype(int)
-
-    # Truncate note column to 30 characters and add "...." if it exceeds that limit
-    if 'tweet' in df.columns:
-        df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
-
-    # Convert executed_at to IST
-    if 'tweet_failed_at' in df.columns:
-        ist = pytz.timezone('Asia/Kolkata')
-        df['tweet_failed_at'] = df['tweet_failed_at'].apply(lambda x: x.replace(tzinfo=pytz.utc).astimezone(ist))
-
-
-    # Close the cursor but keep the connection open if it's needed elsewhere
-    cursor.close()
-
-    # Construct and print the heading
-    heading = f"QUEUED TWEETS (Most recent {limit} records)"
-    print()
-    print(colored(heading, 'cyan'))
-    print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
-
-def fn_list_spaced_linkedin_posts(called_function_arguments_dict):
-    cursor = conn.cursor()
-    limit = int(called_function_arguments_dict.get('limit', 20))
-
-    if limit < 20:
-        limit = 20
-
-    query = "SELECT * FROM spaced_tweets ORDER BY id DESC LIMIT %s"
-    cursor.execute(query, (limit,))
-
-    # Fetch all columns
-    columns = [col[0] for col in cursor.description]
-
-    # Fetch all rows
-    result = [dict(zip(columns, row)) for row in cursor.fetchall()]
-
-    if not result:
-        print("No result found")
-        return
-
-    # Convert the result to DataFrame
-    pd.options.display.float_format = lambda x: '{:.2f}'.format(x) if abs(x) < 1000000 else '{:.0f}'.format(x)
-    df = pd.DataFrame(result)
-
-    if 'value' in df.columns:
-        df['value'] = df['value'].astype(int)
-
-    # Truncate note column to 30 characters and add "...." if it exceeds that limit
-    if 'tweet' in df.columns:
-        df['tweet'] = df['tweet'].apply(lambda x: (x[:30] + '....') if len(x) > 30 else x)
-
-    # Close the cursor but keep the connection open if it's needed elsewhere
-    cursor.close()
-
-    # Construct and print the heading
-    heading = f"SPACED TWEETS (Most recent {limit} records)"
-    print()
-    print(colored(heading, 'cyan'))
-    print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
-
-def fn_schedule_linkedin_post(called_function_arguments_dict):
-
-    cursor = conn.cursor()
-    print('schedule tweet')
-    
-    # Set default values
-    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
-    date = called_function_arguments_dict.get('date', default_date)
-    print(date)
-
-def fn_edit_linkedin_post(called_function_arguments_dict):
-
-    cursor = conn.cursor()
-    print('edit tweet')
-    
-    # Set default values
-    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
-    date = called_function_arguments_dict.get('date', default_date)
-    print(date)
-
-def fn_delete_linkedin_posts_by_ids(called_function_arguments_dict):
-    cursor = conn.cursor()
-    ids_to_delete = called_function_arguments_dict.get('ids').split('_')
-    deleted_ids = []  # to store the successfully deleted tweet ids
-
-    oauth = get_oauth_session()
-
-    for table_id in ids_to_delete:
-        # Fetch the corresponding tweet_id and note_id from the database
-        select_cmd = "SELECT tweet_id, note_id FROM tweets WHERE id = %s"
-        cursor.execute(select_cmd, (table_id,))
-        result = cursor.fetchone()
-    
-        if result is None:
-            print(colored(f"No tweet found with ID {table_id}", 'red'))
-            continue
-
-        tweet_id, note_id = result
-
-        # Check if note_id is not null and there is a corresponding row in the notes table
-        if note_id is not None:
-            cursor.execute("SELECT 1 FROM notes WHERE id = %s", (note_id,))
-            note_exists = cursor.fetchone() is not None
-            if not note_exists:
-                print(colored(f"No corresponding note found for tweet with ID {table_id}", 'red'))
-                continue
-        else:
-            print(colored(f"No corresponding note ID found for tweet with ID {table_id}", 'red'))
-            continue
-
-        # Delete the tweet on Twitter
-        url = f"https://api.twitter.com/2/tweets/:{tweet_id}"
-        time.sleep(1)
-        response = oauth.delete("https://api.twitter.com/2/tweets/{}".format(tweet_id))
-    
-        # Check for a successful response
-        if response.status_code == 200:
-            # If the deletion was successful on Twitter, delete the record from the tweets table
-            sql = "DELETE FROM tweets WHERE id = %s"
-            cursor.execute(sql, (table_id,))
-
-            # Set is_published to false for the corresponding note in the notes table
-            update_note_cmd = "UPDATE notes SET is_published = false WHERE id = %s"
-            cursor.execute(update_note_cmd, (note_id,))
-            
-            deleted_ids.append(table_id)  # adding the id to the deleted_ids list
-        else:
-            print(colored(f"FAILED TO DELETE TWEET WITH ID {table_id}", 'red'))
-            print(response)
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-    print(colored(f"TWEETS WITH IDS {deleted_ids} SUCCESSFULLY DELETED", 'cyan'))
-
-def fn_delete_linkedin_posts_by_note_ids(called_function_arguments_dict):
-    cursor = conn.cursor()
-    note_ids_to_delete = [int(id_str) for id_str in called_function_arguments_dict.get('ids').split('_')]
-    deleted_note_ids = []  # to store the note ids for which tweets have been successfully deleted
-
-    oauth = get_oauth_session()
-
-    for note_id in note_ids_to_delete:
-        # Fetch the corresponding tweet_id(s) from the database
-        select_cmd = "SELECT id, tweet_id FROM tweets WHERE note_id = %s"
-        cursor.execute(select_cmd, (note_id,))
-        results = cursor.fetchall()
-
-        if not results:
-            print(colored(f"No tweets found for note ID {note_id}", 'red'))
-            continue
-
-        all_tweets_deleted = True  # flag to check if all tweets for a note have been successfully deleted
-
-        for result in results:
-            table_id, tweet_id = result
-            time.sleep(1)
-            # Delete the tweet on Twitter
-            url = f"https://api.twitter.com/2/tweets/{tweet_id}"
-            response = oauth.delete(url)
-
-            # Check for a successful response
-            if response.status_code == 200:
-                # If the deletion was successful on Twitter, delete the record from the tweets table
-                sql = "DELETE FROM tweets WHERE id = %s"
-                cursor.execute(sql, (table_id,))
-            else:
-                print(colored(f"FAILED TO DELETE TWEET WITH ID {tweet_id} FOR NOTE ID {note_id}", 'red'))
-                print(response.text)
-                all_tweets_deleted = False
-
-        if all_tweets_deleted:
-            # If all tweets for a note have been successfully deleted, set the note's is_published to 0
-            update_note_cmd = "UPDATE notes SET is_published = 0 WHERE id = %s"
-            cursor.execute(update_note_cmd, (note_id,))
-
-            # add the note id to the deleted_note_ids list
-            deleted_note_ids.append(note_id)
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    print(colored(f"TWEETS FOR NOTE IDS {deleted_note_ids} SUCCESSFULLY DELETED", 'cyan'))
-
-def fn_delete_queued_linkedin_posts_by_ids(called_function_arguments_dict):
-    cursor = conn.cursor()
-    ids_to_delete = called_function_arguments_dict.get('ids').split('_')
-    deleted_ids = []  # to store the successfully deleted tweet ids
-
-    for table_id in ids_to_delete:
-        # Fetch the corresponding tweet_id from the database
-        select_cmd = "SELECT id FROM queued_tweets WHERE id = %s"
-        cursor.execute(select_cmd, (table_id,))
-        result = cursor.fetchone()
-
-        if result is None:
-            print(colored(f"No queued tweet found with ID {table_id}", 'red'))
-            continue
-
-        sql = "DELETE FROM queued_tweets WHERE id = %s"
-        cursor.execute(sql, (table_id,))
-        deleted_ids.append(table_id)  # adding the id to the deleted_ids list
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-    print(colored(f"QUEUED TWEETS WITH IDS {deleted_ids} SUCCESSFULLY DELETED", 'cyan'))
-
-def fn_delete_queued_linkedin_posts_by_note_ids(called_function_arguments_dict):
-    cursor = conn.cursor()
-    note_ids_to_delete = [int(id_str) for id_str in called_function_arguments_dict.get('ids').split('_')]
-    deleted_note_ids = []  # to store the note ids for which tweets have been successfully deleted
-
-    for note_id in note_ids_to_delete:
-        # Fetch the corresponding tweet_id(s) from the database
-        select_cmd = "SELECT id FROM queued_tweets WHERE note_id = %s"
-        cursor.execute(select_cmd, (note_id,))
-        results = cursor.fetchall()
-
-        if not results:
-            print(colored(f"No tweets found for note ID {note_id}", 'red'))
-            continue
-
-        sql = "DELETE FROM queued_tweets WHERE note_id = %s"
-        cursor.execute(sql, (note_id,))
-        deleted_note_ids.append(note_id)
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    print(colored(f"QUEUED TWEETS FOR NOTE IDS {deleted_note_ids} SUCCESSFULLY DELETED", 'cyan'))
-
-def fn_delete_spaced_linkedin_posts_by_ids(called_function_arguments_dict):
-    cursor = conn.cursor()
-    ids_to_delete = called_function_arguments_dict.get('ids').split('_')
-    deleted_ids = []  # to store the successfully deleted tweet ids
-
-    for table_id in ids_to_delete:
-        # Fetch the corresponding tweet_id from the database
-        select_cmd = "SELECT id FROM spaced_tweets WHERE id = %s"
-        cursor.execute(select_cmd, (table_id,))
-        result = cursor.fetchone()
-
-        if result is None:
-            print(colored(f"No spaced tweet found with ID {table_id}", 'red'))
-            continue
-
-        sql = "DELETE FROM spaced_tweets WHERE id = %s"
-        cursor.execute(sql, (table_id,))
-        deleted_ids.append(table_id)  # adding the id to the deleted_ids list
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-    print(colored(f"SPACED TWEETS WITH IDS {deleted_ids} SUCCESSFULLY DELETED", 'cyan'))
-
-def fn_delete_spaced_linkedin_posts_by_note_ids(called_function_arguments_dict):
-    cursor = conn.cursor()
-    note_ids_to_delete = [int(id_str) for id_str in called_function_arguments_dict.get('ids').split('_')]
-    deleted_note_ids = []  # to store the note ids for which tweets have been successfully deleted
-
-    for note_id in note_ids_to_delete:
-        # Fetch the corresponding tweet_id(s) from the database
-        select_cmd = "SELECT id FROM spaced_tweets WHERE note_id = %s"
-        cursor.execute(select_cmd, (note_id,))
-        results = cursor.fetchall()
-
-        if not results:
-            print(colored(f"No tweets found for note ID {note_id}", 'red'))
-            continue
-
-        sql = "DELETE FROM spaced_tweets WHERE note_id = %s"
-        cursor.execute(sql, (note_id,))
-        deleted_note_ids.append(note_id)
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    print(colored(f"SPACED TWEETS FOR NOTE IDS {deleted_note_ids} SUCCESSFULLY DELETED", 'cyan'))
-
 
 def get_active_access_token_and_linkedin_id():
 
