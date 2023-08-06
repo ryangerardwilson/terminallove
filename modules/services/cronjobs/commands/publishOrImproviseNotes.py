@@ -107,81 +107,112 @@ def publish_or_improvise_notes():
         "INSERT INTO cronjob_logs (job_description, executed_at, error_logs) VALUES (%s, %s, %s)",
         ("Executing publishQueuedTweets.py", formatted_executed_at, json.dumps([]))
     )
-        log_id = cursor.lastrowid
-        conn.commit()
+    log_id = cursor.lastrowid
+    conn.commit()
 
     def improvise_note():
-        selected_theme = random.choice(NOTE_TEXT_IMPROVISATION_CONCEPT_THEMES)
+        def improvise_from_themes():
+            selected_theme = random.choice(NOTE_TEXT_IMPROVISATION_CONCEPT_THEMES)
+            # Randomly select a prompt and embed the theme
+            selected_prompt = random.choice(NOTE_TEXT_IMPROVISATION_PROMPTS)
+            formatted_prompt = selected_prompt.replace("CONCEPT_THEME", selected_theme)
 
-        # Randomly select a prompt and embed the theme
-        selected_prompt = random.choice(NOTE_TEXT_IMPROVISATION_PROMPTS)
-        formatted_prompt = selected_prompt.replace("CONCEPT_THEME", selected_theme)
+            # Store the final result in the variable randomized_prompt
+            randomized_prompt = formatted_prompt
+            return randomized_prompt
 
-        # Store the final result in the variable randomized_prompt
-        randomized_prompt = formatted_prompt
+        def improvise_from_previous_organic_notes():
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM ("
+                "    SELECT * FROM ("
+                "        SELECT * FROM notes "
+                "        WHERE is_published = 1 AND is_organic = 1 "
+                "        ORDER BY published_at DESC "
+                "        LIMIT 105"
+                "    ) AS last_105_published_notes "
+                "    ORDER BY published_at ASC "
+                "    LIMIT 100"
+                ") AS filtered_notes "
+                "ORDER BY RAND() "
+                "LIMIT 1"
+            )
+            random_note = cursor.fetchone()
+            random_note_text = random_note[1]
+            randomized_prompt = f"Paraphrase this in less than 200 words: {random_note_text}"
+            return randomized_prompt
 
-        print(randomized_prompt)
-        return
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT * FROM (SELECT * FROM notes WHERE is_published = 1 ORDER BY published_at DESC LIMIT 100) AS last_100_published_notes ORDER BY RAND() LIMIT 1"
-    ¦   ¦   )
-    ¦   ¦   random_note = cursor.fetchone()
-    ¦   ¦   random_note_text = random_note[1]
-    ¦   ¦   print('RANDOMLY SELECTED NOTE TEXT: ', random_note_text)
-    ¦   ¦   print()
-    ¦   ¦   print()
-    ¦   ¦   prompt = f"Use vivid imagery and tell me a similar story, using fictional characters and short sentences: {random_note_text}"
-
-    ¦   ¦   ai_generated_note_text = get_completion(prompt)
-    ¦   ¦   print('bbb', ai_generated_note_text)
-    ¦   ¦   print()
-    ¦   ¦   print()
-
-    ¦   ¦   formatted_text = reformat_text(ai_generated_note_text, 3)
-    ¦   ¦   print('ccc', formatted_text)
-
-    ¦   ¦   # Step 3 - Inset it into notes, and set the is_organic value of the note to false
-    ¦   ¦   insert_cmd = (
-    ¦   ¦   ¦   "INSERT INTO notes (note, is_published, created_at, updated_at, is_organic) "
-    ¦   ¦   ¦   "VALUES (%s, %s, %s, %s, %s)"
-    ¦   ¦   )
-    ¦   ¦   is_published = False
-    ¦   ¦   is_organic = False
-    ¦   ¦   created_at = updated_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
-    ¦   ¦   cursor.execute(insert_cmd, (formatted_text, is_published, created_at, updated_at, is_organic))
-    ¦   ¦   conn.commit()
-    ¦   ¦   note_id = cursor.lastrowid
+        # Decide which function to call based on the probability
+        if random.random() < 0.6:
+            prompt = improvise_from_previous_organic_notes()
+        else:
+            prompt = improvise_from_themes()
+        print(prompt)
 
 
+        """
+
+        ai_generated_note_text = get_completion(prompt)
+        print('bbb', ai_generated_note_text)
+        print()
+        print()
+
+        formatted_text = reformat_text(ai_generated_note_text, 3)
+        print('ccc', formatted_text)
+
+        # Step 3 - Inset it into notes, and set the is_organic value of the note to false
+        insert_cmd = (
+            "INSERT INTO notes (note, is_published, created_at, updated_at, is_organic) "
+            "VALUES (%s, %s, %s, %s, %s)"
+        )
+        is_published = False
+        is_organic = False
+        created_at = updated_at = datetime.datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+        cursor.execute(insert_cmd, (formatted_text, is_published, created_at, updated_at, is_organic))
+        conn.commit()
+        note_id = cursor.lastrowid
+
+        """
 
 
     try:
+
+        improvise_note()
+        return
 
         # STEP 1: Check if there are any notes to publish for which SPACING has lapsed
         note_id = None
         query = "SELECT published_at FROM notes WHERE is_published = 1 ORDER BY published_at DESC LIMIT 1"
         cursor.execute(query)
-        result = cursor.fetchone()
+        result = cursor.fetchall()
+        print('168', result)
         if result:
-            published_at = result[0]
+            published_at = result[0][0]
+            print('171', published_at)
+            print('Is datetime:', isinstance(published_at, datetime.datetime))
+            print('Timezone-aware:', published_at.tzinfo is not None)
             published_at = published_at.replace(tzinfo=tz)
+            print('172', published_at)
             now = datetime.datetime.now(tz)
             hours_since_last_published_note = (now - published_at).total_seconds() / 3600
         else:
             hours_since_last_published_note = PUBLISHED_NOTE_SPACING + 1
 
+        print('177', hours_since_last_published_note)
+
         if (hours_since_last_published_note < PUBLISHED_NOTE_SPACING):
+            print('Too soon to publish')
             return
         else:
-            cursor.execute("SELECT note_id FROM spaced_publications ORDER BY note_id, id")
-            result = cursor.fetchone()
-            
+            cursor.execute("SELECT note_id FROM spaced_publications ORDER BY id")
+            result = cursor.fetchall()
+            print('183', result)
             # STEP 2: Assign note_id to either the existing spaced publication or a newly improvised note
             if result is None:
+                print('184')
                 note_id = improvise_note()
             else:
-                note_id = result[0]
+                note_id = result[0][0]
 
         # STEP 3: Publish note_id
         if note_id != None:
