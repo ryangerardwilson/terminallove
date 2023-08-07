@@ -394,7 +394,7 @@ invoke_time_module = {
 
 invoke_notes_module = {
     "name": "invoke_notes_module",
-    "description": "Invokes a library of functions that manage the user's notes, including publishing notes accross all platforms",
+    "description": "Invokes a library of functions that manage the user's notes and publications",
     "parameters": {
         "type": "object",
         "properties": {

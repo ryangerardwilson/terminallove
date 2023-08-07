@@ -42,7 +42,7 @@ async def main(
         vm: bool = False,
         db: bool = False,
         vm_action = None,
-        db_action=None,
+        db_action = None,
         command: str = '',
         description: str = ''
     ):
@@ -188,6 +188,7 @@ async def main(
 
         if preliminary_classification_function_info['function_name'] == 'invoke_notes_module':
             functions = [
+                list_notes_module_functions,
                 open_note,
                 open_most_recent_note,
                 open_most_recently_edited_note,
@@ -199,6 +200,8 @@ async def main(
                 add_or_update_media_to_notes_by_ids,
                 publish_notes_by_ids,
                 unpublish_notes_by_ids,
+                delete_spaced_publications_by_ids,
+                delete_spaced_publications_by_note_ids,
             ]
 
         if preliminary_classification_function_info['function_name'] == 'invoke_twitter_module':
@@ -206,35 +209,14 @@ async def main(
                 list_twitter_module_functions,
                 list_rate_limits,
                 list_tweets,
-                list_queued_tweets,
-                list_spaced_tweets,
-                tweet_out_note,
-                schedule_tweet,
-                edit_tweet,
-                delete_tweets_by_ids,
-                delete_tweets_by_note_ids,
-                delete_queued_tweets_by_ids,
-                delete_queued_tweets_by_note_ids,
-                delete_spaced_tweets_by_ids,
-                delete_spaced_tweets_by_note_ids,
-            ]
+           ]
 
         if preliminary_classification_function_info['function_name'] == 'invoke_linkedin_module':
             functions = [
                 list_linkedin_module_functions,
                 list_rate_limits,
                 list_linkedin_posts,
-                list_queued_linkedin_posts,
-                list_spaced_linkedin_posts,
-                linkedin_post_out_note,
-                schedule_linkedin_post,
-                delete_linkedin_posts_by_ids,
-                delete_linkedin_posts_by_note_ids,
-                delete_queued_linkedin_posts_by_ids,
-                delete_queued_linkedin_posts_by_note_ids,
-                delete_spaced_linkedin_posts_by_ids,
-                delete_spaced_linkedin_posts_by_note_ids,
-            ]
+           ]
 
         classification_data = {
             "model": gpt_model,

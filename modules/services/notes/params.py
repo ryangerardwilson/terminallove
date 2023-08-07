@@ -17,14 +17,14 @@ list_notes_module_functions = {
     "name": "list_notes_module_functions",
     "description": "Lists functions in the notes module",
     "parameters": {
-    ¦   "type": "object",
-    ¦   "properties": {
-    ¦   ¦   "connection": {
-    ¦   ¦   ¦   "type": "string",
-    ¦   ¦   ¦   "enum": ["Listing functions from notes module"]
-    ¦   ¦   },
-    ¦   },
-    ¦   "required": []
+        "type": "object",
+        "properties": {
+            "connection": {
+                "type": "string",
+                "enum": ["Listing functions from notes module"]
+            },
+        },
+        "required": []
     }
 }
 

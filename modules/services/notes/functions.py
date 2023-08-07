@@ -16,6 +16,7 @@ import urllib.parse
 import requests
 import json
 import base64
+import random
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -49,6 +50,14 @@ conn = mysql.connector.connect(
     host=os.getenv('DB_HOST'),
     database=os.getenv('DB_DATABASE')
 )
+
+MEDIA_IMPROVISATION_PROMPTS = [
+    "Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: FIRST_PARAGRAPH,"
+    "Steampunk-inspired painting, with intricate details and metallic colors, representing this theme: FIRST_PARAGRAPH",
+    "Digital illustration, using vivid colors and fractured elements, representing this theme: FIRST_PARAGRAPH",
+    "Cyberpunk digital art of a neon-lit city, representing this theme: FIRST_PARAGRAPH",
+    "Digital space odyssey with futuristic spacecraft and distant galaxies, using vibrant colors, representing this theme: FIRST_PARAGRAPH"
+    ]  
 
 def fn_list_notes_module_functions(called_function_arguments_dict):
 
@@ -531,7 +540,10 @@ def fn_add_or_update_media_to_notes_by_ids(called_function_arguments_dict):
                 except:
                     print(f"Deletion of old media from cloud storage failed for note id {note_id}. Old media url is: {old_media_url}")
 
-            media_url = get_media_url_after_generating_image_and_uploading_to_cloud_storage(f"Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: {first_paragraph}", "512x512", note_id)
+            selected_image_prompt = random.choice(MEDIA_IMPROVISATION_PROMPTS)
+            formatted_image_prompt = selected_image_prompt.replace("FIRST_PARAGRAPH", first_paragraph)
+
+            media_url = get_media_url_after_generating_image_and_uploading_to_cloud_storage(formatted_image_prompt, "512x512", note_id)
             print()
             print(colored(f"New media_url for note id {note_id} is: {media_url}", 'cyan'))
             print()
