@@ -207,14 +207,14 @@ async def main(
         if preliminary_classification_function_info['function_name'] == 'invoke_twitter_module':
             functions = [
                 list_twitter_module_functions,
-                list_rate_limits,
+                list_twitter_rate_limits,
                 list_tweets,
            ]
 
         if preliminary_classification_function_info['function_name'] == 'invoke_linkedin_module':
             functions = [
                 list_linkedin_module_functions,
-                list_rate_limits,
+                list_linkedin_rate_limits,
                 list_linkedin_posts,
            ]
 
