@@ -724,10 +724,15 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
             conn.commit()
             return False
 
-    print('727')
     cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
-    media_url, = cursor.fetchone()
-    print('730')
+    result = cursor.fetchone()
+
+    if result:
+        media_url, = result
+    else:
+        media_url = None  # or take any other action suitable for your application
+
+
     try:
         # SQL query to fetch the most recent published note
         query = "SELECT published_at FROM notes WHERE is_published = 1 ORDER BY published_at DESC LIMIT 1"
