@@ -225,6 +225,21 @@ STEP II - INSTALL PYTHON AND MYSQL
         date DATE NOT NULL
     );
 
+    CREATE TABLE linkedin_access_codes (
+        id            INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        access_code   VARCHAR(255),
+        retrieved_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE linkedin_posts (
+        id               INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        post             LONGTEXT,
+        post_id          VARCHAR(255),
+        posted_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        note_id          INT,
+        media_asset_urn  TEXT
+    );
+
     CREATE TABLE mysql_databases (
         id INT PRIMARY KEY AUTO_INCREMENT,
         description VARCHAR(255),
@@ -251,25 +266,10 @@ STEP II - INSTALL PYTHON AND MYSQL
         comments TEXT
     );
 
-    CREATE TABLE queued_tweets (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        tweet LONGTEXT,
-        tweet_failed_at DATETIME,
-        note_id INT,
-        media_id TEXT
-    );
-
     CREATE TABLE reasons (
         id INT PRIMARY KEY AUTO_INCREMENT,
         goal_id INT,
         reason VARCHAR(255) NOT NULL
-    );
-
-    CREATE TABLE relational_databases (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        description VARCHAR(255),
-        mysql_connect_command VARCHAR(255),
-        password VARCHAR(255)
     );
 
     CREATE TABLE runs (
@@ -284,12 +284,9 @@ STEP II - INSTALL PYTHON AND MYSQL
         temperature_in_f FLOAT
     );
 
-    CREATE TABLE spaced_tweets (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        tweet LONGTEXT,
-        scheduled_at DATETIME,
-        note_id INT,
-        media_id TEXT
+    CREATE TABLE spaced_publications (
+        id       INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        note_id  INT
     );
 
     CREATE TABLE timesheets (
