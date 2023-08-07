@@ -312,7 +312,7 @@ def publish_or_improvise_notes():
     else:
         cursor.execute(
             "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
-            ("Errors in executing publishQueuedTweets.py", json.dumps(error_logs), log_id)
+            ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), log_id)
             )
         conn.commit()
 
