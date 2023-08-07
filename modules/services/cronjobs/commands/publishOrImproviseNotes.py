@@ -356,7 +356,7 @@ def publish_or_improvise_notes():
             args = {
                 'ids': f'{note_id}'    # Example IDs
             }
-            fn_publish_notes_by_ids(args)
+            fn_publish_notes_by_ids(args, error_logs, log_id)
 
             # STEP 4: If note was published, make sure that it is deleted from spaced_publications
             check_published_query = "SELECT COUNT(*) FROM notes WHERE id = %s AND is_published = 1"
@@ -392,7 +392,7 @@ def publish_or_improvise_notes():
         conn.commit()
 
 
-def fn_publish_notes_by_ids(called_function_arguments_dict):
+def fn_publish_notes_by_ids(called_function_arguments_dict, error_logs, log_id):
 
     cursor = conn.cursor()
     default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
@@ -451,6 +451,12 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
             return True
         except Exception as e:
             print(colored(f"FAILED TO GENERATE MEDIA FOR NOTE {note_id}: ","cyan"), e)
+            error_logs.append(str(e))
+            cursor.execute(
+                "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
+                ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), log_id)
+            )
+            conn.commit()
             return False
 
     def tweet_out_note(note_id):
@@ -542,30 +548,45 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
      
         except Exception as e:
             print(colored(f"Failed to tweet out note id {note_id}: ","cyan"), e)
+            error_logs.append(str(e))
+            cursor.execute(
+                "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
+                ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), log_id)
+            )
+            conn.commit()
             return False
 
     def delete_tweets_by_note_id(note_id):
-        select_cmd = "SELECT id, tweet_id FROM tweets WHERE note_id = %s"
-        cursor.execute(select_cmd, (note_id,))
-        results = cursor.fetchall()
-        if not results:
-            print(colored(f"No published tweets to delete for note id {note_id}", 'cyan'))
-        else:
-            oauth = get_oauth_session()
-            for result in results:
-                table_id, tweet_id = result
-                time.sleep(1)
-                # Delete the tweet on Twitter
-                url = f"https://api.twitter.com/2/tweets/{tweet_id}"
-                response = oauth.delete(url)
-                # Check for a successful response
-                if response.status_code == 200:
-                # If the deletion was successful on Twitter, delete the record from the tweets table
-                    sql = "DELETE FROM tweets WHERE id = %s"
-                    cursor.execute(sql, (table_id,))
-                else:
-                    print(colored(f"Failed to delete tweet with {tweet_id} for note id {note_id}", 'cyan'))
-                    print(response.text)
+        try:
+            select_cmd = "SELECT id, tweet_id FROM tweets WHERE note_id = %s"
+            cursor.execute(select_cmd, (note_id,))
+            results = cursor.fetchall()
+            if not results:
+                print(colored(f"No published tweets to delete for note id {note_id}", 'cyan'))
+            else:
+                oauth = get_oauth_session()
+                for result in results:
+                    table_id, tweet_id = result
+                    time.sleep(1)
+                    # Delete the tweet on Twitter
+                    url = f"https://api.twitter.com/2/tweets/{tweet_id}"
+                    response = oauth.delete(url)
+                    # Check for a successful response
+                    if response.status_code == 200:
+                    # If the deletion was successful on Twitter, delete the record from the tweets table
+                        sql = "DELETE FROM tweets WHERE id = %s"
+                        cursor.execute(sql, (table_id,))
+                    else:
+                        print(colored(f"Failed to delete tweet with {tweet_id} for note id {note_id}", 'cyan'))
+                        print(response.text)
+        except Exception as e:
+            error_logs.append(str(e))
+            cursor.execute(
+                "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
+                ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), log_id)
+            )
+            conn.commit()
+
 
     def post_note_to_linkedin(note_id):
         try:
@@ -639,48 +660,73 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
                 return True
         except Exception as e:
             print(colored(f"FAILED TO GENERATE MEDIA FOR NOTE {note_id}: ","cyan"), e)
+            error_logs.append(str(e))
+            cursor.execute(
+                "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
+                ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), log_id)
+            )
+            conn.commit()
             return False
 
     def delete_linkedin_post_by_note_id(note_id):
-        select_cmd = "SELECT id, note_id, post_id FROM linkedin_posts WHERE note_id = %s"
-        cursor.execute(select_cmd, (note_id,))
-        result = cursor.fetchone()
-        if not result:
-            print(colored(f"No published linkedin posts to delete for note id {note_id}", 'cyan'))
-        else:
-            table_id, note_id, post_id = result
-            time.sleep(1)
-            url = f"https://api.linkedin.com/v2/ugcPosts/{post_id}"
-
-            access_token, linkedin_id = get_active_access_token_and_linkedin_id()
-
-            headers = {
-                'Authorization': 'Bearer ' + access_token,
-                'Content-Type': 'application/json',
-                'X-Restli-Protocol-Version': '2.0.0'
-            }
-            response = requests.delete(url, headers=headers)
-
-            if response.status_code == 200:
-                # If the deletion was successful, delete the record from the tweets table
-                sql = "DELETE FROM linkedin_posts WHERE id = %s"
-                cursor.execute(sql, (table_id,))
-
-            if response.status_code != 200:
-                print('726')
-                print(colored(f"Request returned an error with status code {response.status_code}", "cyan"))
-                print(colored(response.text, "cyan"))
-                return False
+        try:
+            select_cmd = "SELECT id, note_id, post_id FROM linkedin_posts WHERE note_id = %s"
+            cursor.execute(select_cmd, (note_id,))
+            result = cursor.fetchone()
+            if not result:
+                print(colored(f"No published linkedin posts to delete for note id {note_id}", 'cyan'))
             else:
-                print(f"Deleted note id {note_id} from LinkedIn")
+                table_id, note_id, post_id = result
+                time.sleep(1)
+                url = f"https://api.linkedin.com/v2/ugcPosts/{post_id}"
+
+                access_token, linkedin_id = get_active_access_token_and_linkedin_id()
+
+                headers = {
+                    'Authorization': 'Bearer ' + access_token,
+                    'Content-Type': 'application/json',
+                    'X-Restli-Protocol-Version': '2.0.0'
+                }
+                response = requests.delete(url, headers=headers)
+
+                if response.status_code == 200:
+                    # If the deletion was successful, delete the record from the tweets table
+                    sql = "DELETE FROM linkedin_posts WHERE id = %s"
+                    cursor.execute(sql, (table_id,))
+
+                if response.status_code != 200:
+                    print('726')
+                    print(colored(f"Request returned an error with status code {response.status_code}", "cyan"))
+                    print(colored(response.text, "cyan"))
+                    return False
+                else:
+                    print(f"Deleted note id {note_id} from LinkedIn")
+        except Exception as e:
+            error_logs.append(str(e))
+            cursor.execute(
+                "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
+                ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), log_id)
+            )
+            conn.commit()
+            return False
 
     def set_is_published_to_true(note_id):
-        published_at = datetime.datetime.now(tz)
-        print(colored(f"Setting note id {note_id} as published", "cyan"))
-        update_cmd = ("UPDATE notes SET is_published = 1, published_at = %s WHERE id = %s")
-        cursor.execute(update_cmd, (published_at, note_id,))
-        conn.commit()
-        return True
+        try:
+            published_at = datetime.datetime.now(tz)
+            print(colored(f"Setting note id {note_id} as published", "cyan"))
+            update_cmd = ("UPDATE notes SET is_published = 1, published_at = %s WHERE id = %s")
+            cursor.execute(update_cmd, (published_at, note_id,))
+            conn.commit()
+            return True
+        except Exception as e:
+            error_logs.append(str(e))
+            cursor.execute(
+                "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
+                ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), log_id)
+            )
+            conn.commit()
+            return False
+
 
     for note_id in ids_to_publish:
         cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
@@ -740,7 +786,12 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
 
         except Exception as e:
             print('line 686 error ', e)
-
+            error_logs.append(str(e))
+            cursor.execute(
+                "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
+                ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), log_id)
+            )
+            conn.commit()
 
     return
 
