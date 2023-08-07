@@ -373,6 +373,7 @@ def publish_or_improvise_notes():
                 conn.commit()
 
     except Exception as e:
+        print(e)
         error_logs.append(str(e))
 
     if error_logs == []:
@@ -573,6 +574,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
                         print(colored(f"Failed to delete tweet with {tweet_id} for note id {note_id}", 'cyan'))
                         print(response.text)
         except Exception as e:
+            print(e)
             error_logs.append(str(e))
             cursor.execute(
                 "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
@@ -695,6 +697,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
                 else:
                     print(f"Deleted note id {note_id} from LinkedIn")
         except Exception as e:
+            print(e)
             error_logs.append(str(e))
             cursor.execute(
                 "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
@@ -712,6 +715,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
             conn.commit()
             return True
         except Exception as e:
+            print(e)
             error_logs.append(str(e))
             cursor.execute(
                 "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
