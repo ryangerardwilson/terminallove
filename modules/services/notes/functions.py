@@ -850,6 +850,11 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
         cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
         media_url, = cursor.fetchone()
 
+        if result:
+            media_url, = result
+        else:
+            media_url = None 
+
         try:
 
             # SQL query to fetch the most recent published note
@@ -879,8 +884,8 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
                 has_media = True
             print("LEG 1 SUCCESSFUL")
 
+            all_tweets_related_to_note_published = False
             if has_media == True:
-                all_tweets_related_to_note_published = False
                 all_tweets_related_to_note_published = tweet_out_note(note_id)
                 
                 note_posted_to_linkedin = False

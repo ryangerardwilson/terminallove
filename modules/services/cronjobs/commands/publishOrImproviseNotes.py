@@ -730,7 +730,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
     if result:
         media_url, = result
     else:
-        media_url = None  # or take any other action suitable for your application
+        media_url = None 
 
 
     try:
@@ -762,10 +762,9 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
             has_media = True
         print("LEG 1 SUCCESSFUL")
 
+        all_tweets_related_to_note_published = False
         if has_media == True:
-            all_tweets_related_to_note_published = False
             all_tweets_related_to_note_published = tweet_out_note(note_id)
-
             note_posted_to_linkedin = False
             if all_tweets_related_to_note_published == True:
                 print("LEG 2 SUCCESSFUL")
