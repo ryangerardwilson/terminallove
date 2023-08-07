@@ -359,7 +359,7 @@ def publish_or_improvise_notes():
             fn_publish_notes_by_ids(args)
 
             # STEP 4: If note was published, make sure that it is deleted from spaced_publications
-            check_published_query = "SELECT COUNT(*) FROM notes WHERE note_id = %s AND is_published = 1"
+            check_published_query = "SELECT COUNT(*) FROM notes WHERE id = %s AND is_published = 1"
             cursor.execute(check_published_query, (note_id,))
             is_published_count = cursor.fetchone()[0]
             if is_published_count > 0:
