@@ -768,8 +768,10 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
 
         all_tweets_related_to_note_published = False
         if has_media == True:
+            print('771')
             all_tweets_related_to_note_published = tweet_out_note(note_id)
             note_posted_to_linkedin = False
+            print('774')
             if all_tweets_related_to_note_published == True:
                 print("LEG 2 SUCCESSFUL")
                 note_posted_to_linkedin = post_note_to_linkedin(note_id)
