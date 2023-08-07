@@ -353,10 +353,7 @@ def publish_or_improvise_notes():
         # STEP 3: Publish note_id
         if note_id != None:
             print(f"code to publish note id {note_id} to be executed")
-            args = {
-                'ids': f'{note_id}'    # Example IDs
-            }
-            fn_publish_notes_by_ids(args, error_logs, log_id)
+            fn_publish_notes_by_ids(note_id, error_logs, log_id)
 
             # STEP 4: If note was published, make sure that it is deleted from spaced_publications
             check_published_query = "SELECT COUNT(*) FROM notes WHERE id = %s AND is_published = 1"
@@ -392,13 +389,9 @@ def publish_or_improvise_notes():
         conn.commit()
 
 
-def fn_publish_notes_by_ids(called_function_arguments_dict, error_logs, log_id):
+def fn_publish_notes_by_ids(note_id, error_logs, log_id):
 
     cursor = conn.cursor()
-    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
-    date = called_function_arguments_dict.get('date', default_date)
-    ids_to_publish = called_function_arguments_dict.get('ids').split('_')
-
     def generate_media_for_note(note_id):
         try:
             select_cmd = (
@@ -727,71 +720,68 @@ def fn_publish_notes_by_ids(called_function_arguments_dict, error_logs, log_id):
             conn.commit()
             return False
 
+    cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
+    media_url, = cursor.fetchone()
 
-    for note_id in ids_to_publish:
-        cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
-        media_url, = cursor.fetchone()
-
-        try:
-
-            # SQL query to fetch the most recent published note
-            query = "SELECT published_at FROM notes WHERE is_published = 1 ORDER BY published_at DESC LIMIT 1"
-            cursor.execute(query)
-            result = cursor.fetchone()
-            if result:
-                published_at = result[0]
-                published_at = published_at.replace(tzinfo=tz)
-                now = datetime.datetime.now(tz)
-                hours_since_last_published_note = (now - published_at).total_seconds() / 3600
-            else:
-                hours_since_last_published_note = PUBLISHED_NOTE_SPACING + 1
-            if (hours_since_last_published_note < PUBLISHED_NOTE_SPACING):
-                cursor.execute("SELECT COUNT(*) FROM spaced_publications")
-                count = cursor.fetchone()[0]
-                x = count + 1
-                cursor.execute("INSERT INTO spaced_publications (note_id) VALUES (%s)", (note_id,))
-                conn.commit()
-                print(colored(f"Note id {note_id} has been spaced out, and will be published {x} in line", 'cyan'))
-                return
-
-            has_media = False
-            if media_url == None:
-                has_media = generate_media_for_note(note_id)
-            else:
-                has_media = True
-            print("LEG 1 SUCCESSFUL")
-
-            if has_media == True:
-                all_tweets_related_to_note_published = False
-                all_tweets_related_to_note_published = tweet_out_note(note_id)
-
-                note_posted_to_linkedin = False
-                if all_tweets_related_to_note_published == True:
-                    print("LEG 2 SUCCESSFUL")
-                    note_posted_to_linkedin = post_note_to_linkedin(note_id)
-
-            if all_tweets_related_to_note_published == False or note_posted_to_linkedin == False:
-                # first check if note_id already exists in spaced_publications
-                cursor.execute("SELECT EXISTS(SELECT 1 FROM spaced_publications WHERE note_id=%s)", (note_id,))
-                if cursor.fetchone()[0]:  # it will return True if exists
-                    print(f"note_id {note_id} already exists in spaced_publications.")
-                else:
-                    queue_insert_cmd = ("INSERT INTO spaced_publications (note_id) VALUES (%s)")
-                    cursor.execute(queue_insert_cmd, (note_id,))
-                    conn.commit()
-
-            if has_media == True and all_tweets_related_to_note_published == True and note_posted_to_linkedin == True:
-                set_is_published_to_true(note_id)
-                print(colored(f"Note id {note_id} successfully published", "cyan"))
-
-        except Exception as e:
-            print('line 686 error ', e)
-            error_logs.append(str(e))
-            cursor.execute(
-                "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
-                ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), log_id)
-            )
+    try:
+        # SQL query to fetch the most recent published note
+        query = "SELECT published_at FROM notes WHERE is_published = 1 ORDER BY published_at DESC LIMIT 1"
+        cursor.execute(query)
+        result = cursor.fetchone()
+        if result:
+            published_at = result[0]
+            published_at = published_at.replace(tzinfo=tz)
+            now = datetime.datetime.now(tz)
+            hours_since_last_published_note = (now - published_at).total_seconds() / 3600
+        else:
+            hours_since_last_published_note = PUBLISHED_NOTE_SPACING + 1
+        if (hours_since_last_published_note < PUBLISHED_NOTE_SPACING):
+            cursor.execute("SELECT COUNT(*) FROM spaced_publications")
+            count = cursor.fetchone()[0]
+            x = count + 1
+            cursor.execute("INSERT INTO spaced_publications (note_id) VALUES (%s)", (note_id,))
             conn.commit()
+            print(colored(f"Note id {note_id} has been spaced out, and will be published {x} in line", 'cyan'))
+            return
+
+        has_media = False
+        if media_url == None:
+            has_media = generate_media_for_note(note_id)
+        else:
+            has_media = True
+        print("LEG 1 SUCCESSFUL")
+
+        if has_media == True:
+            all_tweets_related_to_note_published = False
+            all_tweets_related_to_note_published = tweet_out_note(note_id)
+
+            note_posted_to_linkedin = False
+            if all_tweets_related_to_note_published == True:
+                print("LEG 2 SUCCESSFUL")
+                note_posted_to_linkedin = post_note_to_linkedin(note_id)
+
+        if all_tweets_related_to_note_published == False or note_posted_to_linkedin == False:
+            # first check if note_id already exists in spaced_publications
+            cursor.execute("SELECT EXISTS(SELECT 1 FROM spaced_publications WHERE note_id=%s)", (note_id,))
+            if cursor.fetchone()[0]:  # it will return True if exists
+                print(f"note_id {note_id} already exists in spaced_publications.")
+            else:
+                queue_insert_cmd = ("INSERT INTO spaced_publications (note_id) VALUES (%s)")
+                cursor.execute(queue_insert_cmd, (note_id,))
+                conn.commit()
+
+        if has_media == True and all_tweets_related_to_note_published == True and note_posted_to_linkedin == True:
+            set_is_published_to_true(note_id)
+            print(colored(f"Note id {note_id} successfully published", "cyan"))
+
+    except Exception as e:
+        print('line 686 error ', e)
+        error_logs.append(str(e))
+        cursor.execute(
+            "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
+            ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), log_id)
+        )
+        conn.commit()
 
     return
 
