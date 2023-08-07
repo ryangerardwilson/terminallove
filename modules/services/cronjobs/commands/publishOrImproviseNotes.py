@@ -724,14 +724,16 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
             conn.commit()
             return False
 
+    print('727')
     cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
     media_url, = cursor.fetchone()
-
+    print('730')
     try:
         # SQL query to fetch the most recent published note
         query = "SELECT published_at FROM notes WHERE is_published = 1 ORDER BY published_at DESC LIMIT 1"
         cursor.execute(query)
         result = cursor.fetchone()
+        print('736')
         if result:
             published_at = result[0]
             published_at = published_at.replace(tzinfo=tz)
@@ -747,7 +749,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
             conn.commit()
             print(colored(f"Note id {note_id} has been spaced out, and will be published {x} in line", 'cyan'))
             return
-
+        print('752')
         has_media = False
         if media_url == None:
             has_media = generate_media_for_note(note_id)
