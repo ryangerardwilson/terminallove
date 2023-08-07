@@ -395,11 +395,15 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
     cursor = conn.cursor()
     def generate_media_for_note(note_id):
         try:
-            select_cmd = (
-                "SELECT note FROM notes WHERE id = %s"
-            )
-            cursor.execute(select_cmd, (note_id,))
-            note_text, = cursor.fetchone()
+
+            row = cursor.fetchone()
+            if row:
+                note_text, = row
+            else:
+                print(f"No note found for note_id {note_id}")
+                return False
+
+
 
             paragraphs = note_text.split("\n\n")
             first_paragraph = paragraphs[0]
