@@ -565,6 +565,10 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
 
     def generate_media_for_note(note_id):
         try:
+            select_cmd = (
+                "SELECT note FROM notes WHERE id = %s"
+            )
+            cursor.execute(select_cmd, (note_id,))
             row = cursor.fetchone()
             if row:
                 note_text, = row
