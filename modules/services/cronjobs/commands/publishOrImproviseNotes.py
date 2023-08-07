@@ -825,7 +825,7 @@ def get_active_access_token_and_linkedin_id():
     access_token = None
     if os.path.exists(tokens_file):
         with open(tokens_file, 'r') as file:
-            access_token = file.read()
+            access_token = file.read().rstrip('\n')
             does_it_work, linkedin_id = check_if_access_token_works(access_token)
             if does_it_work == False:
                 access_token = None

@@ -78,8 +78,9 @@ def fn_list_linkedin_module_functions(called_function_arguments_dict):
     print()
 
 def fn_list_linkedin_rate_limits(called_function_arguments_dict):
-    access_token, linkedin_id = get_active_access_token_and_linkedin_id() # this function should return an OAuth1Session or OAuth2Session instance
-   
+
+    access_token, linkedin_id = get_active_access_token_and_linkedin_id()
+ 
     headers = {
         'Authorization': 'Bearer ' + access_token,
         'Content-Type': 'application/json',
@@ -194,6 +195,7 @@ def get_active_access_token_and_linkedin_id():
         response = requests.post('https://www.linkedin.com/oauth/v2/accessToken', data=data)
         if response.status_code == 200:
             access_token = response.json().get('access_token')
+            print('919: NEW ACCESS TOKEN: ', access_token)
             tokens_file = f"{parent_dir}/files/tokens/linkedin_access_token.txt"
             with open(tokens_file, 'w') as file:
                 file.write(access_token)
@@ -202,8 +204,13 @@ def get_active_access_token_and_linkedin_id():
             return None
 
     def check_if_access_token_works(access_token):
+        print('927')
+        print('Access token: ', access_token)
         headers = {'Authorization': f'Bearer {access_token}'}
         response = requests.get('https://api.linkedin.com/v2/me', headers=headers)
+        print('Status code: ', response.status_code)
+        print('Response content: ', response.content)
+    
         if response.status_code == 200:
             linkedin_id = response.json().get('id')
             return True, linkedin_id
@@ -211,12 +218,15 @@ def get_active_access_token_and_linkedin_id():
             print("Invalid or expired token. Please generate a new one.")
             return False, None
 
+
+
     tokens_file = f"{parent_dir}/files/tokens/linkedin_access_token.txt"
+    print('934: ', tokens_file)
     linkedin_id = None
     access_token = None
     if os.path.exists(tokens_file):
         with open(tokens_file, 'r') as file:
-            access_token = file.read()
+            access_token = file.read().rstrip('\n')
             does_it_work, linkedin_id = check_if_access_token_works(access_token)
             if does_it_work == False:
                 access_token = None
@@ -232,8 +242,8 @@ def get_active_access_token_and_linkedin_id():
                     return
 
     if access_token is None:
-        print("Failed to generate access token.")
-        return
+        print("Failed to generate access_token.")
+        return None, None
 
     return access_token, linkedin_id
 
