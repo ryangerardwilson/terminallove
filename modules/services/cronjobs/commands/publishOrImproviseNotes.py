@@ -104,11 +104,75 @@ NOTE_TEXT_IMPROVISATION_CONCEPT_THEMES = [
     "MPLS (Multi protocol label switching)"
     ]
 
+SENTENCE_START_PROMPTS = [
+    "A notable aspect that fundamentally supports...",
+    "A key feature that serves as the foundation for...",
+    "One of the striking factors that undergirds...",
+    "An exceptional characteristic that bolsters...",
+    "One of the salient points that fortifies...",
+    "An impressive trait that buttresses...",
+    "One distinguishing detail that backs...",
+    "A significant aspect that constitutes the basis for...",
+    "An extraordinary element that anchors...",
+    "Hear that?",
+    "This is our chance to",
+    "Good riddance",
+    "Another big step towards",
+    "Can we put an end to",
+    "Who will pay to",
+    "The end of",
+    "Move aside",
+    "Once science fiction",
+    "Is it finally hammer time",
+    "The unexpected joys of",
+    "The epic battle between",
+    "In the heart of",
+    "The shaky future of",
+    "Why are you",
+    "Be paranoid about",
+    "There is a reason",
+    "Why can't we stop",
+    "Why do we tolerate",
+    "Whatever you think of",
+    "There is a lot we still don't know about",
+    "Why it's important that",
+    "We shouldn't be scared by",
+    "Was that the best",
+    "The black and white world of",
+    "Everyone is dead",
+    "What happens when",
+    "The twilight of",
+    "Why you shouln't believe",
+    "The loophole",
+    "There is no",
+    "Who killed",
+    "The trauma of",
+    "Not everyone wanted",
+    "The high price of",
+    "The rise and fall of",
+    "Welcome to the",
+    "The worm that nearly ate",
+    "What if we all just",
+    "You care more about",
+    "The people screaming for blood have no idea",
+    "Why should we stop fetishizing",
+    "It's time to break up",
+    "The devastating consequences of",
+    "It's time to panic",
+    "Where would you draw the line",
+    "You are not as good at",
+    "Why the cool kids are",
+    "The joy of standards",
+    "We should be able to take",
+    "Is this the end of",
+    "A smarter way to think about",
+    ]
+
 NOTE_TEXT_IMPROVISATION_PROMPTS = [
-    "explain the underlying philosophy of CONCEPT_THEME (in context of the internet) to first year philosohpy students, in the form of a story, in less than 300 words",
+    "explain the underlying philosophy of CONCEPT_THEME (in context of the internet) to first year philosohpy students, in less than 300 words, starting with - SENTENCE_START_PROMPTS",
     "tell me a joke about CONCEPT_THEME",
-    "give one example of any ancient philosopher's idea that is analogous to CONCEPT_THEME (in context of the internet), in less than 200 words",
-    "give one example of any everyday task a puppy does that is analogous to CONCEPT_THEME (in context of the internet), in less than 200 words"
+    "give one example of any ancient philosopher's idea that is analogous to CONCEPT_THEME (in context of the internet), in less than 200 words, starting with - SENTENCE_START_PROMPTS",
+    "give one example of any everyday task a puppy does that is analogous to CONCEPT_THEME (in context of the internet), in less than 200 words, starting with - SENTENCE_START_PROMPTS"
     ]
 
 def publish_or_improvise_notes():
@@ -129,7 +193,9 @@ def publish_or_improvise_notes():
             selected_theme = random.choice(NOTE_TEXT_IMPROVISATION_CONCEPT_THEMES)
             # Randomly select a prompt and embed the theme
             selected_prompt = random.choice(NOTE_TEXT_IMPROVISATION_PROMPTS)
-            formatted_prompt = selected_prompt.replace("CONCEPT_THEME", selected_theme)
+            selected_sentence_start_prompt = random.choice(SENTENCE_START_PROMPTS)
+            formatted_prompt = selected_prompt.replace("CONCEPT_THEME", selected_theme).replace("SENTENCE_START_PROMPT", selected_sentence_start_prompt)
+            
 
             # Store the final result in the variable randomized_prompt
             randomized_prompt = formatted_prompt
@@ -268,6 +334,7 @@ def publish_or_improvise_notes():
 
         print('177', hours_since_last_published_note)
 
+        was_note_improvised = False
         if (hours_since_last_published_note < PUBLISHED_NOTE_SPACING):
             print('Too soon to publish')
             return
@@ -279,6 +346,7 @@ def publish_or_improvise_notes():
             if result == []:
                 print('184')
                 note_id = improvise_note()
+                was_note_improvised = True
             else:
                 note_id = result[0][0]
 
@@ -298,7 +366,14 @@ def publish_or_improvise_notes():
                 delete_query = "DELETE FROM spaced_publications WHERE note_id = %s"
                 cursor.execute(delete_query, (note_id,))
                 print(f"Deleted note id {note_id} from spaced_publications because it was published.")
-                conn.commit()  # commit the changes to the database
+                conn.commit()
+
+            # STEP 5: If not was improvised, but not published, then delete the note itself
+            if is_published_count == 0 and was_note_improvised == True:
+                delete_query = "DELETE FROM notes WHERE note_id = %s"
+                cursor.execute(delete_query, (note_id,))
+                print(f"Deleted note id {note_id} from notes because it was improvised but could not be published")
+                conn.commit()
 
     except Exception as e:
         error_logs.append(str(e))
