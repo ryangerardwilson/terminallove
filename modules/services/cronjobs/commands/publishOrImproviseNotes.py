@@ -286,10 +286,12 @@ def publish_or_improvise_notes():
 
 
         # Decide which function to call based on the probability
-        if random.random() < 0.6:
-            prompt = improvise_note_text_from_previous_organic_notes()
-        else:
-            prompt = improvise_note_text_from_themes()
+        # if random.random() < 0.6:
+            # prompt = improvise_note_text_from_previous_organic_notes()
+        # else:
+            # prompt = improvise_note_text_from_themes()
+        
+        prompt = improvise_note_text_from_themes()
 
         ai_generated_note_text = get_completion(prompt)
         print('218', ai_generated_note_text)
