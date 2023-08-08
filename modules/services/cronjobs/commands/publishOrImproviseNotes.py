@@ -55,8 +55,7 @@ conn = mysql.connector.connect(
 )
 
 MEDIA_IMPROVISATION_PROMPTS = [
-    "Eerie painting in a dimly lit room, using shadows and low-light techniques representing this theme: FIRST_PARAGRAPH,"
-    "Steampunk-inspired painting, with intricate details and metallic colors, representing this theme: FIRST_PARAGRAPH",
+    "Steampunk-inspired illustration, with intricate details and metallic colors, representing this theme: FIRST_PARAGRAPH",
     "Digital illustration, using vivid colors and fractured elements, representing this theme: FIRST_PARAGRAPH",
     "Cyberpunk digital art of a neon-lit city, representing this theme: FIRST_PARAGRAPH",
     "Digital space odyssey with futuristic spacecraft and distant galaxies, using vibrant colors, representing this theme: FIRST_PARAGRAPH"
