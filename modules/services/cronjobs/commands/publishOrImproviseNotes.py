@@ -102,15 +102,7 @@ NOTE_TEXT_IMPROVISATION_CONCEPT_THEMES = [
     ]
 
 SENTENCE_START_PROMPTS = [
-    "A notable aspect that fundamentally supports...",
-    "A key feature that serves as the foundation for...",
-    "One of the striking factors that undergirds...",
-    "An exceptional characteristic that bolsters...",
-    "One of the salient points that fortifies...",
-    "An impressive trait that buttresses...",
-    "One distinguishing detail that backs...",
-    "A significant aspect that constitutes the basis for...",
-    "An extraordinary element that anchors...",
+    "This guy created...",
     "Hear that?",
     "This is our chance to",
     "Good riddance",
