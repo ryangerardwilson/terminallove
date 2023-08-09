@@ -2,7 +2,7 @@
 
 An 'almost non-opiniated' open and free MVC architecture to create your own AI bot:
 1. MODEL your data any way you like. Default set up includes finance, goal, time and run management CRUD modules.
-2. VIEW is the GNU-LINUX Ubuntu terminal
+2. VIEW is the GNU-LINUX terminal
 3. CONTROLLER is a Function Calling AI Vendor. Default set up includes OpenAI integration 
 
 # EXAMPLE USAGE
