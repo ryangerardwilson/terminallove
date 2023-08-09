@@ -55,11 +55,9 @@ conn = mysql.connector.connect(
 )
 
 MEDIA_IMPROVISATION_PROMPTS = [
-    "Steampunk-inspired illustration, with intricate details and metallic colors, representing this theme: FIRST_PARAGRAPH",
-    "Digital illustration, using vivid colors and fractured elements, representing this theme: FIRST_PARAGRAPH",
-    "Cyberpunk digital art of a neon-lit city, representing this theme: FIRST_PARAGRAPH",
-    "Digital space odyssey with futuristic spacecraft and distant galaxies, using vibrant colors, representing this theme: FIRST_PARAGRAPH"
-    ]
+    "Steampunk-inspired illustration, containing cyborgs, with a strong black aura, representing this theme: FIRST_PARAGRAPH",
+    "Digital illustration, containing cyborgs, with a strong black aura, representing this theme: FIRST_PARAGRAPH",
+    ]  
 
 NOTE_TEXT_IMPROVISATION_CONCEPT_THEMES = [
     "Packet Switching",
