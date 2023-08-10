@@ -852,10 +852,10 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
         cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
         result = cursor.fetchone()
 
-	if result:
-	    media_url, = result
-	else:
-	    media_url = None
+        if result:
+            media_url, = result
+        else:
+            media_url = None
 
         try:
 
