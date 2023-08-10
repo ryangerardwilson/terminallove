@@ -1213,20 +1213,31 @@ def get_active_access_token_and_linkedin_id():
             return None
 
     def check_if_access_token_works(access_token):
+        MAX_RETRIES = 3
+        RETRY_DELAY = 5  # seconds
+
         print('927')
         print('Access token: ', access_token)
         headers = {'Authorization': f'Bearer {access_token}'}
-        response = requests.get('https://api.linkedin.com/v2/me', headers=headers)
-        print('Status code: ', response.status_code)
-        print('Response content: ', response.content)
-        
-        if response.status_code == 200:
-            linkedin_id = response.json().get('id')
-            return True, linkedin_id
-        else:
-            print("Invalid or expired token. Please generate a new one.")
-            return False, None
 
+        for attempt in range(MAX_RETRIES):
+            response = requests.get('https://api.linkedin.com/v2/me', headers=headers)
+            print('Status code: ', response.status_code)
+            print('Response content: ', response.content)
+
+            if response.status_code == 200:
+                linkedin_id = response.json().get('id')
+                return True, linkedin_id
+            else:
+                print("Attempt {} failed. Invalid or expired token.".format(attempt + 1))
+
+                # If this wasn't the last attempt, then wait before retrying
+                if attempt < MAX_RETRIES - 1:
+                    print(f"Retrying in {RETRY_DELAY} seconds...")
+                    time.sleep(RETRY_DELAY)
+
+        print("All attempts failed. Please generate a new token.")
+        return False, None
 
 
     tokens_file = f"{parent_dir}/files/tokens/linkedin_access_token.txt"
