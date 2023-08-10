@@ -850,7 +850,7 @@ def fn_publish_notes_by_ids(called_function_arguments_dict):
 
     for note_id in ids_to_publish:
         cursor.execute("SELECT media_url FROM notes WHERE id = %s", (note_id,))
-	result = cursor.fetchone()
+        result = cursor.fetchone()
 
 	if result:
 	    media_url, = result
