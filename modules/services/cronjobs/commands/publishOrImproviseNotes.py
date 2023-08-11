@@ -356,7 +356,7 @@ def publish_or_improvise_notes():
 
             # STEP 5: If not was improvised, but not published, then delete the note itself
             if is_published_count == 0 and was_note_improvised == True:
-                delete_query = "DELETE FROM notes WHERE note_id = %s"
+                delete_query = "DELETE FROM notes WHERE id = %s"
                 cursor.execute(delete_query, (note_id,))
                 print(f"Deleted note id {note_id} from notes because it was improvised but could not be published")
                 conn.commit()
