@@ -443,6 +443,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
             return True
         except Exception as e:
             print(colored(f"FAILED TO GENERATE MEDIA FOR NOTE {note_id}: ","cyan"), e)
+            error_logs.append("FAILED TO GENERATE MEDIA FOR NOTE")
             error_logs.append(str(e))
             cursor.execute(
                 "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
@@ -540,6 +541,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
      
         except Exception as e:
             print(colored(f"Failed to tweet out note id {note_id}: ","cyan"), e)
+            error_logs.append("FAILED TO TWEET OUT NOTE")
             error_logs.append(str(e))
             cursor.execute(
                 "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
@@ -573,6 +575,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
                         print(response.text)
         except Exception as e:
             print(e)
+            error_logs.append("FAILED TO DELETE TWEETS")
             error_logs.append(str(e))
             cursor.execute(
                 "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
@@ -652,7 +655,8 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
                 conn.commit()
                 return True
         except Exception as e:
-            print(colored(f"FAILED TO GENERATE MEDIA FOR NOTE {note_id}: ","cyan"), e)
+            print(colored(f"FAILED TO POST NOTE ID {note_id} TO LINKEDIN","cyan"), e)
+            error_logs.append("FAILED TO POST NOTE TO LINKEDIN")
             error_logs.append(str(e))
             cursor.execute(
                 "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
@@ -696,6 +700,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
                     print(f"Deleted note id {note_id} from LinkedIn")
         except Exception as e:
             print(e)
+            error_logs.append("FAILED TO DELETE NOTE FROM LINKEDIN")
             error_logs.append(str(e))
             cursor.execute(
                 "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
@@ -714,6 +719,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
             return True
         except Exception as e:
             print(e)
+            error_logs.append("FAILED TO SET IS PUBLISHED TO TRUE")
             error_logs.append(str(e))
             cursor.execute(
                 "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
@@ -786,6 +792,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
 
     except Exception as e:
         print('line 686 error ', e)
+	error_logs.append("FINAL STEP EXCEPTION THROWN")
         error_logs.append(str(e))
         cursor.execute(
             "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
