@@ -792,7 +792,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
 
     except Exception as e:
         print('line 686 error ', e)
-	error_logs.append("FINAL STEP EXCEPTION THROWN")
+        error_logs.append("FINAL STEP EXCEPTION THROWN")
         error_logs.append(str(e))
         cursor.execute(
             "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
