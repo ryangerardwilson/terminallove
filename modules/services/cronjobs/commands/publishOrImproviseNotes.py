@@ -644,6 +644,15 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
                 delete_linkedin_posts_by_note_id(note_id)
                 print(colored(f"Request returned an error with status code {response.status_code}", "cyan"))
                 print(colored(response.text, "cyan"))
+                print(colored(f"FAILED TO POST NOTE ID {note_id} TO LINKEDIN","cyan"), e)
+                error_logs.append("FAILED TO POST NOTE TO LINKEDIN")
+                error_logs.append(str(response.status_code))
+                error_logs.append(str(response.text))
+                cursor.execute(
+                    "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
+                    ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), log_id)
+                )
+                conn.commit()
                 return False
             else:
                 json_response = response.json()
