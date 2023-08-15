@@ -19,7 +19,6 @@ import pytz
 import requests
 import base64
 import random
-import inspect
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
@@ -308,8 +307,8 @@ def publish_or_improvise_notes():
         query = "SELECT published_at FROM notes WHERE is_published = 1 ORDER BY published_at DESC LIMIT 1"
         cursor.execute(query)
         result = cursor.fetchall()
-        execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
-        print('Line: ', inspect.currentframe().f_back.f_lineno)
+        execution_logs.append('310')
+        print('Line: 310')
         if result:
             published_at = result[0][0]
             published_at = published_at.replace(tzinfo=tz)
@@ -320,24 +319,24 @@ def publish_or_improvise_notes():
         else:
             hours_since_last_published_note = PUBLISHED_NOTE_SPACING + 1
 
-        execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
-        print('Line: ', inspect.currentframe().f_back.f_lineno)
+        execution_logs.append('322')
+        print('Line: 322')
 
         was_note_improvised = False
         if (hours_since_last_published_note < PUBLISHED_NOTE_SPACING):
             print('Too soon to publish')
-            execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
-            print('Line: ', inspect.currentframe().f_back.f_lineno)
+            execution_logs.append('328')
+            print('Line: 328')
             return
         else:
             cursor.execute("SELECT note_id FROM spaced_publications ORDER BY id")
             result = cursor.fetchall()
-            execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
-            print('Line: ', inspect.currentframe().f_back.f_lineno)
+            execution_logs.append('334')
+            print('Line: 334')
             # STEP 2: Assign note_id to either the existing spaced publication or a newly improvised note
             if result == []:
-                execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
-                print('Line: ', inspect.currentframe().f_back.f_lineno)
+                execution_logs.append('338')
+                print('Line: 338')
                 note_id = improvise_note()
                 was_note_improvised = True
             else:
@@ -345,8 +344,8 @@ def publish_or_improvise_notes():
 
         # STEP 3: Publish note_id
         if note_id != None:
-            execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
-            print('Line: ', inspect.currentframe().f_back.f_lineno)
+            execution_logs.append('347')
+            print('Line: 347')
 
             fn_publish_notes_by_ids(note_id, error_logs, log_id)
 
@@ -358,8 +357,8 @@ def publish_or_improvise_notes():
                 delete_query = "DELETE FROM spaced_publications WHERE note_id = %s"
                 cursor.execute(delete_query, (note_id,))
                 print(f"Deleted note id {note_id} from spaced_publications because it was published.")
-                execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
-                print('Line: ', inspect.currentframe().f_back.f_lineno)
+                execution_logs.append('360')
+                print('Line: 360')
                 conn.commit()
 
             # STEP 5: If not was improvised, but not published, then delete the note itself
@@ -368,8 +367,8 @@ def publish_or_improvise_notes():
                 cursor.execute(delete_query, (note_id,))
                 print(f"Deleted note id {note_id} from notes because it was improvised but could not be published")
                 conn.commit()
-                execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
-                print('Line: ', inspect.currentframe().f_back.f_lineno)
+                execution_logs.append('370')
+                print('Line: 370')
 
     except Exception as e:
         print(e)
@@ -389,8 +388,6 @@ def publish_or_improvise_notes():
         conn.commit()
 
     
-
-
 def fn_publish_notes_by_ids(note_id, error_logs, log_id):
 
     cursor = conn.cursor()
