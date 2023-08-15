@@ -127,7 +127,7 @@ def process_hard_coded_flags(update, reset, locate, p_action, p, l, id, service,
         if id:
             fn_delete_vm_record(id)
         else:
-            print("\nExample of correct syntax for delete: --ssh:delete --id '3'")
+            print("\nExample of correct syntax for delete: --vm:delete --id '3'")
         function_invoked = True
     # Check if action is 'read'
     elif vm and id != 0 and id != None:
