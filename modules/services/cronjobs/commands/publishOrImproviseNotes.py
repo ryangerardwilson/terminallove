@@ -312,8 +312,8 @@ def publish_or_improvise_notes():
         if result:
             published_at = result[0][0]
             published_at = published_at.replace(tzinfo=tz)
-            execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
-            print('Line: ', inspect.currentframe().f_back.f_lineno)
+            execution_logs.append('315')
+            print('Line: 315')
             now = datetime.datetime.now(tz)
             hours_since_last_published_note = (now - published_at).total_seconds() / 3600
         else:
