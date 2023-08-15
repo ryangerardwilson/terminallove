@@ -173,6 +173,7 @@ STEP II - INSTALL PYTHON AND MYSQL
         id INT PRIMARY KEY AUTO_INCREMENT,
         job_description VARCHAR(255),
         error_logs JSON,
+        execution_logs JSON,
         executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     );
 
