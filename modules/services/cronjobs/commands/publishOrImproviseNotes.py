@@ -19,6 +19,7 @@ import pytz
 import requests
 import base64
 import random
+import inspect
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
@@ -165,6 +166,7 @@ NOTE_TEXT_IMPROVISATION_PROMPTS = [
 def publish_or_improvise_notes():
 
     error_logs = []
+    execution_logs = []
     cursor = conn.cursor()
     executed_at = datetime.datetime.now(tz)
     formatted_executed_at = executed_at.strftime("%Y-%m-%d %H:%M:%S")
@@ -299,8 +301,6 @@ def publish_or_improvise_notes():
         else:
             return None
 
-
-
     try:
 
         # STEP 1: Check if there are any notes to publish for which SPACING has lapsed
@@ -308,32 +308,36 @@ def publish_or_improvise_notes():
         query = "SELECT published_at FROM notes WHERE is_published = 1 ORDER BY published_at DESC LIMIT 1"
         cursor.execute(query)
         result = cursor.fetchall()
-        print('168', result)
+        execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
+        print('Line: ', inspect.currentframe().f_back.f_lineno)
         if result:
             published_at = result[0][0]
-            print('171', published_at)
-            print('Is datetime:', isinstance(published_at, datetime.datetime))
-            print('Timezone-aware:', published_at.tzinfo is not None)
             published_at = published_at.replace(tzinfo=tz)
-            print('172', published_at)
+            execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
+            print('Line: ', inspect.currentframe().f_back.f_lineno)
             now = datetime.datetime.now(tz)
             hours_since_last_published_note = (now - published_at).total_seconds() / 3600
         else:
             hours_since_last_published_note = PUBLISHED_NOTE_SPACING + 1
 
-        print('177', hours_since_last_published_note)
+        execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
+        print('Line: ', inspect.currentframe().f_back.f_lineno)
 
         was_note_improvised = False
         if (hours_since_last_published_note < PUBLISHED_NOTE_SPACING):
             print('Too soon to publish')
+            execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
+            print('Line: ', inspect.currentframe().f_back.f_lineno)
             return
         else:
             cursor.execute("SELECT note_id FROM spaced_publications ORDER BY id")
             result = cursor.fetchall()
-            print('183', result)
+            execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
+            print('Line: ', inspect.currentframe().f_back.f_lineno)
             # STEP 2: Assign note_id to either the existing spaced publication or a newly improvised note
             if result == []:
-                print('184')
+                execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
+                print('Line: ', inspect.currentframe().f_back.f_lineno)
                 note_id = improvise_note()
                 was_note_improvised = True
             else:
@@ -341,7 +345,9 @@ def publish_or_improvise_notes():
 
         # STEP 3: Publish note_id
         if note_id != None:
-            print(f"code to publish note id {note_id} to be executed")
+            execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
+            print('Line: ', inspect.currentframe().f_back.f_lineno)
+
             fn_publish_notes_by_ids(note_id, error_logs, log_id)
 
             # STEP 4: If note was published, make sure that it is deleted from spaced_publications
@@ -352,6 +358,8 @@ def publish_or_improvise_notes():
                 delete_query = "DELETE FROM spaced_publications WHERE note_id = %s"
                 cursor.execute(delete_query, (note_id,))
                 print(f"Deleted note id {note_id} from spaced_publications because it was published.")
+                execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
+                print('Line: ', inspect.currentframe().f_back.f_lineno)
                 conn.commit()
 
             # STEP 5: If not was improvised, but not published, then delete the note itself
@@ -360,6 +368,8 @@ def publish_or_improvise_notes():
                 cursor.execute(delete_query, (note_id,))
                 print(f"Deleted note id {note_id} from notes because it was improvised but could not be published")
                 conn.commit()
+                execution_logs.append(str(inspect.currentframe().f_back.f_lineno))
+                print('Line: ', inspect.currentframe().f_back.f_lineno)
 
     except Exception as e:
         print(e)
@@ -367,16 +377,18 @@ def publish_or_improvise_notes():
 
     if error_logs == []:
         cursor.execute(
-            "UPDATE cronjob_logs SET job_description = %s WHERE id = %s",
-            ("Executed publishOrImproviseNotes.py", log_id)
+            "UPDATE cronjob_logs SET job_description = %s, execution_logs = %s WHERE id = %s",
+            ("Executed publishOrImproviseNotes.py", json.dumps(execution_logs), log_id)
             )
         conn.commit()
     else:
         cursor.execute(
-            "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
-            ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), log_id)
+            "UPDATE cronjob_logs SET job_description = %s, execution_logs = %s, error_logs = %s WHERE id = %s",
+            ("Errors in executing publishOrImproviseNotes.py", json.dumps(execution_logs), json.dumps(error_logs), log_id)
             )
         conn.commit()
+
+    
 
 
 def fn_publish_notes_by_ids(note_id, error_logs, log_id):
