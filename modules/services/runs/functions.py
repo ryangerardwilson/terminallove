@@ -22,7 +22,7 @@ conn = mysql.connector.connect(
 )
 
 
-def fn_list_run_logging_params():
+def fn_list_run_logging_params(called_function_arguments_dict):
         print(colored('The following parameters are required:', 'cyan'))
         print(colored('1.  pre_run_weight_kgs', 'cyan'))
         print(colored('2.  post_run_weight_kgs', 'cyan'))
@@ -84,7 +84,7 @@ def fn_add_run_logs(called_function_arguments_dict):
 
 
 
-def fn_list_run_logs():
+def fn_list_run_logs(called_function_arguments_dict):
     cursor = conn.cursor()
 
     # Query to get all events sorted by date in descending order
@@ -172,7 +172,7 @@ def fn_delete_runs_by_ids(called_function_arguments_dict):
 
     print(colored(f"Runs with ids {ids_to_delete} deleted successfully.", 'cyan'))
 
-def fn_list_available_running_charts():
+def fn_list_available_running_charts(called_function_arguments_dict):
     print(colored('1.  Running Weight Chart (optional - range of days)', 'cyan'))
     print(colored('2.  Running Fat Burn Chart (optional - range of days, is cumulative)', 'cyan'))
     print(colored('3.  Running Distance Chart (optional - range of days, is cumulative)', 'cyan'))

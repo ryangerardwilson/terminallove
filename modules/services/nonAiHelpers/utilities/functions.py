@@ -21,8 +21,6 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
-
-
 def fn_display_passwords():
 
     cursor = conn.cursor()

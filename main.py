@@ -233,9 +233,13 @@ async def main(
                           'yellow'))
 
             # Mapping functions that require arguments
-            functions_with_args = {
+            functions_register = {
                 
-                # finances module 
+                # finances module
+                'list_finance_module_functions': fn_list_finance_module_functions,
+                'list_expense_logging_params': fn_list_expense_logging_params,
+                'recalculate_debts': fn_recalculate_debts,
+                'list_debts': fn_list_debts, 
                 'log_expenses': fn_log_expenses,
                 'log_debt_repayment': fn_log_debt_repayment,
                 'list_expenses': fn_list_expenses,
@@ -252,11 +256,14 @@ async def main(
                 'display_debt_status_logs_line_chart': fn_display_debt_status_logs_line_chart,
                 
                 # time module
+                'list_events': fn_list_events,
                 'schedule_event': fn_schedule_event,
                 'update_event_by_id': fn_update_event_by_id,
                 'delete_events_by_ids': fn_delete_events_by_ids,
 
                 # goals module
+                'list_goals': fn_list_goals,
+                'list_actions': fn_list_actions,
                 'add_goal': fn_add_goal,
                 'update_goal_by_id': fn_update_goal_by_id,
                 'delete_goals_by_ids': fn_delete_goals_by_ids,
@@ -274,6 +281,9 @@ async def main(
                 'display_timesheets_line_chart': fn_display_timesheets_line_chart,
                 
                 # runs module
+                'list_run_logging_params': fn_list_run_logging_params,
+                'list_run_logs': fn_list_run_logs,
+                'list_available_running_charts': fn_list_available_running_charts,
                 'add_run_logs': fn_add_run_logs,
                 'update_run_by_id': fn_update_run_by_id,
                 'delete_runs_by_ids': fn_delete_runs_by_ids,
@@ -308,37 +318,13 @@ async def main(
                 'list_linkedin_rate_limits': fn_list_linkedin_rate_limits,
  
                 # cronjobs module
-                'list_cronjob_logs': fn_list_cronjob_logs,
-                'inspect_cronjob_logs_by_id': fn_inspect_cronjob_logs_by_id,
-            }
-
-            # Mapping functions that do not require arguments
-            functions_without_args = {
-
-                # finances module
-                'list_finance_module_functions': fn_list_finance_module_functions,
-                'list_expense_logging_params': fn_list_expense_logging_params,
-                'recalculate_debts': fn_recalculate_debts,
-                'list_debts': fn_list_debts,
- 
-                # goals module
-                'list_goals': fn_list_goals,
-                'list_actions': fn_list_actions,
-
-                # time module
-                'list_events': fn_list_events,
-
-                # runs module
-                'list_run_logging_params': fn_list_run_logging_params,
-                'list_run_logs': fn_list_run_logs,
-                'list_available_running_charts': fn_list_available_running_charts,
-
-                # cronjobs module
                 'list_cronjobs_module_functions': fn_list_cronjobs_module_functions,
                 'activate_cronjobs': fn_activate_cronjobs,
                 'deactivate_cronjobs': fn_deactivate_cronjobs,
                 'list_cronjobs': fn_list_cronjobs,
                 'clear_cronjob_logs': fn_clear_cronjob_logs,
+                'list_cronjob_logs': fn_list_cronjob_logs,
+                'inspect_cronjob_logs_by_id': fn_inspect_cronjob_logs_by_id,
             }
 
             # Get function name and arguments
@@ -346,14 +332,8 @@ async def main(
             arguments = classification_function_info.get('arguments', None)
 
             # Call the function with arguments
-            if function_name in functions_with_args:
-                functions_with_args[function_name](arguments)
-
-            # Call the function without arguments
-            elif function_name in functions_without_args:
-                functions_without_args[function_name]()
-
-            # Function name not recognized
+            if function_name in functions_register:
+                functions_register[function_name](arguments)
 
     print()
 

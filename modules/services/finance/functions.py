@@ -25,7 +25,7 @@ conn = mysql.connector.connect(
 PRIMARY_CREDIT_CARD_INTEREST_COEFFICIENT_AGAINST_NEW_EXPENSES = os.getenv('PRIMARY_CREDIT_CARD_INTEREST_COEFFICIENT_AGAINST_NEW_EXPENSES')
 DEFAULT_DEBT_ID_FOR_PRIMARY_CREDIT_CARD = os.getenv('DEFAULT_DEBT_ID_FOR_PRIMARY_CREDIT_CARD')
 
-def fn_list_finance_module_functions():
+def fn_list_finance_module_functions(called_function_arguments_dict):
 
     functions = [
         {
@@ -119,7 +119,7 @@ def fn_list_finance_module_functions():
     print(colored(tabulate(rows, headers=column_names), 'cyan'))
     print()
 
-def fn_list_expense_logging_params():
+def fn_list_expense_logging_params(called_function_arguments_dict):
     print(colored('The following parameters are required:', 'cyan'))
     print(colored('1.  value', 'cyan'))
     print(colored('2.  expense_date', 'cyan'))
@@ -897,7 +897,7 @@ def fn_insert_debt_status_log(called_function_arguments_dict):
     conn.close()
 
 
-def fn_recalculate_debts():
+def fn_recalculate_debts(called_function_arguments_dict):
     # Getting a cursor from the connection object
     cursor = conn.cursor()
 
@@ -988,7 +988,7 @@ def fn_recalculate_debts():
 
 
 
-def fn_list_debts():
+def fn_list_debts(called_function_arguments_dict):
 
     cursor = conn.cursor()
     # Query to get all expenses sorted by expense_date in descending order

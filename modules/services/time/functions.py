@@ -66,7 +66,7 @@ def fn_schedule_event(called_function_arguments_dict):
     print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
 
-def fn_list_events():
+def fn_list_events(called_function_arguments_dict):
     cursor = conn.cursor()
 
     default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')

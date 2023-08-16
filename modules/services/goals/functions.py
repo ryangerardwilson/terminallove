@@ -63,7 +63,7 @@ def fn_add_goal(called_function_arguments_dict):
     print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
 
-def fn_list_goals():
+def fn_list_goals(called_function_arguments_dict):
     cursor = conn.cursor()
 
     # Query to get all events sorted by date in descending order
@@ -324,7 +324,7 @@ def fn_add_action(called_function_arguments_dict):
     conn.close()
 
 
-def fn_list_actions():
+def fn_list_actions(called_function_arguments_dict):
     cursor = conn.cursor()
 
     # Query to get all events sorted by date in descending order

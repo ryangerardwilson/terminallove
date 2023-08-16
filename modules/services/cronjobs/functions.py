@@ -33,7 +33,7 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
-def fn_list_cronjobs_module_functions():
+def fn_list_cronjobs_module_functions(called_function_arguments_dict):
     functions = [
             {
                 "function": "inspect_cronjob_logs_by_id",
@@ -128,7 +128,7 @@ def fn_inspect_cronjob_logs_by_id(called_function_arguments_dict):
     else:
         print(colored("Please provide a valid ID", 'red'))
 
-def fn_list_cronjobs():
+def fn_list_cronjobs(called_function_arguments_dict):
     print(colored('Listing cronjobs', 'cyan'))
     with CronTab(user=getpass.getuser()) as cron:
         jobs = list(cron)
@@ -184,7 +184,7 @@ def fn_list_cronjob_logs(called_function_arguments_dict):
     print(colored(heading, 'cyan'))
     print(colored(tabulate(df, headers='keys', tablefmt='psql', showindex=False), 'cyan'))
 
-def fn_clear_cronjob_logs():
+def fn_clear_cronjob_logs(called_function_arguments_dict):
     cursor = conn.cursor()
     try:
         cursor.execute("TRUNCATE TABLE cronjob_logs")
@@ -195,7 +195,7 @@ def fn_clear_cronjob_logs():
     finally:
         cursor.close()
 
-def fn_activate_cronjobs():
+def fn_activate_cronjobs(called_function_arguments_dict):
     print('Activating cronjobs')
     with CronTab(user=getpass.getuser()) as cron:
         for job_name, script_path in CRONJOBS.items():
@@ -204,7 +204,7 @@ def fn_activate_cronjobs():
             job.setall('0 * * * *') # this sets the cron job to run every hour on the hour
             cron.write()
 
-def fn_deactivate_cronjobs():
+def fn_deactivate_cronjobs(called_function_arguments_dict):
     print('Deactivating cronjobs')
     with CronTab(user=getpass.getuser()) as cron:
         for job_name in CRONJOBS.keys():
