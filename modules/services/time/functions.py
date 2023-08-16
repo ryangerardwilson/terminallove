@@ -20,6 +20,41 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
+def fn_list_time_module_functions(called_function_arguments_dict):
+    functions = [
+            {
+                "function": "schedule_event",
+                "description": "Log an event the user needs to attend to",
+            },
+            {
+                "function": "list_events",
+                "description": "Lists the user's calendered and docketed events",
+            },
+            {
+                "function": "update_event_by_id",
+                "description": "Update an event by its id",
+            },
+            {
+                "function": "delete_events_by_ids",
+                "description": "Delete events by their ids",
+            },
+       ]
+        # Convert the passwords to a list of lists
+    rows = [
+        [index + 1, entry["function"], entry["description"]]
+        for index, entry in enumerate(functions)
+    ]
+
+    # Column names
+    column_names = ["", "function", "description"]
+
+    # Print the passwords in tabular form
+    print()
+    print(colored('TIME MODULE FUNCTIONS', 'red'))
+    print()
+    print(colored(tabulate(rows, headers=column_names), 'cyan'))
+    print()
+
 def fn_schedule_event(called_function_arguments_dict):
 
     cursor = conn.cursor()

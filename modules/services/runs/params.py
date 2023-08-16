@@ -21,6 +21,21 @@ last_day_of_current_year = datetime.datetime(now.year, 12, 31, tzinfo=tz)
 days_left_in_current_year = (last_day_of_current_year - now).days
 
 
+list_runs_module_functions = {
+    "name": "list_runs_module_functions",
+    "description": "Lists functions in the Runs module",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "connection": {
+                "type": "string",
+                "enum": ["Listing functions from the Runs module"]
+            },
+        },
+        "required": []
+    }
+}
+
 list_run_logging_params = {
     "name": "list_run_logging_params",
     "description": "If user is confused, list the parameters required to log a run",
@@ -191,7 +206,7 @@ list_available_running_charts = {
 
 display_running_weight_line_chart = {
     "name": "display_running_weight_line_chart",
-    "description": "Plots an ascii line chart of the user's weight over the given range of days",
+    "description": "Plots a line chart of the user's weight over the given range of days",
     "parameters": {
         "type": "object",
         "properties": {
@@ -215,7 +230,7 @@ display_running_weight_line_chart = {
 
 display_runs_fat_burn_line_chart = {
     "name": "display_runs_fat_burn_line_chart",
-    "description": "Plots an ascii line chart of the user's fat burn / zone 2 running minutes over the given range of days",
+    "description": "Plots a line chart of the user's fat burn / zone 2 running minutes over the given range of days",
     "parameters": {
         "type": "object",
         "properties": {
@@ -242,7 +257,7 @@ display_runs_fat_burn_line_chart = {
 
 display_runs_distance_line_chart = {
     "name": "display_runs_distance_line_chart",
-    "description": "Plots an ascii line chart of the user's distance covered while running over the given range of days",
+    "description": "Plots a line chart of the user's distance covered while running over the given range of days",
     "parameters": {
         "type": "object",
         "properties": {

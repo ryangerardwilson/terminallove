@@ -21,6 +21,60 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
+def fn_list_runs_module_functions(called_function_arguments_dict):
+    functions = [
+            {
+                "function": "list_run_logging_params",
+                "description": "If user is confused, list the parameters required to log a run",
+            },
+            {
+                "function": "add_run_logs",
+                "description": "Adds/logs the user's run to the runs table",
+            },
+            {
+                "function": "list_run_logs",
+                "description": "Lists the user's runs",
+            },
+            {
+                "function": "update_run_by_id",
+                "description": "Update a run log by its id i.e. the run id",
+            },
+            {
+                "function": "delete_runs_by_ids",
+                "description": "Delete runs by their ids",
+            },
+            {
+                "function": "list_available_running_charts",
+                "description": "Lists the available running charts",
+            },
+            {
+                "function": "display_running_weight_line_chart",
+                "description": "Plots a line chart of the user's weight over the given range of days",
+            },
+            {
+                "function": "display_runs_fat_burn_line_chart",
+                "description": "Plots a line chart of the user's fat burn / zone 2 running minutes over the given range of days",
+            },
+            {
+                "function": "display_runs_distance_line_chart",
+                "description": "Plots a line chart of the user's distance covered while running over the given range of days",
+            },
+      ]
+        # Convert the passwords to a list of lists
+    rows = [
+        [index + 1, entry["function"], entry["description"]]
+        for index, entry in enumerate(functions)
+    ]
+
+    # Column names
+    column_names = ["", "function", "description"]
+
+    # Print the passwords in tabular form
+    print()
+    print(colored('RUNS MODULE FUNCTIONS', 'red'))
+    print()
+    print(colored(tabulate(rows, headers=column_names), 'cyan'))
+    print()
 
 def fn_list_run_logging_params(called_function_arguments_dict):
         print(colored('The following parameters are required:', 'cyan'))

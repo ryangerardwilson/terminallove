@@ -20,6 +20,20 @@ days_left_in_current_month = days_in_current_month - now.day
 last_day_of_current_year = datetime.datetime(now.year, 12, 31, tzinfo=tz)
 days_left_in_current_year = (last_day_of_current_year - now).days
 
+list_time_module_functions = {
+    "name": "list_time_module_functions",
+    "description": "Lists functions in the Time module",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "connection": {
+                "type": "string",
+                "enum": ["Listing functions from Time module"]
+            },
+        },
+        "required": []
+    }
+}
 
 schedule_event = {
   "name": "schedule_event",
@@ -105,51 +119,3 @@ delete_events_by_ids = {
     }
 }
 
-tell_me_the_date = {
-  "name": "tell_me_the_date",
-  "description": "Tell me the date",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "timestamp": {
-        "type": "string",  # Python doesn't have a built-in timestamp data type
-        "description": f"Today's date i.e. {today} printed in YYYY-MM-DD HH:MM:SS format"
-      },
-      "day": {
-        "type": "string",  # Python doesn't have a built-in timestamp data type
-        "description": f"Today's day i.e. {day}"
-      },
-    },
-    "required": ["timestamp", "day"]
-  }
-}
-
-tell_me_the_days_left_in_the_current_month = {
-  "name": "tell_me_the_days_left_in_the_current_month",
-  "description": "Tell me the days left in in the current month",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "days": {
-        "type": "string",  # Python doesn't have a built-in timestamp data type
-        "description": f"{days_left_in_current_month} days left in the current month"
-      },
-    },
-    "required": ["days"]
-  }
-}
-
-tell_me_the_days_left_in_the_current_year = {
-  "name": "tell_me_the_days_left_in_the_current_year",
-  "description": "Tell me the days left in in the current year",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "days": {
-        "type": "integer",  # Python doesn't have a built-in timestamp data type
-        "description": f"{days_left_in_current_year} days left in the current year"
-      },
-    },
-    "required": ["days"]
-  }
-}

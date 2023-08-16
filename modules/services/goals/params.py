@@ -20,6 +20,21 @@ days_left_in_current_month = days_in_current_month - now.day
 last_day_of_current_year = datetime.datetime(now.year, 12, 31, tzinfo=tz)
 days_left_in_current_year = (last_day_of_current_year - now).days
 
+list_goals_module_functions = {
+    "name": "list_goals_module_functions",
+    "description": "Lists functions in the Goals module",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "connection": {
+                "type": "string",
+                "enum": ["Listing functions from the Goals module"]
+            },
+        },
+        "required": []
+    }
+}
+
 add_goal = {
   "name": "add_goal",
   "description": "Log a goal that the user wants to achieve",
@@ -31,11 +46,11 @@ add_goal = {
         "description": "The name of the goal"
       },
       "date": {
-        "type": "string",  # Python doesn't have a built-in timestamp data type
+        "type": "string",  
         "description": "The date by which the user wants to achieve the goal in YYYY-MM-DD format."
       },
       "today": {
-        "type": "string",  # Python doesn't have a built-in timestamp data type
+        "type": "string",  
         "enum": [today]
       }
     },
@@ -73,7 +88,7 @@ update_goal_by_id = {
                 "description": "The name of the goal"
             },
             "date": {
-              "type": "string",  # Python doesn't have a built-in timestamp data type
+              "type": "string",
               "description": "The date by which the user wants to achieve the goal in YYYY-MM-DD format."
             },
         },
@@ -180,11 +195,11 @@ add_action = {
         "description": "The reason why the user wants to achieve that goal"
       },
       "deadline": {
-        "type": "string",  # Python doesn't have a built-in timestamp data type
-        "description": "The deadline by which the user will execute the action in YYYY-MM-DD format."
+        "type": "string", 
+        "description": "The deadline by which the user will execute the action in YYYY-MM-DD format"
       },
       "today": {
-        "type": "string",  # Python doesn't have a built-in timestamp data type
+        "type": "string", 
         "enum": [today]
       }
     },
@@ -238,7 +253,7 @@ update_action_by_id = {
                 "description": "The name of the action"
             },
             "deadline": {
-              "type": "string",  # Python doesn't have a built-in timestamp data type
+              "type": "string", 
               "description": "The date by which the user wants to achieve the goal in YYYY-MM-DD format."
             },
         },
@@ -263,7 +278,7 @@ delete_actions_by_ids = {
 
 add_timesheet_logs = {
   "name": "add_timesheet_logs",
-  "description": "Log actions a user has taken on a particular day. User may indicate to mark actions with specific ids as done - in which case this function is also to be invoked.",
+  "description": "Log actions a user has taken on a particular day. User may indicate to mark actions with specific ids as done - in which case this function is also to be invoked",
   "parameters": {
     "type": "object",
     "properties": {
@@ -272,11 +287,11 @@ add_timesheet_logs = {
           "description": "The ids of the actions taken separated by camel case. For instance ids 4 and 5 would be 4_5"
       },
       "date": {
-        "type": "string",  # Python doesn't have a built-in timestamp data type
+        "type": "string", 
         "description": f"The date of the logs in YYYY-MM-DD format. Default is {today}. Otherwise, this needs to be calculated relative from {today}"
       },
       "today": {
-        "type": "string",  # Python doesn't have a built-in timestamp data type
+        "type": "string", 
         "enum": [today]
       }
     },
@@ -291,11 +306,11 @@ list_timesheet_logs = {
     "type": "object",
     "properties": {
       "date": {
-        "type": "string",  # Python doesn't have a built-in timestamp data type
+        "type": "string", 
         "description": f"The date of the logs in YYYY-MM-DD format. Default is {today}. Otherwise, this needs to be calculated relative from {today}"
       },
       "today": {
-        "type": "string",  # Python doesn't have a built-in timestamp data type
+        "type": "string", 
         "enum": [today]
       }
     },
@@ -305,7 +320,7 @@ list_timesheet_logs = {
 
 delete_timesheet_logs = {
   "name": "delete_timesheet_logs",
-  "description": "Deletes logs of actions a user has taken on a particular day. User may indicate to unmark actions with specific ids as done - in which case this function is also to be invoked.",
+  "description": "Deletes logs of actions a user has taken on a particular day. User may indicate to unmark actions with specific ids as done - in which case this function is also to be invoked",
   "parameters": {
     "type": "object",
     "properties": {
@@ -314,11 +329,11 @@ delete_timesheet_logs = {
           "description": "The ids of the actions taken separated by camel case. For instance ids 4 and 5 would be 4_5"
       },
       "date": {
-        "type": "string",  # Python doesn't have a built-in timestamp data type
+        "type": "string", 
         "description": f"The date of the logs in YYYY-MM-DD format. Default is {today}. Otherwise, this needs to be calculated relative from {today}"
       },
       "today": {
-        "type": "string",  # Python doesn't have a built-in timestamp data type
+        "type": "string",
         "enum": [today]
       }
     },
@@ -328,7 +343,7 @@ delete_timesheet_logs = {
 
 display_timesheets_line_chart = {
     "name": "display_timesheets_line_chart",
-    "description": "Plots an ascii line chart of the users timesheet entries over the given range of days",
+    "description": "Plots a line chart of the users timesheet entries over the given range of days",
     "parameters": {
         "type": "object",
         "properties": {

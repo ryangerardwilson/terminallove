@@ -142,6 +142,7 @@ async def main(
 
         if preliminary_classification_function_info['function_name'] == 'invoke_goals_module':
             functions = [
+                list_goals_module_functions,
                 add_goal,
                 list_goals,
                 update_goal_by_id,
@@ -166,6 +167,7 @@ async def main(
 
         if preliminary_classification_function_info['function_name'] == 'invoke_runs_module':
             functions = [
+                list_runs_module_functions,
                 list_run_logging_params,
                 add_run_logs,
                 list_run_logs,
@@ -179,11 +181,11 @@ async def main(
 
         if preliminary_classification_function_info['function_name'] == 'invoke_time_module':
             functions = [
+                list_time_module_functions,
                 schedule_event,
                 list_events,
                 update_event_by_id,
                 delete_events_by_ids,
-                tell_me_the_date,
             ]
 
         if preliminary_classification_function_info['function_name'] == 'invoke_notes_module':
@@ -256,12 +258,14 @@ async def main(
                 'display_debt_status_logs_line_chart': fn_display_debt_status_logs_line_chart,
                 
                 # time module
+                'list_time_module_functions': fn_list_time_module_functions,
                 'list_events': fn_list_events,
                 'schedule_event': fn_schedule_event,
                 'update_event_by_id': fn_update_event_by_id,
                 'delete_events_by_ids': fn_delete_events_by_ids,
 
                 # goals module
+		'list_goals_module_functions': fn_list_goals_module_functions,
                 'list_goals': fn_list_goals,
                 'list_actions': fn_list_actions,
                 'add_goal': fn_add_goal,
@@ -281,6 +285,7 @@ async def main(
                 'display_timesheets_line_chart': fn_display_timesheets_line_chart,
                 
                 # runs module
+                'list_runs_module_functions': fn_list_runs_module_functions,
                 'list_run_logging_params': fn_list_run_logging_params,
                 'list_run_logs': fn_list_run_logs,
                 'list_available_running_charts': fn_list_available_running_charts,

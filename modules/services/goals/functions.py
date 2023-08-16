@@ -21,6 +21,92 @@ conn = mysql.connector.connect(
     database=os.getenv('DB_DATABASE')
 )
 
+def fn_list_goals_module_functions(called_function_arguments_dict):
+    functions = [
+            {
+                "function": "add_goal",
+                "description": "Log a goal that the user wants to achieve",
+            },
+            {
+                "function": "list_goals",
+                "description": "Lists the user's goals",
+            },
+            {
+                "function": "update_goal_by_id",
+                "description": "Update a goal by its id",
+            },
+            {
+                "function": "delete_goals_by_ids",
+                "description": "Delete goals by their ids",
+            },
+            {
+                "function": "add_reason",
+                "description": "Log why a user wants to achieve a particular goal",
+            },
+            {
+                "function": "list_reasons_by_goal_id",
+                "description": "List the reasons why the user wants to achieve a particular goal with a goal id",
+            },
+            {
+                "function": "update_reason_by_id",
+                "description": "Update a reason by its id",
+            },
+            {
+                "function": "delete_reasons_by_ids",
+                "description": "Delete reasons by their ids",
+            },
+            {
+                "function": "add_action",
+                "description": "Log actions a user will execute to achieve a particular goal",
+            },
+            {
+                "function": "list_actions",
+                "description": "Lists the actions the user will execute",
+            },
+            {
+                "function": "list_actions_by_goal_id",
+                "description": "List the actions the user will execute to achieve a particular goal with a goal id",
+            },
+            {
+                "function": "update_action_by_id",
+                "description": "Update an action by its id",
+            },
+            {
+                "function": "delete_actions_by_ids",
+                "description": "Delete actions by their ids",
+            },
+            {
+                "function": "add_timesheet_logs",
+                "description": "Log actions a user has taken on a particular day. User may indicate to mark actions with specific ids as done - in which case this function is also to be invoked",
+            },
+            {
+                "function": "list_timesheet_logs",
+                "description": "Lists logs of actions a user has taken on a particular day, or shows the user his timesheet for a particular day",
+            },
+            {
+                "function": "delete_timesheet_logs",
+                "description": "Deletes logs of actions a user has taken on a particular day. User may indicate to unmark actions with specific ids as done - in which case this function is also to be invoked",
+            },
+            {
+                "function": "display_timesheets_line_chart",
+                "description": "Plots a line chart of the users timesheet entries over the given range of days",
+            },
+      ]
+        # Convert the passwords to a list of lists
+    rows = [
+        [index + 1, entry["function"], entry["description"]]
+        for index, entry in enumerate(functions)
+    ]
+
+    # Column names
+    column_names = ["", "function", "description"]
+
+    # Print the passwords in tabular form
+    print()
+    print(colored('GOALS MODULE FUNCTIONS', 'red'))
+    print()
+    print(colored(tabulate(rows, headers=column_names), 'cyan'))
+    print()
 
 def fn_add_goal(called_function_arguments_dict):
     cursor = conn.cursor()
