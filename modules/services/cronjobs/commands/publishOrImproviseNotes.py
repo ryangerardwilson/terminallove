@@ -438,7 +438,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, execution_logs, log_id):
             filename = f"{note_id}_{datetime.datetime.now(tz).strftime('%Y%m%d_%H%M%S')}"
 
             blob = bucket.blob(f"{filename}.jpg")
-	    blob.upload_from_string(
+            blob.upload_from_string(
                 image_content,
                 content_type='image/jpeg'
             )
