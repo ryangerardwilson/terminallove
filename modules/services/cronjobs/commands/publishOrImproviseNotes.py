@@ -347,7 +347,7 @@ def publish_or_improvise_notes():
             execution_logs.append('347')
             print('Line: 347')
 
-            fn_publish_notes_by_ids(note_id, error_logs, log_id)
+            fn_publish_notes_by_ids(note_id, error_logs, execution_logs, log_id)
 
             # STEP 4: If note was published, make sure that it is deleted from spaced_publications
             check_published_query = "SELECT COUNT(*) FROM notes WHERE id = %s AND is_published = 1"
@@ -388,7 +388,7 @@ def publish_or_improvise_notes():
         conn.commit()
 
     
-def fn_publish_notes_by_ids(note_id, error_logs, log_id):
+def fn_publish_notes_by_ids(note_id, error_logs, execution_logs, log_id):
 
     cursor = conn.cursor()
     def generate_media_for_note(note_id):
@@ -397,7 +397,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
                 "SELECT note FROM notes WHERE id = %s"
             )
             cursor.execute(select_cmd, (note_id,))
-
+            execution_logs.append('400')
 
             row = cursor.fetchone()
             if row:
@@ -405,8 +405,6 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
             else:
                 print(f"No note found for note_id {note_id}")
                 return False
-
-
 
             paragraphs = note_text.split("\n\n")
             first_paragraph = paragraphs[0]
@@ -420,14 +418,15 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
                 "n": 1,
                 "size": "512x512"
             }
-
+            execution_logs.append('421')
             response = requests.post("https://api.openai.com/v1/images/generations", headers=headers, data=json.dumps(data))
             response_data = response.json()
-
+            execution_logs.append('424')
             open_ai_media_url = response_data['data'][0]['url']
             downloaded_image = requests.get(open_ai_media_url)
 
             if downloaded_image.status_code != 200:
+                execution_logs.append('429')
                 raise Exception("Failed to download image from URL: {} {}".format(downloaded_image.status_code, downloaded_image.text))
 
             image_content = downloaded_image.content
@@ -439,10 +438,11 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
             filename = f"{note_id}_{datetime.datetime.now(tz).strftime('%Y%m%d_%H%M%S')}"
 
             blob = bucket.blob(f"{filename}.jpg")
-            blob.upload_from_string(
+	    blob.upload_from_string(
                 image_content,
                 content_type='image/jpeg'
             )
+            execution_logs.append('445')
 
             # Access the image URL and media ID
             media_url = blob.public_url
@@ -455,8 +455,8 @@ def fn_publish_notes_by_ids(note_id, error_logs, log_id):
             error_logs.append("FAILED TO GENERATE MEDIA FOR NOTE")
             error_logs.append(str(e))
             cursor.execute(
-                "UPDATE cronjob_logs SET job_description = %s, error_logs = %s WHERE id = %s",
-                ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), log_id)
+                "UPDATE cronjob_logs SET job_description = %s, error_logs = %s, execution_logs = %s WHERE id = %s",
+                ("Errors in executing publishOrImproviseNotes.py", json.dumps(error_logs), json.dumps(execution_logs), log_id)
             )
             conn.commit()
             return False
