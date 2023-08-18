@@ -608,7 +608,7 @@ def fn_add_timesheet_logs(called_function_arguments_dict):
     print()
 
     # Query the actions that have been logged today
-    cursor.execute(f"SELECT * FROM actions WHERE is_active = 1 AND id IN (SELECT action_id FROM timesheets WHERE date = '{date}')")
+    cursor.execute(f"SELECT * FROM actions WHERE is_active = 1 AND id IN (SELECT action_id FROM timesheets WHERE date = '{date}') ORDER BY goal_id, deadline")
     actions_logged = cursor.fetchall()
     column_names = [desc[0] for desc in cursor.description]
 
@@ -624,7 +624,7 @@ def fn_add_timesheet_logs(called_function_arguments_dict):
 
 
     # Query the actions that have not been logged today
-    cursor.execute(f"SELECT * FROM actions WHERE is_active = 1 AND id NOT IN (SELECT action_id FROM timesheets WHERE date = '{date}')")
+    cursor.execute(f"SELECT * FROM actions WHERE is_active = 1 AND id NOT IN (SELECT action_id FROM timesheets WHERE date = '{date}' ORDER BY goal_id, deadline)")
     actions_not_logged = cursor.fetchall()
 
     print(colored(f"{header_prefix} ACTIONABLES", 'cyan'))
@@ -666,7 +666,7 @@ def fn_list_timesheet_logs(called_function_arguments_dict):
 
     # Query the actions that have been logged today
     cursor.execute(
-        f"SELECT * FROM actions WHERE is_active = 1 AND id IN (SELECT action_id FROM timesheets WHERE date = '{date}')")
+        f"SELECT * FROM actions WHERE is_active = 1 AND id IN (SELECT action_id FROM timesheets WHERE date = '{date}') ORDER BY goal_id, deadline")
     actions_logged = cursor.fetchall()
     column_names = [desc[0] for desc in cursor.description]
 
@@ -770,7 +770,7 @@ def fn_delete_timesheet_logs(called_function_arguments_dict):
     header_prefix = "TODAY'S" if date == default_date else f"{date}'s"
     print()
 
-    cursor.execute(f"SELECT * FROM actions WHERE is_active = 1 AND id IN (SELECT action_id FROM timesheets WHERE date = '{date}')")
+    cursor.execute(f"SELECT * FROM actions WHERE is_active = 1 AND id IN (SELECT action_id FROM timesheets WHERE date = '{date}') ORDER BY goal_id, deadline")
     actions_logged = cursor.fetchall()
     column_names = [desc[0] for desc in cursor.description]
 
@@ -785,7 +785,7 @@ def fn_delete_timesheet_logs(called_function_arguments_dict):
         print()
 
     # Query the actions that have not been logged today
-    cursor.execute(f"SELECT * FROM actions WHERE is_active = 1 AND id NOT IN (SELECT action_id FROM timesheets WHERE date = '{date}')")
+    cursor.execute(f"SELECT * FROM actions WHERE is_active = 1 AND id NOT IN (SELECT action_id FROM timesheets WHERE date = '{date}') ORDER BY goal_id, deadline")
     actions_not_logged = cursor.fetchall()
 
     print(colored(f"{header_prefix} ACTIONABLES", 'cyan'))
