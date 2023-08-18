@@ -624,7 +624,7 @@ def fn_add_timesheet_logs(called_function_arguments_dict):
 
 
     # Query the actions that have not been logged today
-    cursor.execute(f"SELECT * FROM actions WHERE is_active = 1 AND id NOT IN (SELECT action_id FROM timesheets WHERE date = '{date}' ORDER BY goal_id, deadline)")
+    cursor.execute(f"SELECT * FROM actions WHERE is_active = 1 AND id NOT IN (SELECT action_id FROM timesheets WHERE date = '{date}') ORDER BY goal_id, deadline")
     actions_not_logged = cursor.fetchall()
 
     print(colored(f"{header_prefix} ACTIONABLES", 'cyan'))
