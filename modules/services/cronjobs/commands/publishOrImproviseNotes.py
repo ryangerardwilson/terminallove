@@ -248,7 +248,7 @@ def publish_or_improvise_notes():
             formatted_paragraphs = []
             current_paragraph = ""
             for sentence in sentences:
-                if len(current_paragraph) + len(sentence) > 270:  # +10 for prefix
+                if len(current_paragraph) + len(sentence) > 250:  # +10 for prefix
                     formatted_paragraphs.append(current_paragraph.strip())
                     current_paragraph = sentence
                 else:
