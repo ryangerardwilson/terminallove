@@ -361,8 +361,9 @@ def publish_or_improvise_notes():
                 print('Line: 360')
                 conn.commit()
 
-            # STEP 5: If not was improvised, but not published, then delete the note itself
+            # STEP 5: If not was improvised, but not properly published, then unpublish the note and delete the note itself
             if is_published_count == 0 and was_note_improvised == True:
+                fn_unpublish_note(note_id)
                 delete_query = "DELETE FROM notes WHERE id = %s"
                 cursor.execute(delete_query, (note_id,))
                 print(f"Deleted note id {note_id} from notes because it was improvised but could not be published")
@@ -1076,6 +1077,88 @@ def get_asset_urn_after_uploading_image_to_linkedin(media_url):
         print('Failed to upload the image.')
         print(f'Status code: {upload_response.status_code}')
         print(f'Response: {upload_response.text}')
+
+def fn_unpublish_note(note_id):
+
+    cursor = conn.cursor()
+    default_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
+    date = called_function_arguments_dict.get('date', default_date)
+
+    def delete_tweets_by_note_id(note_id):
+        select_cmd = "SELECT id, tweet_id FROM tweets WHERE note_id = %s"
+        cursor.execute(select_cmd, (note_id,))
+        results = cursor.fetchall()
+        if not results:
+            print(colored(f"No published tweets to delete for note id {note_id}", 'cyan'))
+        else:
+            oauth = get_oauth_session()
+            for result in results:
+                table_id, tweet_id = result
+                time.sleep(1)
+                # Delete the tweet on Twitter
+                url = f"https://api.twitter.com/2/tweets/{tweet_id}"
+                response = oauth.delete(url)
+                # Check for a successful response
+                if response.status_code == 200:
+                # If the deletion was successful on Twitter, delete the record from the tweets table
+                    sql = "DELETE FROM tweets WHERE id = %s"
+                    cursor.execute(sql, (table_id,))
+                else:
+                    print(colored(f"Failed to delete tweet with {tweet_id} for note id {note_id}", 'cyan'))
+                    print(response.text)
+
+    def delete_linkedin_post_by_note_id(note_id):
+        select_cmd = "SELECT id, note_id, post_id FROM linkedin_posts WHERE note_id = %s"
+        cursor.execute(select_cmd, (note_id,))
+        result = cursor.fetchone()
+        if not result:
+            print(colored(f"No published linkedin posts to delete for note id {note_id}", 'cyan'))
+        else:
+            table_id, note_id, post_id = result
+            access_token, linkedin_id = get_active_access_token_and_linkedin_id()
+            time.sleep(1)
+
+            # Note that URNs included in the URL params must be URL encoded. For example, urn:li:ugcPost:12345 would become urn%3Ali%3AugcPost%3A12345.
+            encoded_post_id = urllib.parse.quote(post_id, safe='')
+            url = f"https://api.linkedin.com/v2/ugcPosts/{encoded_post_id}"
+            print(url)
+
+
+            headers = {
+                'Authorization': 'Bearer ' + access_token,
+                'Content-Type': 'application/json',
+                'X-Restli-Protocol-Version': '2.0.0'
+            }
+            response = requests.delete(url, headers=headers)
+
+            if response.status_code == 200 or response.status_code == 204:
+                # If the deletion was successful, delete the record from the tweets table
+                sql = "DELETE FROM linkedin_posts WHERE id = %s"
+                cursor.execute(sql, (table_id,))
+
+            print('852', response, response.status_code, response.content)
+            if response.status_code != 201 and response.status_code != 204:
+                print('726')
+                print(colored(f"Request returned an error with status code {response.status_code}", "cyan"))
+                print(colored(response.text, "cyan"))
+                return False
+            else:
+                print(f"Deleted note id {note_id} from LinkedIn")
+
+
+    def set_is_published_to_false(note_id):
+        print(colored(f"Setting note id {note_id} as unpublished", "cyan"))
+        update_cmd = "UPDATE notes SET is_published = 0, published_at = NULL WHERE id = %s"
+        cursor.execute(update_cmd, (note_id,))
+        conn.commit()
+        return True
+
+    try:
+        delete_tweets_by_note_id(note_id)
+        delete_linkedin_post_by_note_id(note_id)
+        set_is_published_to_false(note_id)
+    except Exception as e:
+        print('line 809 error', e)
 
 
 if __name__ == '__main__':
