@@ -466,6 +466,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, execution_logs, log_id):
             inserted_tweets = []
             media_url = None
             media_id = None
+            execution_logs.append('469')
 
             select_cmd = ("SELECT note, media_url FROM notes WHERE id = %s")
             cursor.execute(select_cmd, (note_id,))
@@ -480,11 +481,11 @@ def fn_publish_notes_by_ids(note_id, error_logs, execution_logs, log_id):
 
             cursor.execute("SELECT tweet FROM tweets")
             previous_tweets = {row[0] for row in cursor.fetchall()}
-
+            execution_logs.append('484')
             paragraphs = note_text.split("\n\n")
 
             for i, paragraph in enumerate(paragraphs, 1):
-             
+                execution_logs.append('488')
                 if not paragraph.strip():
                     print(colored(f"Skipping empty paragraph {i}", 'red'))
                     if i == 1:
@@ -517,7 +518,9 @@ def fn_publish_notes_by_ids(note_id, error_logs, execution_logs, log_id):
                     media_id = None
 
                 response = oauth.post("https://api.twitter.com/2/tweets", json=payload)
+                execution_logs.append('521')
                 if response.status_code != 201:
+                    execution_logs.append('523')
                     delete_tweets_by_note_id(note_id)
                     print(colored(f"Request returned an error with status code {response.status_code}", "cyan"))
                     return False
@@ -525,6 +528,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, execution_logs, log_id):
                 json_response = response.json()
 
                 if 'data' in json_response:
+                    execution_logs.append('531')
                     tweet_id = json_response['data']['id']
                     previous_tweet_id = tweet_id
                     posted_at = datetime.datetime.now(tz)
@@ -549,6 +553,7 @@ def fn_publish_notes_by_ids(note_id, error_logs, execution_logs, log_id):
                 return True
      
         except Exception as e:
+            execution_logs.append('556')
             print(colored(f"Failed to tweet out note id {note_id}: ","cyan"), e)
             error_logs.append("FAILED TO TWEET OUT NOTE")
             error_logs.append(str(e))
