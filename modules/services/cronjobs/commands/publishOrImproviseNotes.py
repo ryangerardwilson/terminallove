@@ -158,8 +158,8 @@ SENTENCE_START_PROMPTS = [
     ]
 
 NOTE_TEXT_IMPROVISATION_PROMPTS = [
-    "explain the underlying philosophy of CONCEPT_THEME (in context of the internet) to first year philosohpy students, in less than 300 words, starting with - SENTENCE_START_PROMPTS",
-    "give one example of any ancient philosopher's idea that is analogous to CONCEPT_THEME (in context of the internet), in less than 200 words, starting with - SENTENCE_START_PROMPTS",
+    "explain the underlying philosophy of CONCEPT_THEME (in context of the internet) to first year philosohpy students, in less than 300 words. Start your response with - SENTENCE_START_PROMPTS",
+    "give one example of any ancient philosopher's idea that is analogous to CONCEPT_THEME (in context of the internet), in less than 200 words. Start your response with - SENTENCE_START_PROMPTS",
     ]
 
 def publish_or_improvise_notes():
