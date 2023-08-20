@@ -494,6 +494,12 @@ def fn_publish_notes_by_ids(note_id, error_logs, execution_logs, log_id):
 
                 if len(paragraph) > 280:
                     print(colored(f"Paragraph {i} is longer than 280 characters by {len(paragraph) - 280} characters. Not tweeting anything", 'red'))
+                    delete_query = "DELETE FROM spaced_publications WHERE note_id = %s"
+                    cursor.execute(delete_query, (note_id,))
+                    print(f"Deleted note id {note_id} from spaced_publications because it was improvised but contains a para that exceeds 280 characters")
+                    execution_logs.append('500')
+                    print('Line: 500')
+                    conn.commit()
                     return False
 
                 if paragraph in previous_tweets:
