@@ -500,6 +500,9 @@ def fn_publish_notes_by_ids(note_id, error_logs, execution_logs, log_id):
                     print(f"Deleted note id {note_id} from spaced_publications because it was improvised but contains a para that exceeds 280 characters")
                     execution_logs.append('500')
                     print('Line: 500')
+                    fn_unpublish_note(note_id)
+                    print('deleted any published remnants of the note')
+                    execution_logs.append('505')
                     conn.commit()
                     return False
 
